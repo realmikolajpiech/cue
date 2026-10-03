@@ -41,3 +41,7 @@ Native verification passed 13 JVM unit tests and 5 device instrumentation tests,
 ## Manual check
 
 The Sprawdź tab sends user-entered text (up to 1500 characters) to the native CPU engine and displays a validated assessment. It requires an installed model, but no notification-listener permission or monitoring. Input and output are transient and are not added to history or sent to a server. User-entered text exists in the React Native input; automatically observed notification messages still stay entirely in Kotlin. Marcel's screen styling is retained, with loading, result and failure states replacing the placeholder preview.
+
+## Notification monitoring in the main design
+
+On Android, the main protection switch and Settings use the native monitoring state, and the Marcel history/detail layouts display actual sanitized native results. Web/iOS keep the labeled demo. The protection heading is active only when monitoring is enabled, Android notification access is granted, the listener is connected and the model is ready. The SMS/WhatsApp/Messenger list describes the fixed native allowlist; it does not pretend unsupported application-selection controls work. System warning permission is separate from listener access. Monitoring analyzes newly posted notifications, not past messages or conversations opened inside another app. End-to-end acceptance still requires a new synthetic incoming notification from a supported app; the earlier CPU benchmark reports latency and false positives separately.
