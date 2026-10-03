@@ -51,7 +51,8 @@
         }
       ],
       "./plugins/withGuardianAndroid",
-      "./plugins/withSubtext"
+      "./plugins/withSubtext",
+      "expo-image"
     ],
     "scheme": "guardian",
     "experiments": {

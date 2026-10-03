@@ -65,7 +65,11 @@ mkdir -p "$repo_root/modules/subtext/android/libs"
     perl -0pi -e 's#\n\t}\n}\n\n// harvestContacts#\n\t}\n\tfor _, t := range tbl.LSUpdateOrInsertThread {\n\t\tname := b.resolveConversationName(t.GetThreadKey(), t.GetThreadName())\n\t\tb.taMu.Lock()\n\t\tif b.threadActivity != nil { b.threadActivity[t.GetThreadKey()] = t.LastActivityTimestampMs }\n\t\tb.taMu.Unlock()\n\t\tb.emit("CONVERSATION", map[string]any{"threadKey": t.GetThreadKey(), "threadName": name, "snippet": t.Snippet, "timestamp": t.LastActivityTimestampMs})\n\t}\n}\n\n// harvestContacts#' fbmessagebridge/bridge_fb.go
     perl -0pi -e 's#b\.harvestContacts\(tbl\)#b.harvestContacts(tbl)\n\tb.harvestThreadContactMappings(tbl)#g; s#b\.lookupContact\(t\.ThreadKey\)#b.resolveConversationName(t.ThreadKey, "")#g; s#(\t\tb\.emit\("CONVERSATION", out\))#\t\tb.rememberConversationMeta(t.ThreadKey, t.Snippet, t.LastActivityTimestampMs)\n$1#; s#(\t\tb\.emit\("CONVERSATION", map\[string\]any\{"threadKey": t\.GetThreadKey\(\), "threadName": name, "snippet": t\.Snippet, "timestamp": t\.LastActivityTimestampMs\}\))#\t\tb.rememberConversationMeta(t.GetThreadKey(), t.Snippet, t.LastActivityTimestampMs)\n$1#; s#(\t\tb\.contactNames\[id\] = n\n\t\tb\.contactMu\.Unlock\(\))#$1\n\t\tb.reemitNamedConversation(id, n)#' fbmessagebridge/bridge_fb.go
     git -C "$work_dir/mirrormsg" apply "$repo_root/scripts/bridges/messenger-bridge-reliability.patch"
-    gofmt -w fbmessagebridge/bridge_fb.go fbmessagebridge/conversation_names.go instagrambridge/bridge.go
+    cp "$repo_root/scripts/bridges/messenger-profile-photos.go" fbmessagebridge/profile_photos.go
+    cp "$repo_root/scripts/bridges/whatsapp-profile-photos.go" whatsappbridge/profile_photos.go
+    cp "$repo_root/scripts/bridges/messenger-profile-photos_test.go" fbmessagebridge/profile_photos_test.go
+    perl -0pi -e 's/contactNames map\[int64\]string/contactNames map[int64]string\n\tprofilePhotos sync.Map\n\tthreadProfilePhotos sync.Map/; s/func \(b \*Bridge\) harvestContacts\(tbl \*table.LSTable\) \{/func (b *Bridge) harvestContacts(tbl *table.LSTable) {\n\tb.harvestProfilePhotos(tbl)/' fbmessagebridge/bridge_fb.go
+    gofmt -w fbmessagebridge/bridge_fb.go fbmessagebridge/conversation_names.go fbmessagebridge/profile_photos*.go whatsappbridge/profile_photos.go instagrambridge/bridge.go
     go test ./fbmessagebridge ./whatsappbridge ./telegrambridge ./instagrambridge
     "$GOBIN/gomobile" bind \
         -target android/arm64 \
