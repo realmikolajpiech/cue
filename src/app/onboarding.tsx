@@ -1,1 +1,1 @@
-export { default } from '@/features/onboarding/Onboarding';
+export { default } from '@/features/subtext/Onboarding';

@@ -1,0 +1,203 @@
+diff --git a/combined-go/whatsappbridge/bridge_wa.go b/combined-go/whatsappbridge/bridge_wa.go
+index 2e05864..56c033c 100644
+--- a/combined-go/whatsappbridge/bridge_wa.go
++++ b/combined-go/whatsappbridge/bridge_wa.go
+@@ -18,8 +18,10 @@ package whatsappbridge
+ 
+ import (
+ 	"context"
++	"crypto/sha256"
+ 	"database/sql"
+ 	"encoding/base64"
++	"encoding/hex"
+ 	"encoding/json"
+ 	"fmt"
+ 	"os"
+@@ -32,11 +34,6 @@ import (
+ 	// MUST be modernc, NOT github.com/mattn/go-sqlite3 (cgo) — cgo breaks gomobile.
+ 	_ "modernc.org/sqlite"
+ 
+-	// Reuse the EXACT watch image encoder Google uses (scale + 4bpp palettize),
+-	// so WhatsApp images render identically. We only do the WhatsApp-specific
+-	// download/decrypt here, then hand raw bytes to mirrorbridge.EncodeImageForWatch.
+-	"fi.mirrormsg/mirrorbridge"
+-
+ 	"go.mau.fi/whatsmeow"
+ 	// Image download handles are persisted as marshaled ImageMessage protos so
+ 	// images survive an app restart. If this proto import path is wrong for this
+@@ -152,7 +149,7 @@ type msgEntry struct {
+ }
+ 
+ // maxMsgsPerChat caps the per-chat history we keep (and serve to the watch).
+-const maxMsgsPerChat = 50
++const maxMsgsPerChat = 500
+ 
+ // addMsg appends a message (deduped by ID). Call sortAndCap after a batch.
+ func (e *chatEntry) addMsg(m *msgEntry) {
+@@ -278,9 +275,21 @@ func (b *Bridge) handleEvent(evt any) {
+ 		b.handleHistorySync(e)
+ 	case *events.Connected:
+ 		b.emit("CONNECTED", `{}`)
++	case *events.Disconnected:
++		b.emit("DISCONNECTED", `{"reason":"socket_disconnected"}`)
+ 	case *events.LoggedOut:
+ 		// Session died on the server side — Kotlin should prompt a re-pair.
+ 		b.emit("LOGGED_OUT", `{"reason":"logged_out"}`)
++	case *events.StreamReplaced:
++		b.emit("DISCONNECTED", `{"reason":"stream_replaced"}`)
++	case *events.ClientOutdated:
++		b.emit("CONNECT_ERROR", `{"reason":"client_outdated"}`)
++	case *events.ConnectFailure:
++		b.emit("CONNECT_ERROR", fmt.Sprintf(`{"reason":%d,"message":%q}`, e.Reason, e.Message))
++	case *events.TemporaryBan:
++		b.emit("CONNECT_ERROR", fmt.Sprintf(`{"reason":"temporary_ban","seconds":%d}`, int64(e.Expire/time.Second)))
++	case *events.KeepAliveTimeout:
++		b.emit("DISCONNECTED", `{"reason":"keepalive_timeout"}`)
+ 	default:
+ 		// e.g. *events.HistorySync, *events.Receipt — visible by type name during
+ 		// bring-up so we can see traffic without yet decoding it.
+@@ -1049,13 +1058,18 @@ type latestMsgJSON struct {
+ 	DisplayContent string `json:"displayContent"`
+ }
+ type participantJSON struct {
+-	IsMe bool `json:"isMe"`
+-	ID   waID `json:"ID"`
++	IsMe      bool   `json:"isMe"`
++	FirstName string `json:"firstName,omitempty"`
++	FullName  string `json:"fullName,omitempty"`
++	ID        waID   `json:"ID"`
+ }
+ type convoJSON struct {
+ 	ConversationID string            `json:"conversationID"`
+ 	Name           string            `json:"name"`
+ 	Type           string            `json:"type"`
++	IsGroup        bool              `json:"isGroup"`
++	ContactID      string            `json:"contactId,omitempty"`
++	Timestamp      string            `json:"timestamp,omitempty"`
+ 	Unread         bool              `json:"unread"`
+ 	LatestMessage  latestMsgJSON     `json:"latestMessage"`
+ 	Participants   []participantJSON `json:"participants"`
+@@ -1084,7 +1098,9 @@ func (b *Bridge) ListConversations(count int) (string, error) {
+ 		// Prefer the saved contact name (1:1 chats) or the group subject (groups);
+ 		// fall back to the stored name (push name / number).
+ 		name := e.Name
+-		if jid, perr := types.ParseJID(e.JID); perr == nil {
++		jid, jidErr := types.ParseJID(e.JID)
++		isGroup := jidErr == nil && jid.Server == "g.us"
++		if jidErr == nil {
+ 			if jid.Server == "g.us" {
+ 				if gn := b.lookupGroupName(e.JID); gn != "" {
+ 					name = gn
+@@ -1093,13 +1109,31 @@ func (b *Bridge) ListConversations(count int) (string, error) {
+ 				name = rn
+ 			}
+ 		}
++		participantsByID := make(map[string]participantJSON)
++		for _, message := range e.Messages {
++			if message == nil || message.FromMe || message.Number == "" {
++				continue
++			}
++			resolved := b.resolveSenderName(e.JID, message)
++			participantsByID[message.Number] = participantJSON{FirstName: resolved, FullName: resolved, ID: waID{Number: message.Number}}
++		}
++		if !isGroup && e.Number != "" {
++			participantsByID[e.Number] = participantJSON{FirstName: name, FullName: name, ID: waID{Number: e.Number}}
++		}
++		participants := make([]participantJSON, 0, len(participantsByID))
++		for _, participant := range participantsByID {
++			participants = append(participants, participant)
++		}
+ 		convos = append(convos, convoJSON{
+ 			ConversationID: e.JID,
+ 			Name:           name,
+ 			Type:           "WA",
++			IsGroup:        isGroup,
++			ContactID:      e.Number,
++			Timestamp:      strconv.FormatInt(e.TsMicros, 10),
+ 			Unread:         false,
+ 			LatestMessage:  latestMsgJSON{DisplayContent: e.Snippet},
+-			Participants:   []participantJSON{{IsMe: false, ID: waID{Number: e.Number}}},
++			Participants:   participants,
+ 		})
+ 	}
+ 	data, err := json.Marshal(convoListJSON{Conversations: convos})
+@@ -1148,6 +1182,13 @@ func (b *Bridge) FetchMessages(convoID string, count int) (string, error) {
+ // LID chat rejects the send on this whatsmeow version, resolve it to the phone
+ // JID first via b.client.Store.LIDs.GetPNForLID before sending.
+ func (b *Bridge) SendMessage(convoID, text string) (string, error) {
++	return b.SendMessageIdempotent(convoID, text, "")
++}
++
++// SendMessageIdempotent uses a stable transport ID for a caller-provided local
++// transaction. whatsmeow only returns after the WhatsApp server acknowledges the
++// stanza, so a non-empty response ID is the confirmation boundary.
++func (b *Bridge) SendMessageIdempotent(convoID, text, transactionID string) (string, error) {
+ 	if b.client == nil {
+ 		return "", fmt.Errorf("whatsapp not connected")
+ 	}
+@@ -1155,13 +1196,21 @@ func (b *Bridge) SendMessage(convoID, text string) (string, error) {
+ 	if err != nil {
+ 		return "", fmt.Errorf("bad jid %q: %w", convoID, err)
+ 	}
++	extra := whatsmeow.SendRequestExtra{Timeout: 45 * time.Second}
++	if transactionID != "" {
++		digest := sha256.Sum256([]byte(transactionID))
++		extra.ID = types.MessageID("OMNI" + hex.EncodeToString(digest[:14]))
++	}
+ 	resp, err := b.client.SendMessage(b.ctx, to, &waE2E.Message{
+ 		Conversation: proto.String(text),
+-	})
++	}, extra)
+ 	if err != nil {
+ 		return "", err
+ 	}
+-	out, _ := json.Marshal(map[string]string{"messageId": string(resp.ID)})
++	if resp.ID == "" || resp.Timestamp.IsZero() {
++		return "", fmt.Errorf("whatsapp server did not confirm the message")
++	}
++	out, _ := json.Marshal(map[string]string{"messageId": string(resp.ID), "conversationId": convoID})
+ 	return string(out), nil
+ }
+ 
+@@ -1273,37 +1322,11 @@ func errJSON(msg string) string {
+ 	return string(b)
+ }
+ 
+-// DownloadImageForWatch fetches+decrypts the image whose handle we stored under
+-// msgID, then runs it through the SHARED mirrorbridge encoder (scale + 4bpp
+-// palettize) so WhatsApp images render identically to Google's. maxBytes>0 is the
+-// enhanced-view heap budget; maxBytes==0 is the small chat-preview box.
+-//
+-// Returns the watch image JSON {"w","h","pixels","fmt","palette"}, or an
+-// {"error":...} object the phone handles gracefully (never a hung transfer).
++// Omni currently exposes text context only. Keep this API stub so the mobile
++// binding stays compatible without pulling the unrelated watch-image bridge and
++// its much larger dependency graph into the WhatsApp AAR.
+ func (b *Bridge) DownloadImageForWatch(msgID string, maxW, maxH, maxBytes, quality int) (string, error) {
+-	b.imgMu.Lock()
+-	enc := b.imgStore[msgID]
+-	b.imgMu.Unlock()
+-	if enc == "" {
+-		return errJSON("no stored image handle for " + msgID), nil
+-	}
+-	rawProto, err := base64.StdEncoding.DecodeString(enc)
+-	if err != nil {
+-		return errJSON("bad stored image: " + err.Error()), nil
+-	}
+-	img := &waE2E.ImageMessage{}
+-	if err := proto.Unmarshal(rawProto, img); err != nil {
+-		return errJSON("unmarshal image: " + err.Error()), nil
+-	}
+-	raw, err := b.client.Download(b.ctx, img)
+-	if err != nil {
+-		return errJSON("download: " + err.Error()), nil
+-	}
+-	out, err := mirrorbridge.EncodeImageForWatch(raw, maxW, maxH, maxBytes, quality)
+-	if err != nil {
+-		return errJSON("encode: " + err.Error()), nil
+-	}
+-	return out, nil
++	return errJSON("image download is not exposed by Omni yet"), nil
+ }
+ 
+ // DumpContacts is a READ-ONLY diagnostic. It reports what whatsmeow's contact

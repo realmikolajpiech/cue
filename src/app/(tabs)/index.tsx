@@ -1,1 +1,1 @@
-export { default } from '@/features/demo/screens/Protection';
+export { default } from '@/features/subtext/People';

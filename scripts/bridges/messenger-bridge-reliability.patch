@@ -1,0 +1,237 @@
+--- a/combined-go/fbmessagebridge/bridge_fb.go
++++ b/combined-go/fbmessagebridge/bridge_fb.go
+@@ -38,6 +38,7 @@
+ 	"database/sql"
+ 	"encoding/json"
+ 	"fmt"
++	"hash/fnv"
+ 	"io"
+ 	"net/http"
+ 	"os"
+@@ -592,17 +593,29 @@
+ 			"threadName": name,
+ 			"snippet":    t.Snippet,
+ 			"timestamp":  t.LastActivityTimestampMs,
++			"isGroup":    !t.ThreadType.IsOneToOne(),
+ 		}
++		if contactID, ok := b.conversationContactID(t.ThreadKey); ok {
++			out["contactId"] = contactID
++			out["e2eeRecipientId"] = strconv.FormatInt(contactID, 10) + "@msgr"
++		}
+ 		b.rememberConversationMeta(t.ThreadKey, t.Snippet, t.LastActivityTimestampMs)
+ 		b.emit("CONVERSATION", out)
+ 	}
+ 	for _, t := range tbl.LSUpdateOrInsertThread {
+ 		name := b.resolveConversationName(t.GetThreadKey(), t.GetThreadName())
+ 		b.taMu.Lock()
+-		if b.threadActivity != nil { b.threadActivity[t.GetThreadKey()] = t.LastActivityTimestampMs }
++		if b.threadActivity != nil {
++			b.threadActivity[t.GetThreadKey()] = t.LastActivityTimestampMs
++		}
+ 		b.taMu.Unlock()
+ 		b.rememberConversationMeta(t.GetThreadKey(), t.Snippet, t.LastActivityTimestampMs)
+-		b.emit("CONVERSATION", map[string]any{"threadKey": t.GetThreadKey(), "threadName": name, "snippet": t.Snippet, "timestamp": t.LastActivityTimestampMs})
++		out := map[string]any{"threadKey": t.GetThreadKey(), "threadName": name, "snippet": t.Snippet, "timestamp": t.LastActivityTimestampMs, "isGroup": !t.ThreadType.IsOneToOne()}
++		if contactID, ok := b.conversationContactID(t.GetThreadKey()); ok {
++			out["contactId"] = contactID
++			out["e2eeRecipientId"] = strconv.FormatInt(contactID, 10) + "@msgr"
++		}
++		b.emit("CONVERSATION", out)
+ 	}
+ }
+ 
+@@ -623,6 +636,7 @@
+ 		b.contactMu.Lock()
+ 		b.contactNames[id] = n
+ 		b.contactMu.Unlock()
++		b.emit("CONTACT", map[string]any{"contactId": id, "name": n})
+ 		b.reemitNamedConversation(id, n)
+ 	}
+ 	for _, c := range tbl.LSVerifyContactRowExists {
+@@ -1219,12 +1233,62 @@
+ // syncGroup is the inbox folder selector — VERIFY the value for the main inbox
+ // (commonly 1). Confirm the thread row field names against the table package.
+ func (b *Bridge) ListConversations(count int) (string, error) {
+-	// Conversations are delivered push-style via emitTableDeltas (CONVERSATION
+-	// events) when Connect() runs LoadMessagesPage and as the realtime socket
+-	// pushes thread updates. The on-demand pull (messagix's FetchMoreThreads /
+-	// task-manager paging) is phase 2; for now return an empty list so the
+-	// Kotlin side relies on the pushed CONVERSATION events.
+-	return `{"conversations":[]}`, nil
++	if b.client == nil {
++		return "", fmt.Errorf("messagix client not connected")
++	}
++	cutoff := time.Now().AddDate(-1, 0, 0).UnixMilli()
++	all := make(map[int64]map[string]any)
++	var prevMinThreadKey int64
++	for {
++		keyStore, tbl, err := b.client.FetchMoreThreads(b.ctx, 1)
++		if err != nil {
++			return "", fmt.Errorf("fetch conversations: %w", err)
++		}
++		if tbl == nil {
++			break
++		}
++		b.emitTableDeltas(tbl, false)
++		oldestReliable := int64(0)
++		add := func(threadKey int64, threadName, snippet string, timestamp int64, isGroup bool) {
++			if threadKey == 0 || (timestamp > 0 && timestamp < cutoff) {
++				return
++			}
++			out := map[string]any{"threadKey": threadKey, "threadName": b.resolveConversationName(threadKey, threadName), "snippet": snippet, "timestamp": timestamp, "isGroup": isGroup}
++			if contactID, ok := b.conversationContactID(threadKey); ok {
++				out["contactId"] = contactID
++				out["e2eeRecipientId"] = strconv.FormatInt(contactID, 10) + "@msgr"
++			}
++			all[threadKey] = out
++			if timestamp > 0 && (oldestReliable == 0 || timestamp < oldestReliable) {
++				oldestReliable = timestamp
++			}
++		}
++		for _, thread := range tbl.LSDeleteThenInsertThread {
++			add(thread.ThreadKey, thread.ThreadName, thread.Snippet, thread.LastActivityTimestampMs, !thread.ThreadType.IsOneToOne())
++		}
++		for _, thread := range tbl.LSUpdateOrInsertThread {
++			add(thread.GetThreadKey(), thread.GetThreadName(), thread.Snippet, thread.LastActivityTimestampMs, !thread.ThreadType.IsOneToOne())
++		}
++		if count > 0 && len(all) >= count {
++			break
++		}
++		if oldestReliable > 0 && oldestReliable < cutoff {
++			break
++		}
++		if keyStore == nil || !keyStore.HasMoreBefore || keyStore.MinThreadKey == prevMinThreadKey {
++			break
++		}
++		prevMinThreadKey = keyStore.MinThreadKey
++	}
++	conversations := make([]map[string]any, 0, len(all))
++	for _, conversation := range all {
++		conversations = append(conversations, conversation)
++	}
++	out, err := json.Marshal(map[string]any{"conversations": conversations})
++	if err != nil {
++		return "", err
++	}
++	return string(out), nil
+ }
+ 
+ // FetchMessages returns up to count messages from a thread as JSON. messagix
+@@ -1404,14 +1468,16 @@
+ // E2EE at all, so all its threads land here). Returns {"messageId": <new id>};
+ // the id is pulled from the server's optimistic-message replacement keyed by our
+ // generated otid, the same extraction the connector does.
+-func (b *Bridge) sendCookieText(tk int64, text string, replyMeta *socket.ReplyMetaData) (string, error) {
++func (b *Bridge) sendCookieText(tk int64, text string, replyMeta *socket.ReplyMetaData, otid int64) (string, error) {
+ 	b.mu.Lock()
+ 	client := b.client
+ 	b.mu.Unlock()
+ 	if client == nil {
+ 		return "", fmt.Errorf("messagix client not connected")
+ 	}
+-	otid := methods.GenerateEpochID()
++	if otid <= 0 {
++		otid = methods.GenerateEpochID()
++	}
+ 	task := &socket.SendMessageTask{
+ 		ThreadId:         tk,
+ 		Otid:             otid,
+@@ -1441,7 +1507,10 @@
+ 			}
+ 		}
+ 	}
+-	out, _ := json.Marshal(map[string]string{"messageId": msgID})
++	if msgID == "" {
++		return "", fmt.Errorf("server did not confirm message transaction %d", otid)
++	}
++	out, _ := json.Marshal(map[string]string{"messageId": msgID, "conversationId": strconv.FormatInt(tk, 10)})
+ 	return string(out), nil
+ }
+ 
+@@ -1481,14 +1550,32 @@
+ // whatsmeow echoes our own sent message back as an FBMessage (IsFromMe), which
+ // flows through the same MESSAGE/CONVERSATION emit below, so the watch updates on
+ // its own — we don't insert anything here.
++func transactionOTID(transactionID string) int64 {
++	if parsed, err := strconv.ParseInt(transactionID, 10, 64); err == nil && parsed > 0 {
++		return parsed
++	}
++	if transactionID == "" {
++		return methods.GenerateEpochID()
++	}
++	hash := fnv.New64a()
++	_, _ = hash.Write([]byte(transactionID))
++	return int64(hash.Sum64() & 0x7fffffffffffffff)
++}
++
+ func (b *Bridge) SendMessage(threadKey, text string) (string, error) {
++	return b.SendMessageIdempotent(threadKey, text, "")
++}
++
++// SendMessageIdempotent reuses the same transport message ID on retries.
++func (b *Bridge) SendMessageIdempotent(threadKey, text, transactionID string) (string, error) {
+ 	tk, err := parseInt64(threadKey)
+ 	if err != nil {
+ 		return "", fmt.Errorf("bad thread key %q: %w", threadKey, err)
+ 	}
+ 	jid, isE2EE := b.e2eeJIDFor(tk)
++	otid := transactionOTID(transactionID)
+ 	if !isE2EE {
+-		return b.sendCookieText(tk, text, nil)
++		return b.sendCookieText(tk, text, nil, otid)
+ 	}
+ 	b.e2eeMu.Lock()
+ 	client := b.e2eeClient
+@@ -1511,11 +1598,15 @@
+ 	}
+ 	// nil metadata: SendFBMessage fills in the franking fields itself. No extra
+ 	// SendRequestExtra: it auto-generates the message id (resp.ID).
+-	resp, err := client.SendFBMessage(b.ctx, jid, consumerApp, nil)
++	messageID := strconv.FormatInt(otid, 10)
++	resp, err := client.SendFBMessage(b.ctx, jid, consumerApp, nil, whatsmeow.SendRequestExtra{ID: messageID})
+ 	if err != nil {
+ 		return "", fmt.Errorf("SendFBMessage: %w", err)
+ 	}
+-	out, _ := json.Marshal(map[string]string{"messageId": string(resp.ID)})
++	if resp.ID == "" {
++		return "", fmt.Errorf("server did not confirm E2EE message")
++	}
++	out, _ := json.Marshal(map[string]string{"messageId": string(resp.ID), "conversationId": threadKey})
+ 	return string(out), nil
+ }
+ 
+@@ -1616,7 +1707,7 @@
+ 			ReplySourceType: 1,
+ 			ReplyType:       0,
+ 			ReplySender:     sender,
+-		})
++		}, methods.GenerateEpochID())
+ 	}
+ 	b.e2eeMu.Lock()
+ 	client := b.e2eeClient
+--- a/combined-go/fbmessagebridge/conversation_names.go
++++ b/combined-go/fbmessagebridge/conversation_names.go
+@@ -56,11 +56,23 @@
+ 	}
+ 	b.conversationNameState().contactByID.Store(threadKey, contactID)
+ 	b.rememberE2EEThread(threadKey, waTypes.NewJID(strconv.FormatInt(contactID, 10), waTypes.MessengerServer))
++	b.emit("THREAD_MAPPING", map[string]any{
++		"threadKey": threadKey, "contactId": contactID,
++		"e2eeRecipientId": strconv.FormatInt(contactID, 10) + "@msgr", "isGroup": false,
++	})
+ 	if name := b.lookupContact(contactID); name != "" {
+ 		b.emitConversationName(threadKey, name)
+ 	}
+ }
+ 
++func (b *Bridge) conversationContactID(threadKey int64) (int64, bool) {
++	contact, ok := b.conversationNameState().contactByID.Load(threadKey)
++	if !ok {
++		return 0, false
++	}
++	return contact.(int64), true
++}
++
+ func (b *Bridge) harvestThreadContactMappings(tbl *table.LSTable) {
+ 	for _, row := range tbl.LSVerifyHybridThreadExists {
+ 		if row != nil && !row.IsGroupThread {

@@ -1,1 +1,2 @@
-export { default } from '@/features/demo/screens/AlertDetail';
+import { Redirect } from 'expo-router';
+export default function LegacyRoute() { return <Redirect href="/" />; }

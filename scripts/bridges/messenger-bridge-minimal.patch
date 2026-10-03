@@ -1,0 +1,80 @@
+diff --git a/combined-go/fbmessagebridge/bridge_fb.go b/combined-go/fbmessagebridge/bridge_fb.go
+index b0d602f..0b727cf 100644
+--- a/combined-go/fbmessagebridge/bridge_fb.go
++++ b/combined-go/fbmessagebridge/bridge_fb.go
+@@ -49,11 +49,6 @@ import (
+ 
+ 	"github.com/rs/zerolog"
+ 
+-	// Reuse the EXACT watch image encoder Google/WhatsApp use (scale + 4bpp
+-	// palettize) so Facebook photos render identically. We only do the FB-specific
+-	// attachment-URL download here, then hand raw bytes to EncodeImageForWatch.
+-	"fi.mirrormsg/mirrorbridge"
+-
+ 	// VERIFY: import paths for the messagix package family. The Client lives in
+ 	// pkg/messagix; cookies and the table/event types live in subpackages. The
+ 	// exact subpackage paths (cookies, types, table) must be confirmed against
+@@ -1046,59 +1041,11 @@ func fbErrJSON(msg string) string {
+ 	return string(out)
+ }
+ 
+-// DownloadImageForWatch fetches the image attachment stored under messageId and
+-// runs it through the SHARED mirrorbridge encoder. Returns the watch image JSON,
+-// or an {"error":...} object the phone handles gracefully (e.g. an expired URL).
++// Arie does not expose MirrorMsg's watch-image format. Keeping this method as a
++// small stub preserves the gomobile API while avoiding the Google Messages
++// bridge and its unrelated dependency graph in the Messenger-only AAR.
+ func (b *Bridge) DownloadImageForWatch(mediaID string, maxW, maxH, maxBytes, quality int) (string, error) {
+-	// E2EE image? Decrypt on demand. The blob lives on Meta's CDN encrypted; we
+-	// retained the media transport (directPath + keys) when the message arrived
+-	// and download+decrypt it now via whatsmeow, then hand the plain JPEG to the
+-	// same watch encoder the cookie path uses.
+-	b.e2eeImgMu.Lock()
+-	xport, isE2EE := b.e2eeImgXport[mediaID]
+-	b.e2eeImgMu.Unlock()
+-	if !isE2EE {
+-		// In-memory miss — try the persisted store (e.g. after an app restart).
+-		if loaded := b.loadImgXport(mediaID); loaded != nil {
+-			xport = loaded
+-			isE2EE = true
+-		}
+-	}
+-	if isE2EE {
+-		// Grab the client pointer under its lock, but run the network download
+-		// without holding it (teardown can nil the client between flaps).
+-		b.e2eeMu.Lock()
+-		client := b.e2eeClient
+-		b.e2eeMu.Unlock()
+-		if client == nil {
+-			return fbErrJSON("e2ee image: client not connected"), nil
+-		}
+-		raw, err := client.DownloadFB(b.ctx, xport, whatsmeow.MediaImage)
+-		if err != nil {
+-			return fbErrJSON("e2ee download: " + err.Error()), nil
+-		}
+-		out, err := mirrorbridge.EncodeImageForWatch(raw, maxW, maxH, maxBytes, quality)
+-		if err != nil {
+-			return fbErrJSON("encode: " + err.Error()), nil
+-		}
+-		return out, nil
+-	}
+-
+-	b.imgMu.Lock()
+-	im, ok := b.imgURLs[mediaID]
+-	b.imgMu.Unlock()
+-	if !ok || im.URL == "" {
+-		return fbErrJSON("no stored image url for " + mediaID), nil
+-	}
+-	raw, err := b.httpGetBytes(im.URL, 8*1024*1024)
+-	if err != nil {
+-		return fbErrJSON("download: " + err.Error()), nil
+-	}
+-	out, err := mirrorbridge.EncodeImageForWatch(raw, maxW, maxH, maxBytes, quality)
+-	if err != nil {
+-		return fbErrJSON("encode: " + err.Error()), nil
+-	}
+-	return out, nil
++	return fbErrJSON("image download is not exposed by Arie yet"), nil
+ }
+ 
+ // httpGetBytes GETs a (public, signed) FB CDN URL with a browser user-agent.

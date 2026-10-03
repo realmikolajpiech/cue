@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Guardian",
+    "name": "Subtext",
     "slug": "guardian",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -18,7 +18,8 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": true,
-      "package": "com.mikolajpiech.guardian"
+      "package": "com.mikolajpiech.guardian",
+      "allowBackup": false
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -38,7 +39,8 @@
           }
         }
       ],
-      "./plugins/withGuardianAndroid"
+      "./plugins/withGuardianAndroid",
+      "./plugins/withSubtext"
     ],
     "scheme": "guardian",
     "experiments": {

@@ -1,1 +1,1 @@
-export { default } from '@/features/demo/screens/Settings';
+export { default } from '@/features/subtext/Settings';

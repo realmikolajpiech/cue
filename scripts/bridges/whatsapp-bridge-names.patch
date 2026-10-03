@@ -1,0 +1,25 @@
+diff --git a/combined-go/whatsappbridge/bridge_wa.go b/combined-go/whatsappbridge/bridge_wa.go
+--- a/combined-go/whatsappbridge/bridge_wa.go
++++ b/combined-go/whatsappbridge/bridge_wa.go
+@@ -277,5 +277,11 @@ func (b *Bridge) handleEvent(evt any) {
+ 	case *events.Connected:
+ 		b.emit("CONNECTED", `{}`)
++	case *events.Contact:
++		b.emit("CHATS_UPDATED", `{"reason":"contact_name_changed"}`)
++	case *events.PushName:
++		b.emit("CHATS_UPDATED", `{"reason":"push_name_changed"}`)
++	case *events.BusinessName:
++		b.emit("CHATS_UPDATED", `{"reason":"business_name_changed"}`)
+ 	case *events.Disconnected:
+ 		b.emit("DISCONNECTED", `{"reason":"socket_disconnected"}`)
+ 	case *events.LoggedOut:
+@@ -563,6 +569,9 @@ func (b *Bridge) resolveName(jid types.JID) string {
+ 		if ci.FirstName != "" {
+ 			return ci.FirstName
+ 		}
++		if ci.BusinessName != "" {
++			return ci.BusinessName
++		}
+ 		if ci.PushName != "" {
+ 			return ci.PushName
+ 		}

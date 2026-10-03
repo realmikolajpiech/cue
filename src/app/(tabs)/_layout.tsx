@@ -1,13 +1,13 @@
-import { t, useLanguage } from '@/i18n';
 import { Tabs } from 'expo-router';
-import { AnimatedTabBar } from '@/components/navigation/AnimatedTabBar';
+import { Icon } from '@/components/ui';
+import { useTheme } from '@/theme/useTheme';
 
-export default function TabsLayout() { useLanguage();
-  return (
-    <Tabs tabBar={props => <AnimatedTabBar {...props} />} screenOptions={{ headerShown: false }}>
-      <Tabs.Screen name="index" options={{ title: t("Start") }} />
-      <Tabs.Screen name="check" options={{ title: t("Sprawdź"), tabBarAccessibilityLabel: t("Sprawdź wiadomość") }} />
-      <Tabs.Screen name="alerts" options={{ title: t("Alerty") }} />
-    </Tabs>
-  );
+export default function TabsLayout() {
+  const { colors } = useTheme();
+  return <Tabs screenOptions={{ headerStyle: { backgroundColor: colors.background }, headerTintColor: colors.text,
+    tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border }, tabBarActiveTintColor: colors.text, tabBarInactiveTintColor: colors.secondaryText }}>
+    <Tabs.Screen name="index" options={{ title: 'Osoby', headerTitle: 'subtext.', tabBarIcon: ({ color }) => <Icon name="message" color={color} /> }} />
+    <Tabs.Screen name="check" options={{ title: 'Połączenia', tabBarIcon: ({ color }) => <Icon name="phone" color={color} /> }} />
+    <Tabs.Screen name="alerts" options={{ title: 'Ustawienia', tabBarIcon: ({ color }) => <Icon name="settings" color={color} /> }} />
+  </Tabs>;
 }

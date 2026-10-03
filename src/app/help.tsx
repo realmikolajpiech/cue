@@ -1,1 +1,2 @@
-export { default } from '@/features/demo/screens/Onboarding';
+import { Redirect } from 'expo-router';
+export default function LegacyRoute() { return <Redirect href="/" />; }

@@ -1,0 +1,20 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+group = 'expo.modules.subtext'
+version = '1.0.0'
+android {
+  namespace 'expo.modules.subtext'
+  defaultConfig { minSdkVersion 26; versionCode 1; versionName '1.0.0'; testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner' }
+  testOptions { unitTests.returnDefaultValues = true }
+}
+dependencies {
+  compileOnly files('libs/messagebridges.aar')
+  implementation 'androidx.core:core-ktx:1.17.0'
+  implementation 'androidx.webkit:webkit:1.14.0'
+  testImplementation 'junit:junit:4.13.2'
+  testImplementation 'org.json:json:20250517'
+  androidTestImplementation 'androidx.test:runner:1.6.2'
+  androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+}

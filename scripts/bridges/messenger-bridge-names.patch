@@ -1,0 +1,103 @@
+--- /dev/null
++++ b/combined-go/fbmessagebridge/conversation_names.go
+@@ -0,0 +1,100 @@
++package fbmessagebridge
++
++import (
++	"strconv"
++	"sync"
++
++	"go.mau.fi/mautrix-meta/pkg/messagix/table"
++	waTypes "go.mau.fi/whatsmeow/types"
++)
++
++// Meta delivers encrypted thread IDs and contact IDs separately. Preserve
++// enough metadata and the thread->contact link to name 1:1 conversations even
++// when those tables arrive in a different order.
++type conversationMeta struct {
++	snippet   string
++	timestamp int64
++}
++
++type conversationNameState struct {
++	meta        sync.Map // thread id -> conversationMeta
++	contactByID sync.Map // thread id -> contact id
++}
++
++var conversationNamesByBridge sync.Map // *Bridge -> *conversationNameState
++
++func (b *Bridge) conversationNameState() *conversationNameState {
++	if value, ok := conversationNamesByBridge.Load(b); ok {
++		return value.(*conversationNameState)
++	}
++	state := &conversationNameState{}
++	value, _ := conversationNamesByBridge.LoadOrStore(b, state)
++	return value.(*conversationNameState)
++}
++
++func (b *Bridge) rememberConversationMeta(threadKey int64, snippet string, timestamp int64) {
++	if threadKey != 0 {
++		b.conversationNameState().meta.Store(threadKey, conversationMeta{snippet: snippet, timestamp: timestamp})
++	}
++}
++
++func (b *Bridge) resolveConversationName(threadKey int64, current string) string {
++	if current != "" {
++		return current
++	}
++	if contactID, ok := b.conversationNameState().contactByID.Load(threadKey); ok {
++		if name := b.lookupContact(contactID.(int64)); name != "" {
++			return name
++		}
++	}
++	return b.lookupContact(threadKey)
++}
++
++func (b *Bridge) rememberThreadContact(threadKey, contactID int64) {
++	if threadKey == 0 || contactID == 0 {
++		return
++	}
++	b.conversationNameState().contactByID.Store(threadKey, contactID)
++	b.rememberE2EEThread(threadKey, waTypes.NewJID(strconv.FormatInt(contactID, 10), waTypes.MessengerServer))
++	if name := b.lookupContact(contactID); name != "" {
++		b.emitConversationName(threadKey, name)
++	}
++}
++
++func (b *Bridge) harvestThreadContactMappings(tbl *table.LSTable) {
++	for _, row := range tbl.LSVerifyHybridThreadExists {
++		if row != nil && !row.IsGroupThread {
++			b.rememberThreadContact(row.ThreadKey, row.ThreadJID)
++		}
++	}
++	for _, row := range tbl.LSUpdateThreadAuthorityAndMappingWithOTIDFromJID {
++		if row != nil {
++			b.rememberThreadContact(row.ThreadKey, row.ThreadJID)
++		}
++	}
++}
++
++func (b *Bridge) reemitNamedConversation(contactID int64, name string) {
++	if contactID == 0 || name == "" {
++		return
++	}
++	b.emitConversationName(contactID, name)
++	b.conversationNameState().contactByID.Range(func(thread, contact any) bool {
++		if contact.(int64) == contactID {
++			b.emitConversationName(thread.(int64), name)
++		}
++		return true
++	})
++}
++
++func (b *Bridge) emitConversationName(threadKey int64, name string) {
++	value, ok := b.conversationNameState().meta.Load(threadKey)
++	if !ok {
++		return
++	}
++	meta := value.(conversationMeta)
++	b.emit("CONVERSATION", map[string]any{
++		"threadKey": threadKey, "threadName": name,
++		"snippet": meta.snippet, "timestamp": meta.timestamp,
++	})
++}

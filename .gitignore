@@ -61,3 +61,6 @@ models/*.part
 
 # Native module build output
 modules/guardian/android/build/
+modules/subtext/android/build/
+modules/subtext/android/.cxx/
+artifacts/*.apk

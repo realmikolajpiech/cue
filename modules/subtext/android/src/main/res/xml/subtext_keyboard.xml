@@ -1,0 +1,3 @@
+<input-method xmlns:android="http://schemas.android.com/apk/res/android" android:supportsSwitchingToNextInputMethod="true">
+  <subtype android:label="Subtext · Polski" android:imeSubtypeLocale="pl_PL" android:imeSubtypeMode="keyboard" />
+</input-method>

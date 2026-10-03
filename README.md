@@ -1,63 +1,92 @@
-# Guardian
+# Subtext
 
-Aplikacja Expo na Androida do lokalnej analizy oznak manipulacji w powiadomieniach.
-Onboarding, konfiguracja, status native i historia są zaimplementowane. Gemma 3 1B
-INT4 działa w Kotlinie z lokalnym LiteRT-LM, weryfikacją pliku i ograniczeniem
-odpowiedzi do JSON Schema. Bez modelu aplikacja działa z nieaktywną ochroną.
-Instalację opisuje [GEMMA.md](docs/GEMMA.md); pełny odbiór ochrony wymaga testów
-rzeczywistych powiadomień na telefonie.
+Androidowy asystent komunikacji: Messenger i WhatsApp na urządzeniu, pamięć
+rozmów, profile oparte na wiadomościach i podpowiedzi DeepSeek V4.1 Flash.
+Nie wymaga Matrixa, VPS-a ani włączonego Maca. Internet jest potrzebny do
+komunikatorów i AI. Wersja release zawiera JavaScript i nie wymaga Metro.
 
-## Uruchomienie na podłączonym Androidzie
+## Uruchomienie
 
-Wymagany Node.js 22.13+, Android SDK i JDK 21 (sprawdzony w lokalnym buildzie). Telefon musi mieć włączone debugowanie USB.
-Polecenia wykonuj w głównym katalogu repo.
+Wymagane: Node 22.13+, Android SDK, JDK 21 i telefon Android **arm64-v8a**.
+Repo zawiera AAR z projektu Arie. Szczegóły i źródła: [NOTICE](modules/subtext/NOTICE.md).
 
 ```sh
 npm ci
-npm run android -- --device
+npx expo prebuild --platform android --no-install
+npx expo run:android --device
 ```
 
-Wybierz telefon podłączony do Maca. To własny build Guardian, bez Expo Go.
-Po pierwszej kompilacji, do zmian tylko w TypeScript:
+Samodzielny APK (kompilacja na Macu lub w EAS; runtime pozostaje na telefonie):
 
 ```sh
-npm start -- --dev-client
+npx expo run:android --variant release --device --no-bundler
 ```
 
-Gdy połączenie USB z Metro wymaga przekierowania:
+W Android Studio otwieraj wygenerowany katalog `android/`, nie główny katalog
+repo. Własny kod native jest w `modules/subtext`, konfiguracja w `app.json`
+i `plugins/withSubtext.js`; nie edytuj wygenerowanego projektu ręcznie.
 
-```sh
-adb reverse tcp:8081 tcp:8081
-```
+## Pierwsze użycie
 
-Kod Kotlin i zmiany config pluginów wymagają ponownego `npm run android -- --device`.
-Katalog `android/` jest generowany; własny kod znajduje się w `modules/guardian`.
+1. Przejdź onboarding i otwórz **Połączenia**.
+2. Messenger: zaloguj się w natywnym ekranie Facebooka. Dokończ ewentualne
+   potwierdzenie logowania we własnej aplikacji Facebook.
+3. WhatsApp: podaj numer z kodem kraju; w WhatsAppie użyj opcji połączenia
+   urządzenia za pomocą numeru telefonu i wpisz wyświetlony kod.
+4. W **Ustawieniach** wpisz klucz DeepSeek i włącz analizę w chmurze.
+5. Otwórz rozmowę w **Osobach**, przejrzyj wiadomości i uruchom analizę.
+6. Opcjonalnie włącz klawiaturę Subtext w ustawieniach Androida. Podczas
+   pisania wybierz właściwą rozmowę, poproś o sugestię i dotknij jej, aby
+   wstawić tekst. Aplikacja nie wysyła odpowiedzi automatycznie.
 
-## Sprawdzenie projektu
+Klucz nie jest zapisany w kodzie ani APK. Pole ustawień zapisuje go zaszyfrowanego
+Android Keystore. Do deweloperskiego buildu można dostarczyć go przez
+`node scripts/provision-subtext-key.mjs`, z ignorowanego `.env.subtext.local`.
+Nigdy nie dodawaj tego pliku do Gita.
+
+## Architektura i zakres
+
+- Expo SDK 57 + Expo Router: onboarding, lista rozmów, profil, połączenia,
+  ustawienia; TanStack Query i walidacja kontraktów Zod.
+- `modules/subtext`: Kotlin, biblioteki Go z Arie/MirrorMsg, lokalny zapis,
+  połączenia, DeepSeek i `InputMethodService`.
+- Messenger korzysta z messagix/mautrix-meta, WhatsApp z whatsmeow.
+  Przechowywane sesje są odtwarzane po ponownym uruchomieniu.
+- Foreground service utrzymuje połączenia i próbuje je wznawiać. Android może
+  ograniczyć działanie w tle; force-stop wymaga ponownego otwarcia aplikacji.
+- Każda rozmowa ma osobny identyfikator zawierający komunikator. Osób o tej
+  samej nazwie nie łączymy automatycznie. Grupę opisujemy jako rozmowę grupową.
+- Lokalnie: maks. 150 rozmów, po 200 wiadomości, do 4000 znaków na wiadomość
+  i ostatni profil. Magazyn jest w prywatnym `noBackupFilesDir`; bez dodatkowej
+  warstwy szyfrowania treści. Messenger szyfruje cookies w Keystore; WhatsApp
+  i stan E2EE używają prywatnych baz mostów.
+- Analiza jest jawna i wykonywana na żądanie, nie automatyczna dla wszystkich
+  kontaktów. Do DeepSeek trafia do 80 ostatnich zapisanych wiadomości i szkic.
+  Model: `deepseek-flash`, JSON output, wyłączony tryb thinking.
+- Profile: podsumowanie, obserwacje i ustalenia z ID źródłowych wiadomości,
+  przypomnienie przed odpowiedzią, trzy warianty odpowiedzi. Nie są diagnozą
+  osobowości. Walidator odrzuca twierdzenia bez dostępnych źródeł; obecność
+  źródła nie gwarantuje trafnej interpretacji.
+- Klawiatura wymaga jawnego wyboru rozmowy. Nie odczytuje ekranu Messengera
+  przez accessibility. Sugestie są wyłączone w polach haseł i bez personalizacji.
+- iOS/web/Expo Go pokazują stan niedostępności zamiast fikcyjnych połączeń.
+- Integracje są nieoficjalne, a dostępna historia zależy od usługi i sesji.
+  Aplikacja nie gwarantuje pobrania całego archiwum ani ciągłości po force-stop.
+
+## Weryfikacja
 
 ```sh
 npm run lint
 npm run typecheck
-npm run doctor
+./android/gradlew -p android :subtext:testDebugUnitTest
+./android/gradlew -p android :subtext:connectedDebugAndroidTest
 ```
 
-Po wygenerowaniu projektu native można uruchomić testy:
+Pełny odbiór wymaga logowania użytkownika do obu komunikatorów i próby
+rzeczywistej synchronizacji, wygaśnięcia sesji, powrotu z tła oraz klawiatury.
+Testy nie wysyłają wiadomości do kontaktów.
 
-```sh
-./android/gradlew -p android :guardian:testDebugUnitTest
-ANDROID_SERIAL=<serial telefonu> ./android/gradlew -p android :guardian:connectedDebugAndroidTest
-```
-
-## Struktura
-
-- `src/app` — Expo Router: onboarding, zakładki, szczegóły analizy.
-- `src/components` — współdzielone komponenty light/dark.
-- `src/features` — preferencje; `src/services` — most native i odczyty Query.
-- `src/types` — walidacja kontraktu Zod.
-- `modules/guardian` — Android listener, RAM buffer, lokalne wyniki i integracja Gemma/LiteRT-LM.
-- `benchmarks` — 40 syntetycznych przypadków i instrukcja pomiarów.
-- [Produkt](docs/PRODUCT.md), [architektura](docs/ARCHITECTURE.md), [pozostałe taski dla dwóch osób](docs/TASKS.md).
-- [Zgodność z challenge](docs/CHALLENGE.md), [zasoby i licencje](docs/RESOURCES.md).
-
-Guardian nie włącza zgód systemowych automatycznie. Pełne wiadomości pozostają w buforze Kotlin. Dla ostrzeżeń o podwyższonym ryzyku lokalna historia i UI zachowują nadawcę oraz do 5 fragmentów analizowanych wiadomości (300 znaków każdy) przez 7 dni.
-Expo Go, iOS i web nie obsługują Androidowego listenera. Nie ma cloud fallbacku ani modelu w repo.
+Stare pliki Guardiana w `src/features` i `docs` są materiałem historycznym.
+Jego moduł native ma wyłączone autolinkowanie; stary lokalny model nie jest
+częścią nowego przepływu. Kopia poprzedniego projektu jest na branchu
+`codex/backup-before-sync-20261003`.

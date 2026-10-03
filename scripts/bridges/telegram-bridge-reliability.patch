@@ -1,0 +1,65 @@
+diff --git a/combined-go/telegrambridge/bridge_tg.go b/combined-go/telegrambridge/bridge_tg.go
+index b78d640..34af111 100644
+--- a/combined-go/telegrambridge/bridge_tg.go
++++ b/combined-go/telegrambridge/bridge_tg.go
+@@ -354,6 +354,7 @@ type outConvo struct {
+ 	ConversationID string           `json:"conversationID"`
+ 	Name           string           `json:"name"`
+ 	Type           string           `json:"type"`
++	Timestamp      int64            `json:"timestamp"`
+ 	Unread         bool             `json:"unread"`
+ 	LatestMessage  outLatest        `json:"latestMessage"`
+ 	Participants   []outParticipant `json:"participants"`
+@@ -401,7 +402,7 @@ func (b *Bridge) dialogsToConvos(dialogs []tg.DialogClass, msgs []tg.MessageClas
+ 		if !ok {
+ 			continue
+ 		}
+-		var convoID, name, number string
++		var convoID, name, number, conversationType string
+ 		var pr peerRef
+ 		switch p := d.Peer.(type) {
+ 		case *tg.PeerUser:
+@@ -414,6 +415,7 @@ func (b *Bridge) dialogsToConvos(dialogs []tg.DialogClass, msgs []tg.MessageClas
+ 			name = strings.TrimSpace(u.FirstName + " " + u.LastName)
+ 			number = fmt.Sprintf("%d", p.UserID)
+ 			pr = peerRef{kind: "user", id: p.UserID, hash: hash}
++			conversationType = "private"
+ 		case *tg.PeerChat:
+ 			convoID = fmt.Sprintf("tg:chat:%d", p.ChatID)
+ 			number = fmt.Sprintf("%d", p.ChatID)
+@@ -421,6 +423,7 @@ func (b *Bridge) dialogsToConvos(dialogs []tg.DialogClass, msgs []tg.MessageClas
+ 				name = c.Title
+ 			}
+ 			pr = peerRef{kind: "chat", id: p.ChatID, hash: 0}
++			conversationType = "group"
+ 		case *tg.PeerChannel:
+ 			convoID = fmt.Sprintf("tg:channel:%d", p.ChannelID)
+ 			number = fmt.Sprintf("%d", p.ChannelID)
+@@ -430,6 +433,7 @@ func (b *Bridge) dialogsToConvos(dialogs []tg.DialogClass, msgs []tg.MessageClas
+ 				name = c.Title
+ 			}
+ 			pr = peerRef{kind: "channel", id: p.ChannelID, hash: hash}
++			conversationType = "group"
+ 		default:
+ 			continue
+ 		}
+@@ -444,7 +448,9 @@ func (b *Bridge) dialogsToConvos(dialogs []tg.DialogClass, msgs []tg.MessageClas
+ 		b.peers[convoID] = pr
+ 
+ 		preview := ""
++		var timestamp int64
+ 		if m := msgByID[d.TopMessage]; m != nil {
++			timestamp = int64(m.Date) * 1000
+ 			preview = m.Message
+ 			if preview == "" {
+ 				if _, ok := m.GetMedia(); ok {
+@@ -456,7 +462,8 @@ func (b *Bridge) dialogsToConvos(dialogs []tg.DialogClass, msgs []tg.MessageClas
+ 		out = append(out, outConvo{
+ 			ConversationID: convoID,
+ 			Name:           name,
+-			Type:           "TG",
++			Type:           conversationType,
++			Timestamp:      timestamp,
+ 			Unread:         d.UnreadCount > 0,
+ 			LatestMessage:  outLatest{DisplayContent: preview},
+ 			Participants:   []outParticipant{{IsMe: false, ID: outID{Number: number}}},
