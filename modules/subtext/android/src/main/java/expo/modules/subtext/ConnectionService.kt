@@ -11,11 +11,11 @@ class ConnectionService : Service() {
   override fun onCreate() {
     super.onCreate()
     val manager = getSystemService(NotificationManager::class.java)
-    manager.createNotificationChannel(NotificationChannel("subtext_connections", "Połączenia Subtext", NotificationManager.IMPORTANCE_LOW))
+    manager.createNotificationChannel(NotificationChannel("subtext_connections", "Połączenia Cue", NotificationManager.IMPORTANCE_LOW))
     val open = packageManager.getLaunchIntentForPackage(packageName)!!
     val pending = PendingIntent.getActivity(this, 0, open, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
     startForeground(8173, Notification.Builder(this, "subtext_connections").setSmallIcon(android.R.drawable.stat_notify_chat)
-      .setContentTitle("Subtext · komunikatory").setContentText("Połączenia działają na tym telefonie")
+      .setContentTitle("Cue · komunikatory").setContentText("Połączenia działają na tym telefonie")
       .setContentIntent(pending).setOngoing(true).setVisibility(Notification.VISIBILITY_PRIVATE).build())
   }
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {

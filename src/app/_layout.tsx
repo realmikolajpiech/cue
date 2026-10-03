@@ -20,6 +20,7 @@ export default function RootLayout() {
       <Stack.Protected guard={onboarded}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="person/[id]" options={{ title: 'Rozmowa' }} />
+        <Stack.Screen name="connections" options={{ title: 'Połączone konta' }} />
         <Stack.Screen name="settings" options={{ title: 'Ustawienia' }} />
       </Stack.Protected>
       <Stack.Protected guard={!onboarded}><Stack.Screen name="onboarding" options={{ headerShown: false }} /></Stack.Protected>

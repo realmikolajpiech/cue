@@ -9,11 +9,20 @@ import java.io.File
 class SubtextStore(context: Context) {
   private val file = AtomicFile(File(context.noBackupFilesDir, "subtext-conversations.json"))
   private var data = runCatching { JSONObject(String(file.readFully())) }.getOrDefault(JSONObject())
+  init {
+    val excluded = data.keys().asSequence().filter { data.getJSONObject(it).optString("kind") != "PRIVATE" }.toList()
+    excluded.forEach { data.remove(it) }
+    if (excluded.isNotEmpty()) save()
+  }
   @Synchronized fun rooms(): List<JSONObject> = data.keys().asSequence().map { JSONObject(data.getJSONObject(it).toString()) }
     .sortedByDescending { it.optLong("updatedAt") }.toList()
   @Synchronized fun room(key: String): JSONObject? = data.optJSONObject(key)?.let { JSONObject(it.toString()) }
   @Synchronized fun merge(network: String, id: String, name: String, kind: String, messages: List<JSONObject> = emptyList(), timestamp: Long = 0) {
     val key = "$network:$id"
+    if (kind != "PRIVATE") {
+      if (kind == "GROUP") data.remove(key)
+      return
+    }
     val room = data.optJSONObject(key) ?: JSONObject().put("id", key).put("remoteId", id).put("network", network)
       .put("messages", JSONArray()).put("profile", JSONObject.NULL)
     if (name.isNotBlank()) room.put("name", name.take(160))

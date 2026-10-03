@@ -3,6 +3,7 @@ package expo.modules.subtext
 import android.content.Context
 import android.content.Intent
 import androidx.core.content.ContextCompat
+import expo.modules.subtext.device.ConversationKind
 import expo.modules.subtext.messenger.MessengerRepository
 import expo.modules.subtext.whatsapp.WhatsAppRepository
 import kotlinx.coroutines.*
@@ -43,7 +44,8 @@ class SubtextRuntime private constructor(private val context: Context) {
     scope.launch { messenger.messages.debounce(500).collect { chats ->
       chats.forEach { (id, messages) ->
         val room = messenger.conversations.value.find { it.id == id }
-        store.merge("messenger", id, room?.name.orEmpty(), room?.kind?.name ?: "UNKNOWN", messages.map {
+        if (room?.kind != ConversationKind.PRIVATE) return@forEach
+        store.merge("messenger", id, room.name, room.kind.name, messages.map {
           message(it.id, it.senderName, it.text, it.timestamp, it.isMe)
         })
       }; store.flush(); changed()
@@ -51,7 +53,8 @@ class SubtextRuntime private constructor(private val context: Context) {
     scope.launch { whatsapp.messages.debounce(500).collect { chats ->
       chats.forEach { (id, messages) ->
         val room = whatsapp.conversations.value.find { it.id == id }
-        store.merge("whatsapp", id, room?.name.orEmpty(), room?.kind?.name ?: "UNKNOWN", messages.map {
+        if (room?.kind != ConversationKind.PRIVATE) return@forEach
+        store.merge("whatsapp", id, room.name, room.kind.name, messages.map {
           message(it.id, it.senderName, it.text, it.timestamp, it.isMe)
         })
       }; store.flush(); changed()
@@ -72,6 +75,7 @@ class SubtextRuntime private constructor(private val context: Context) {
   suspend fun refresh() { restore(); messenger.refreshConversations(); whatsapp.refreshConversations() }
   suspend fun read(id: String): String {
     val room = requireNotNull(store.room(id)) { "Nie znaleziono rozmowy." }
+    check(room.optString("kind") == "PRIVATE") { "Obsługiwane są tylko rozmowy prywatne." }
     if (room.optBoolean("demo")) return room.toString()
     val remote = room.getString("remoteId"); val network = room.getString("network")
     val messages = if (network == "messenger") messenger.readMessages(remote, 100).map { message(it.id, it.senderName, it.text, it.timestamp, it.isMe) }

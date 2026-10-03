@@ -1,5 +1,5 @@
-import { type ReactNode } from 'react';
-import { ScrollView, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
+import { useState, type ReactNode } from 'react';
+import { Pressable, ScrollView, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Copy } from '@/components/ui';
 import { useTheme } from '@/theme/useTheme';
@@ -25,3 +25,20 @@ export const ui = StyleSheet.create({
   title: { fontSize: 21, lineHeight: 29, fontFamily: 'DMSansSemiBold' },
   input: { minHeight: 52, padding: 16, borderWidth: 1, borderRadius: 12, borderCurve: 'continuous', fontSize: 16, lineHeight: 24 },
 });
+
+export function Button({ label, onPress, disabled = false, secondary = false }: { label: string; onPress: () => void; disabled?: boolean; secondary?: boolean }) {
+  const { colors } = useTheme();
+  return <Pressable accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled} onPress={onPress}
+    style={({ pressed }) => ({ minHeight: 48, borderRadius: 12, padding: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: secondary ? colors.secondary : colors.text, opacity: disabled ? 0.4 : pressed ? 0.7 : 1 })}>
+    <Copy style={{ fontSize: 16, lineHeight: 24, fontFamily: 'DMSansSemiBold', color: secondary ? colors.text : colors.background }}>{label}</Copy>
+  </Pressable>;
+}
+export function Disclosure({ label, children, small = false }: { label: string; children: ReactNode; small?: boolean }) {
+  const [open, setOpen] = useState(false); const { colors } = useTheme();
+  return <View style={{ gap: open ? 12 : 0 }}>
+    <Pressable accessibilityRole="button" accessibilityState={{ expanded: open }} onPress={() => setOpen(value => !value)} style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+      <Copy style={[small ? ui.small : ui.body, { color: colors.text }]}>{label}</Copy><Copy style={ui.body}>{open ? '−' : '+'}</Copy>
+    </Pressable>
+    {open && <View style={{ gap: 12 }}>{children}</View>}
+  </View>;
+}

@@ -103,6 +103,7 @@ open class MessengerRepository(
     private val contactByConversation = ConcurrentHashMap<String, String>()
     private val e2eeByConversation = ConcurrentHashMap<String, String>()
     private val conversationKinds = ConcurrentHashMap<String, ConversationKind>()
+    private val pendingMessages = ConcurrentHashMap<String, List<MessengerMessage>>()
     private val pendingSends = ConcurrentHashMap<String, CompletableDeferred<MessageSendResult>>()
     private val completedSends = ConcurrentHashMap<String, MessageSendResult>()
 
@@ -191,6 +192,7 @@ open class MessengerRepository(
         contactByConversation.clear()
         e2eeByConversation.clear()
         conversationKinds.clear()
+        pendingMessages.clear()
         mutableConversations.value = emptyList()
         mutableMessages.value = emptyMap()
         mutableState.value = MessengerState()
@@ -218,11 +220,17 @@ open class MessengerRepository(
     }
 
     suspend fun readMessages(conversationId: String, limit: Int): List<MessengerMessage> = withContext(Dispatchers.IO) {
+        if (conversationKinds[conversationId] != ConversationKind.PRIVATE) return@withContext emptyList()
         val active = bridge ?: return@withContext emptyList()
         runCatching { active.fetchMessages(conversationId, limit.coerceIn(1, 100).toLong(), "") }
             .onSuccess(::mergeFetchedMessages)
             .onFailure { markOperationalFailure(it, "Message fetch failed") }
-        delay(FETCH_EVENT_SETTLE_MS)
+        // The bridge may return an empty table before the socket delivers history.
+        if (mutableMessages.value[conversationId].isNullOrEmpty()) {
+            withTimeoutOrNull(FETCH_EVENT_TIMEOUT_MS) {
+                messages.first { !it[conversationId].isNullOrEmpty() }
+            }
+        }
         mutableMessages.value[conversationId].orEmpty().takeLast(limit.coerceIn(1, 100))
     }
 
@@ -326,13 +334,26 @@ open class MessengerRepository(
             "THREAD_MAPPING" -> parseThreadMapping(payload)?.let { mapping ->
                 mapping.contactId?.let { contactByConversation[mapping.conversationId] = it }
                 mapping.e2eeRecipientId?.let { e2eeByConversation[mapping.conversationId] = it }
-                conversationKinds[mapping.conversationId] = mapping.kind
+                if (mapping.kind != ConversationKind.UNKNOWN) conversationKinds[mapping.conversationId] = mapping.kind
+                if (mapping.kind == ConversationKind.GROUP) {
+                    pendingMessages.remove(mapping.conversationId)
+                    mutableMessages.update { it - mapping.conversationId }
+                    mutableConversations.update { rooms -> rooms.map {
+                        if (it.id == mapping.conversationId) it.copy(kind = ConversationKind.GROUP) else it
+                    } }
+                }
+                replayPendingMessages(mapping.conversationId)
                 refreshResolvedNames(mapping.contactId)
+            }
+            "FBE2EE" -> parseMessengerEncryptedConversation(payload)?.let { raw ->
+                val id = canonicalConversationId(raw.id)
+                val existing = mutableConversations.value.firstOrNull { it.id == id }
+                upsertConversation(existing?.copy(kind = ConversationKind.PRIVATE) ?: raw.copy(id = id))
             }
             "CONVERSATION" -> parseMessengerConversation(payload)?.let(::upsertConversation)
             "MESSAGE" -> parseMessengerMessage(payload)?.let { message ->
-                upsertMessage(message)
-                if (!message.isMe && message.text.isNotBlank()) onIncomingMessage(message)
+                val routed = message.copy(conversationId = canonicalConversationId(message.conversationId))
+                if (upsertMessage(routed) && !routed.isMe && routed.text.isNotBlank()) onIncomingMessage(routed)
             }
             "LOGGED_OUT" -> {
                 connectionTimeoutJob?.cancel()
@@ -417,6 +438,10 @@ open class MessengerRepository(
         raw.contactId?.let { contactByConversation[raw.id] = it }
         raw.e2eeRecipientId?.let { e2eeByConversation[raw.id] = it }
         if (raw.kind != ConversationKind.UNKNOWN) conversationKinds[raw.id] = raw.kind
+        if (conversationKinds[raw.id] == ConversationKind.GROUP) {
+            mutableMessages.update { it - raw.id }
+            pendingMessages.remove(raw.id)
+        }
         raw.participantIds.zip(raw.participantNames).forEach { (id, name) ->
             if (name.isNotBlank() && !isNumericIdentifier(name)) contactNames[id] = name
         }
@@ -433,6 +458,19 @@ open class MessengerRepository(
             (current.filterNot { it.id == raw.id } + merged)
                 .filter { it.timestamp <= 0L || it.timestamp >= System.currentTimeMillis() - CONVERSATION_MAX_AGE_MS }
                 .sortedWith(compareByDescending<MessengerConversation> { it.timestamp > 0L }.thenByDescending { it.timestamp })
+        }
+        replayPendingMessages(raw.id)
+    }
+
+    private fun canonicalConversationId(id: String): String = resolveMessengerConversationId(
+        id, conversationKinds, contactByConversation, e2eeByConversation,
+    )
+
+    private fun replayPendingMessages(id: String) {
+        if (conversationKinds[id] != ConversationKind.PRIVATE) return
+        val aliases = pendingMessages.keys.filter { canonicalConversationId(it) == id }
+        aliases.forEach { alias ->
+            pendingMessages.remove(alias)?.forEach { upsertMessage(it.copy(conversationId = id)) }
         }
     }
 
@@ -459,7 +497,20 @@ open class MessengerRepository(
         }
     }
 
-    private fun upsertMessage(item: MessengerMessage) {
+    private fun upsertMessage(raw: MessengerMessage): Boolean {
+        val item = raw.copy(conversationId = canonicalConversationId(raw.conversationId))
+        val kind = conversationKinds[item.conversationId] ?: ConversationKind.UNKNOWN
+        if (kind == ConversationKind.GROUP) return false
+        if (kind == ConversationKind.UNKNOWN) {
+            // Metadata can arrive after a message. Keep it bounded and in memory
+            // until the thread is confirmed private; never export unknown text.
+            if (pendingMessages.size < 150 || pendingMessages.containsKey(item.conversationId)) {
+                pendingMessages.compute(item.conversationId) { _, previous ->
+                    (previous.orEmpty().filterNot { it.id == item.id } + item).takeLast(MAX_CACHED_MESSAGES)
+                }
+            }
+            return false
+        }
         if (item.senderName.isNotBlank() && !isNumericIdentifier(item.senderName)) contactNames[item.senderId] = item.senderName
         mutableMessages.update { current ->
             val thread = (current[item.conversationId].orEmpty().filterNot { it.id == item.id } + item)
@@ -480,6 +531,7 @@ open class MessengerRepository(
                 e2eeRecipientId = existing?.e2eeRecipientId ?: e2eeByConversation[item.conversationId],
             ),
         )
+        return true
     }
 
     private fun mergeListedConversations(raw: String?) {
@@ -519,7 +571,7 @@ open class MessengerRepository(
         const val RECONNECT_SETTLE_MS = 2_000L
         const val CONNECTION_TIMEOUT_MS = 75_000L
         const val SEND_TIMEOUT_MS = 45_000L
-        const val FETCH_EVENT_SETTLE_MS = 600L
+        const val FETCH_EVENT_TIMEOUT_MS = 10_000L
         const val MAX_CACHED_MESSAGES = 200
         const val CONVERSATION_MAX_AGE_MS = 365L * 24L * 60L * 60L * 1_000L
     }
@@ -564,12 +616,18 @@ internal fun parseMessengerConversation(payload: String): MessengerConversation?
     val id = json.opt("threadKey")?.toString().orEmpty()
     if (id.isBlank()) return null
     val isGroup = if (json.has("isGroup")) json.optBoolean("isGroup") else null
+    val hasPrivateRecipient = json.optString("e2eeRecipientId").endsWith("@msgr") ||
+        json.optString("contactId").let { it.isNotBlank() && it != "null" }
     MessengerConversation(
         id = id,
         name = json.optString("threadName").takeUnless(::isNumericIdentifier).orEmpty(),
         snippet = json.optString("snippet"),
         timestamp = json.optLong("timestamp"),
-        kind = when (isGroup) { true -> ConversationKind.GROUP; false -> ConversationKind.PRIVATE; null -> ConversationKind.UNKNOWN },
+        kind = when {
+            isGroup == true -> ConversationKind.GROUP
+            isGroup == false || hasPrivateRecipient -> ConversationKind.PRIVATE
+            else -> ConversationKind.UNKNOWN
+        },
         contactId = json.opt("contactId")?.toString()?.takeIf(String::isNotBlank),
         participantIds = json.optJSONArray("participantIds").stringList().toSet(),
         participantNames = json.optJSONArray("participantNames").stringList().filterNot(::isNumericIdentifier),
@@ -667,3 +725,27 @@ private class MessengerSessionStore(context: Context, preferencesName: String, p
         const val CIPHERTEXT = "ciphertext"
     }
 }
+
+// E2EE deliveries use the recipient's ID; inbox rows use the thread key.
+internal fun resolveMessengerConversationId(
+    id: String,
+    kinds: Map<String, ConversationKind>,
+    contacts: Map<String, String>,
+    recipients: Map<String, String>,
+): String {
+    if (kinds[id] == ConversationKind.GROUP) return id
+    return kinds.keys.firstOrNull { thread ->
+        kinds[thread] == ConversationKind.PRIVATE &&
+            (contacts[thread] == id || recipients[thread]?.substringBefore('@') == id)
+    } ?: id
+}
+
+internal fun parseMessengerEncryptedConversation(payload: String): MessengerConversation? = runCatching {
+    val json = JSONObject(payload)
+    val chat = json.optString("chat")
+    if (json.optString("step") != "MESSAGE" || !chat.endsWith("@msgr")) return null
+    val id = chat.substringBefore('@').substringBefore(':')
+    if (id.isBlank()) return null
+    MessengerConversation(id, "", "", json.optLong("ts") * 1000, ConversationKind.PRIVATE,
+        contactId = id, e2eeRecipientId = "$id@msgr")
+}.getOrNull()

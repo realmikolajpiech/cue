@@ -18,7 +18,7 @@ class SubtextLoginActivity : Activity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     val layout = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; fitsSystemWindows = true }
-    layout.addView(Button(this).apply { text = "Wróć do Subtext"; setOnClickListener { finish() } })
+    layout.addView(Button(this).apply { text = "Wróć do Cue"; setOnClickListener { finish() } })
     status = TextView(this).apply { text = "Zaloguj się do Facebooka, aby połączyć Messengera."; setPadding(24, 12, 24, 12) }
     layout.addView(status)
     browser = createMetaLoginWebView(MetaUserAgent.DESKTOP_CHROME,

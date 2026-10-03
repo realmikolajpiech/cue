@@ -212,6 +212,7 @@ class WhatsAppRepository(
     }
 
     suspend fun readMessages(conversationId: String, limit: Int): List<WhatsAppMessage> = withContext(Dispatchers.IO) {
+        if (conversationKinds[conversationId] != ConversationKind.PRIVATE) return@withContext emptyList()
         val active = bridge ?: return@withContext emptyList()
         runCatching { active.fetchMessages(conversationId, limit.coerceIn(1, 100).toLong()) }
             .onSuccess(::mergeFetchedMessages)
@@ -335,6 +336,7 @@ class WhatsAppRepository(
             }
             "CHATS_UPDATED" -> scope.launch { refreshConversations() }
             "MESSAGE" -> parseWhatsAppMessage(payload)?.let { message ->
+                if (conversationKinds[message.conversationId] != ConversationKind.PRIVATE) return@let
                 upsertMessage(message)
                 if (!message.isMe && message.text.isNotBlank()) onIncomingMessage(message)
             }
@@ -413,6 +415,7 @@ class WhatsAppRepository(
     private fun upsertConversation(raw: WhatsAppConversation) {
         raw.contactId?.let { contactByConversation[raw.id] = it }
         conversationKinds[raw.id] = raw.kind
+        if (conversationKinds[raw.id] == ConversationKind.GROUP) mutableMessages.update { it - raw.id }
         if (raw.kind == ConversationKind.PRIVATE) {
             raw.contactId?.let { id ->
                 raw.participantNames.firstOrNull { it.isNotBlank() && !isNumericIdentifier(it) }?.let { contactNames[id] = it }
@@ -466,6 +469,7 @@ class WhatsAppRepository(
     }
 
     private fun upsertMessage(item: WhatsAppMessage) {
+        if (conversationKinds[item.conversationId] != ConversationKind.PRIVATE) return
         if (item.senderId.isNotBlank() && item.senderName.isNotBlank() && !isNumericIdentifier(item.senderName)) contactNames[item.senderId] = item.senderName
         mutableMessages.update { current ->
             val merged = (current[item.conversationId].orEmpty().filterNot { it.id == item.id } + item)

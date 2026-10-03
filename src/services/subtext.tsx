@@ -22,7 +22,7 @@ declare class SubtextModule extends NativeModule<{ onChanged: () => void }> {
   selectKeyboard(): void;
 }
 const native = process.env.EXPO_OS === 'android' ? requireOptionalNativeModule<SubtextModule>('Subtext') : null;
-function requireSubtext() { if (!native) throw new Error('Zainstaluj build Subtext na Androidzie. Expo Go i podgląd web nie obsługują komunikatorów.'); return native; }
+function requireSubtext() { if (!native) throw new Error('Zainstaluj build Cue na Androidzie. Expo Go i podgląd web nie obsługują komunikatorów.'); return native; }
 const unavailable = {
   available: false, hasApiKey: false, cloudEnabled: false, backgroundEnabled: false, model: 'deepseek-flash', analyzing: null,
   messenger: { phase: 'NOT_CONFIGURED', detail: '' }, whatsapp: { phase: 'NOT_CONFIGURED', detail: '', pairingCode: null },
@@ -53,6 +53,7 @@ export function SubtextProvider({ children }: { children: ReactNode }) {
         timer = undefined;
         void subtextCache.invalidateQueries({ queryKey: ['subtext', 'status'] });
         void subtextCache.invalidateQueries({ queryKey: ['subtext', 'rooms'] });
+        void subtextCache.invalidateQueries({ queryKey: ['subtext', 'room'] });
       }, 500);
     };
     const subscription = native?.addListener('onChanged', invalidate);

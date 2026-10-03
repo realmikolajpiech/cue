@@ -1,4 +1,4 @@
-# Subtext
+# Cue
 
 Androidowy asystent komunikacji: Messenger i WhatsApp na urządzeniu, pamięć
 rozmów, profile oparte na wiadomościach i podpowiedzi DeepSeek V4.1 Flash.
@@ -35,7 +35,7 @@ i `plugins/withSubtext.js`; nie edytuj wygenerowanego projektu ręcznie.
    urządzenia za pomocą numeru telefonu i wpisz wyświetlony kod.
 4. W **Ustawieniach** wpisz klucz DeepSeek i włącz analizę w chmurze.
 5. Otwórz rozmowę w **Osobach**, przejrzyj wiadomości i uruchom analizę.
-6. Opcjonalnie włącz klawiaturę Subtext w ustawieniach Androida. Podczas
+6. Opcjonalnie włącz klawiaturę Cue w ustawieniach Androida. Podczas
    pisania wybierz właściwą rozmowę, poproś o sugestię i dotknij jej, aby
    wstawić tekst. Aplikacja nie wysyła odpowiedzi automatycznie.
 
