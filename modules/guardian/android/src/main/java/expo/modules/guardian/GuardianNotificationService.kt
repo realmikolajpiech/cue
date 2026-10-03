@@ -13,7 +13,10 @@ class GuardianNotificationService : NotificationListenerService() {
       val visible = activeNotifications ?: emptyArray()
       val saved = runtime.store.list().associateBy { it.getString("id").hashCode() }
       visible.filter { it.packageName == packageName && it.notification.channelId in setOf("guardian_risk", GuardianWarnings.HIGH_RISK_CHANNEL) }.forEach { warning ->
-        saved[warning.id]?.let { GuardianWarnings.post(this, it) }
+        saved[warning.id]?.let { result ->
+          if (result.optString("analysisVersion") == Assessment.analysisVersion) GuardianWarnings.post(this, result)
+          else (getSystemService(NOTIFICATION_SERVICE) as android.app.NotificationManager).cancel(warning.id)
+        }
       }
       val cutoff = System.currentTimeMillis() - 15 * 60 * 1000L
       visible.filter { it.postTime > cutoff }.forEach(::onNotificationPosted)

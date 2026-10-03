@@ -5,6 +5,7 @@ import org.json.JSONArray
 import java.util.UUID
 
 object Assessment {
+  const val analysisVersion = "guardian-pl-v3-evidence"
   val risks = setOf("low", "medium", "high", "uncertain")
   val categories = setOf("family_impersonation", "credential_theft", "payment_fraud", "suspicious_link", "manipulation", "unknown")
   val signals = linkedMapOf(
@@ -51,14 +52,34 @@ object Assessment {
     }.distinct()
     return JSONObject().put("risk", risk).put("category", category).put("signals", JSONArray(unique))
   }
+  private val supportedDescriptions = mapOf(
+    "identity_change" to "Nadawca deklaruje zmianę numeru lub tożsamości.",
+    "urgency" to "W tekście pojawia się wyraźne ponaglenie.",
+    "money_request" to "Wiadomość zawiera prośbę o pieniądze.",
+    "credential_request" to "Wiadomość prosi o przekazanie kodu lub hasła.",
+    "suspicious_link" to "Wiadomość zawiera link wymagający ostrożności.",
+    "secrecy" to "Nadawca wyraźnie prosi, aby nie mówić o tym innym.",
+    "authority_claim" to "Nadawca powołuje się na instytucję lub jej pracownika.",
+    "emotional_pressure" to "Tekst zawiera bezpośrednią presję emocjonalną.",
+  )
   fun result(parsed: JSONObject, source: String): JSONObject {
     val risk = parsed.getString("risk")
     val category = parsed.getString("category")
+    val values = parsed.getJSONArray("signals")
+    val evidence = (0 until values.length()).mapNotNull { supportedDescriptions[values.getString(it)] }.take(2).joinToString(" ")
+    val explanation = when {
+      risk == "uncertain" && evidence.isNotEmpty() -> "$evidence To nie wystarcza, aby uznać wiadomość za oszustwo."
+      risk == "uncertain" -> "Brak wystarczających przesłanek do oceny ryzyka. Zweryfikuj sytuację niezależnym kanałem."
+      risk == "low" -> "Nie znaleziono wyraźnych oznak oszustwa. To nie gwarantuje bezpieczeństwa."
+      evidence.isNotEmpty() -> evidence
+      else -> descriptions.getValue(category)
+    }
     return JSONObject()
+      .put("analysisVersion", analysisVersion)
       .put("schemaVersion", 1).put("id", UUID.randomUUID().toString())
       .put("createdAt", System.currentTimeMillis()).put("sourceApp", source)
       .put("risk", risk).put("category", category).put("signals", parsed.getJSONArray("signals"))
-      .put("explanation", if (risk == "uncertain") "Model nie był w stanie ustalić ryzyka. Zweryfikuj sytuację samodzielnie." else descriptions.getValue(category))
+      .put("explanation", explanation)
       .put("recommendedAction", actions.getValue(category)).put("analysisSource", "on_device").put("reviewStatus", "new")
   }
   fun uncertain(source: String) = result(JSONObject().put("risk", "uncertain").put("category", "unknown").put("signals", JSONArray()), source)

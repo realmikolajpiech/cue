@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ReactNode } from 'react';
 import { useTheme, riskColors, riskFromLabel, type RiskLevel } from '@/theme/useTheme';
+import { CURRENT_ANALYSIS_VERSION } from '@/types/guardian';
 import { useGuardianResults } from '@/services/queries';
 import { useDemo } from '@/features/demo/store';
 const icons = {
@@ -19,7 +20,7 @@ export function Screen({ children, title, header = true, risk }: { children: Rea
   const results = useGuardianResults();
   const demoThreats = useDemo(s => s.threats);
   const pendingRisks = process.env.EXPO_OS === 'android'
-    ? (results.data ?? []).filter(result => result.reviewStatus !== 'reviewed').map(result => result.risk)
+    ? (results.data ?? []).filter(result => result.reviewStatus !== 'reviewed').map(result => result.analysisVersion === CURRENT_ANALYSIS_VERSION ? result.risk : 'uncertain')
     : demoThreats.filter(result => !result.reviewed).map(result => riskFromLabel(result.risk));
   const displayedRisk = risk ?? (['high', 'medium', 'low', 'uncertain'] as const).find(level => pendingRisks.includes(level));
   const shieldColor = displayedRisk ? riskColors(displayedRisk, isDark).foreground : colors.text;

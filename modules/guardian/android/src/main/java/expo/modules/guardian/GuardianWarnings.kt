@@ -39,16 +39,6 @@ object GuardianWarnings {
     "manipulation" to "Ktoś może wywierać na Ciebie presję",
     "unknown" to "Podejrzana prośba w wiadomości",
   )
-  private val signalLabels = mapOf(
-    "identity_change" to "Zmiana tożsamości lub numeru",
-    "urgency" to "Presja czasu",
-    "money_request" to "Prośba o pieniądze",
-    "credential_request" to "Prośba o kod lub hasło",
-    "suspicious_link" to "Podejrzany link",
-    "secrecy" to "Prośba o zachowanie tajemnicy",
-    "authority_claim" to "Powoływanie się na autorytet",
-    "emotional_pressure" to "Presja emocjonalna",
-  )
   private val actions = mapOf(
     "family_impersonation" to "Zadzwoń na wcześniej znany numer i potwierdź tożsamość.",
     "credential_theft" to "Nie podawaj kodu ani hasła. Sprawdź sprawę w oficjalnej aplikacji.",
@@ -57,19 +47,18 @@ object GuardianWarnings {
     "manipulation" to "Nie działaj pod presją. Sprawdź prośbę niezależnym kanałem.",
     "unknown" to "Potwierdź prośbę innym kanałem, zanim cokolwiek zrobisz.",
   )
-  data class Copy(val title: String, val action: String, val evidence: String)
+  data class Copy(val title: String, val action: String)
   /** Copy is built only from validated enums; never quote a message or contact. */
   fun copy(result: JSONObject): Copy {
     val category = result.getString("category")
     val values = result.getJSONArray("signals")
-    val evidence = (0 until values.length()).mapNotNull { signalLabels[values.getString(it)] }.distinct().joinToString(" · ")
     val codes = (0 until values.length()).map { values.getString(it) }.toSet()
     val action = when {
       category == "family_impersonation" && "money_request" in codes -> "Nie wysyłaj pieniędzy. Najpierw zadzwoń na wcześniej znany numer."
       category == "family_impersonation" && "credential_request" in codes -> "Nie podawaj kodu ani hasła. Potwierdź tożsamość przez wcześniej znany numer."
       else -> actions[category] ?: actions.getValue("unknown")
     }
-    return Copy(titles[category] ?: titles.getValue("unknown"), action, evidence)
+    return Copy(titles[category] ?: titles.getValue("unknown"), action)
   }
 
   fun ensureChannel(context: Context) {
@@ -91,8 +80,7 @@ object GuardianWarnings {
     val pending = PendingIntent.getActivity(context, id.hashCode(), intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
     val copy = copy(result)
     val source = result.getString("sourceApp")
-    val expanded = if (copy.evidence.isEmpty()) copy.action
-      else "${copy.action}\n\nZauważone sygnały: ${copy.evidence}"
+    val expanded = copy.action
     val color = riskColor(result.getString("risk"))
     val notification = NotificationCompat.Builder(context, HIGH_RISK_CHANNEL)
       .setSmallIcon(R.drawable.guardian_notification_shield)

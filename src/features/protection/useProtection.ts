@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { useDemo, type Threat } from '@/features/demo/store';
 import { useGuardianStatus, useGuardianResults, useAction } from '@/services/queries';
 import { guardian } from '@/services/guardian';
-import { categoryLabels, riskLabels, signalLabels } from '@/types/guardian';
+import { CURRENT_ANALYSIS_VERSION, categoryLabels, riskLabels, signalLabels } from '@/types/guardian';
 
 export function useProtection() {
   const demo = useDemo();
@@ -13,10 +13,10 @@ export function useProtection() {
   const native = process.env.EXPO_OS === 'android';
   const s = status.data;
   const threats: Threat[] = native ? (results.data ?? []).map(result => ({
-    id: result.id, title: categoryLabels[result.category], source: result.sourceApp,
-    time: new Date(result.createdAt).toLocaleString('pl-PL'), risk: riskLabels[result.risk],
-    signals: result.signals.map(signal => signalLabels[signal]), advice: result.recommendedAction,
-    explanation: result.explanation, reviewed: result.reviewStatus === 'reviewed',
+    id: result.id, title: result.analysisVersion === CURRENT_ANALYSIS_VERSION ? categoryLabels[result.category] : 'Starszy wynik — sprawdź wiadomość ponownie', source: result.sourceApp,
+    time: new Date(result.createdAt).toLocaleString('pl-PL'), risk: riskLabels[result.analysisVersion === CURRENT_ANALYSIS_VERSION ? result.risk : 'uncertain'],
+    signals: result.analysisVersion === CURRENT_ANALYSIS_VERSION ? result.signals.map(signal => signalLabels[signal]) : [], advice: result.recommendedAction,
+    explanation: result.analysisVersion === CURRENT_ANALYSIS_VERSION ? result.explanation : 'Wcześniejsza wersja modelu zwracała niepotwierdzone sygnały. Ten wynik wymaga ponownego sprawdzenia.', reviewed: result.reviewStatus === 'reviewed',
   })) : demo.threats;
   const stateLabel = !native ? 'Tryb demonstracyjny' : status.isPending ? 'Sprawdzam stan…'
     : status.isError ? 'Nie można odczytać stanu ochrony' : !s?.available ? 'Wymagany build Android'
