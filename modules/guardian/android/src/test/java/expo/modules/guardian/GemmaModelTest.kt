@@ -27,4 +27,18 @@ class GemmaModelTest {
     }
     assertFalse(file.exists())
   }
+  @Test fun reportsCopiedBytesAndStillRejectsCorruptDownload() {
+    val file = File.createTempFile("model", ".part")
+    val progress = mutableListOf<Long>()
+    try {
+      model.copyVerified(bytes.inputStream(), file, onProgress = { progress.add(it) })
+      assertEquals(bytes.size.toLong(), progress.last())
+      assertTrue(model.verify(file))
+      val corrupt = bytes.copyOf().also { it[0] = 0 }
+      assertThrows(IllegalArgumentException::class.java) {
+        model.copyVerified(corrupt.inputStream(), file, onProgress = { progress.add(it) })
+      }
+      assertFalse(file.exists())
+    } finally { file.delete() }
+  }
 }

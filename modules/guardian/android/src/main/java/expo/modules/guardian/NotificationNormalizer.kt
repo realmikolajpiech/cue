@@ -11,7 +11,7 @@ object NotificationNormalizer {
     "com.whatsapp" to "WhatsApp", "com.facebook.orca" to "Messenger", "com.beeper.android" to "Beeper",
     "com.google.android.apps.messaging" to "SMS", "com.samsung.android.messaging" to "SMS",
   )
-  data class Input(val key: String, val source: String, val messages: List<PrivateMessage>)
+  data class Input(val key: String, val source: String, val messages: List<PrivateMessage>, val title: String = "", val postedAt: Long = System.currentTimeMillis())
   private fun hash(value: String) = MessageDigest.getInstance("SHA-256").digest(value.toByteArray()).joinToString("") { "%02x".format(it) }
   fun key(sbn: StatusBarNotification): String {
     // Conversation shortcut is preferred. Missing shortcut falls back to notification identity,
@@ -30,13 +30,13 @@ object NotificationNormalizer {
         val text = message.text?.toString()?.take(1500)?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
         val age = (System.currentTimeMillis() - message.timestamp).coerceAtLeast(0)
         val sender = message.person?.key ?: message.person?.name?.toString() ?: ""
-        PrivateMessage(hash("${message.timestamp}:$sender"), text, now - age)
+        PrivateMessage(hash("${message.timestamp}:$sender"), text, now - age, message.person?.name?.toString().orEmpty().take(120))
       }
     } else {
       val text = (n.extras.getCharSequence(Notification.EXTRA_BIG_TEXT) ?: n.extras.getCharSequence(Notification.EXTRA_TEXT))?.toString()?.take(1500)
       if (text.isNullOrBlank()) emptyList() else listOf(PrivateMessage(hash("${sbn.key}:${hash(text)}"), text, now))
     }
     if (messages.isEmpty()) return null
-    return Input(key(sbn), source, messages)
+    return Input(key(sbn), source, messages, n.extras.getCharSequence(Notification.EXTRA_TITLE)?.toString().orEmpty().take(120), sbn.postTime)
   }
 }

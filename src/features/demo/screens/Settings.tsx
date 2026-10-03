@@ -9,6 +9,7 @@ import { useTheme } from '@/theme/useTheme';
 import { guardian } from '@/services/guardian';
 import { useProtection } from '@/features/protection/useProtection';
 import { useDemo } from '@/features/demo/store';
+import { usePreferences } from '@/features/preferences';
 
 function Group({ title, children }: { title: string; children: ReactNode }) {
   const { colors } = useTheme();
@@ -50,6 +51,7 @@ export default function Settings() {
   const insets = useSafeAreaInsets();
   const [confirm, setConfirm] = useState(false);
   const [advanced, setAdvanced] = useState(false);
+  const restartOnboarding = usePreferences(s => s.restartOnboarding);
   return <View style={[styles.screen, { backgroundColor: colors.background }]}>
     <View style={styles.container}>
       <Row style={[styles.header, { paddingTop: insets.top + 8 }]}>
@@ -78,7 +80,9 @@ export default function Settings() {
           <SettingRow icon="moon" label={t('Ciemne tło')} value={demo.dark} onChange={demo.toggleTheme} />
         </Group>
         <Group title={t('Więcej')}>
-          <SettingRow icon="help" label={t('Jak działa aplikacja?')} onPress={() => router.push('/onboarding')} />
+          <SettingRow icon="shield" label={t('Uruchom onboarding ponownie')} onPress={() => { restartOnboarding(); router.push('/onboarding'); }} />
+          <Divider />
+          <SettingRow icon="help" label={t('Jak działa aplikacja?')} onPress={() => router.push('/help')} />
           <Divider />
           <SettingRow icon="settings" label={t('Dodatkowe ustawienia')} expanded={advanced} onPress={() => setAdvanced(value => !value)} />
         </Group>

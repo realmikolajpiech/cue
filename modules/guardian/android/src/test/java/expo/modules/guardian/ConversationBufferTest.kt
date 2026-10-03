@@ -42,4 +42,21 @@ class ConversationBufferTest {
     buffer.append("a", listOf(message("2"))); buffer.remove("a")
     assertEquals(0, buffer.size())
   }
+  @Test fun `replayed older messages do not reanalyze an unchanged retained context`() {
+    now = 100
+    val buffer = ConversationBuffer({ now }, maxMessages = 2)
+    val retained = listOf(message("b", "Druga", 20), message("c", "Trzecia", 30))
+    assertEquals(retained, buffer.append("a", retained))
+    repeat(10) {
+      assertNull(buffer.append("a", listOf(message("old", "Pierwsza", 10)) + retained))
+    }
+    // A change to an actual retained message still triggers immediate analysis.
+    val changed = retained.last().copy(text = "Zmiana treści")
+    assertEquals(listOf(retained.first(), changed), buffer.append("a", listOf(changed)))
+  }
+  @Test fun `new retained messages are analyzed even when their text repeats`() {
+    val buffer = ConversationBuffer({ now }, maxMessages = 2)
+    buffer.append("a", listOf(message("one", "Ten sam tekst", 0)))
+    assertNotNull(buffer.append("a", listOf(message("two", "Ten sam tekst", 1))))
+  }
 }

@@ -9,7 +9,7 @@ Aktualizacja: 3 października 2026. Lista zawiera tylko pracę pozostałą do wy
 | Osoba 1 | Android, model i jakość analizy | `modules/guardian`, `benchmarks`, `plugins`, `scripts` | Testy silnika i listenera bez zmieniania UI |
 | Osoba 2 | Expo, UX i demo | `src/app`, `src/components`, `src/features`, `docs` | Ekrany i stany ochrony na podstawie istniejącego kontraktu, bez czekania na model |
 
-Wspólny kontrakt znajduje się w `src/types/guardian.ts`, a adapter w `src/services/guardian.ts`. Zmiany nazw i typów metod najpierw ustalcie razem. Nie zmieniajcie równocześnie `app.json`, `package.json` i lockfile; instalacje dependencies koordynuje jedna osoba. Surowe wiadomości nie mogą przekraczać granicy Kotlin → JS.
+Wspólny kontrakt znajduje się w `src/types/guardian.ts`, a adapter w `src/services/guardian.ts`. Zmiany nazw i typów metod najpierw ustalcie razem. Nie zmieniajcie równocześnie `app.json`, `package.json` i lockfile; instalacje dependencies koordynuje jedna osoba. Pełne wiadomości pozostają w Kotlin. Lokalny UI ostrzeżeń otrzymuje wyłącznie ograniczony podgląd powiadomienia dla wyników medium/high (do 5 fragmentów po 300 znaków i nadawcy); retencja wynosi 7 dni.
 
 ## Osoba 1 — Android i AI
 

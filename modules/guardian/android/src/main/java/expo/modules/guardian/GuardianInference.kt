@@ -8,7 +8,8 @@ import java.io.File
 import org.json.JSONArray
 import org.json.JSONObject
 
-class GuardianInference {
+class GuardianInference(private val cpuThreadCount: Int? = null) {
+  init { require(cpuThreadCount == null || cpuThreadCount > 0) }
   private val mutex = Mutex()
   private var engine: Engine? = null
   @Volatile private var activeConversation: Conversation? = null
@@ -65,7 +66,7 @@ class GuardianInference {
         var next: Engine? = null
         try {
           next = Engine(EngineConfig(modelPath = file.absolutePath, cacheDir = File(file.parentFile, "litert-cache").also { it.mkdirs() }.absolutePath,
-            backend = Backend.CPU(), maxNumTokens = 4096))
+            backend = Backend.CPU(threadCount = cpuThreadCount), maxNumTokens = 4096))
           next.initialize()
           assess(next, listOf("Dziękuję za pomoc. Do zobaczenia jutro."))
           engine = next; state = "ready"; backend = candidate

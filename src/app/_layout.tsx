@@ -5,5 +5,39 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useTheme } from '@/theme/useTheme';
+
 export const unstable_settings = { anchor: '(tabs)' };
-export default function RootLayout() { usePreferences(state => state.hydrated); useLanguage(); const { isDark, colors } = useTheme(); const [loaded, error] = useFonts({ DMSans: require('../../assets/fonts/DMSans-400.ttf'), DMSansMedium: require('../../assets/fonts/DMSans-500.ttf'), DMSansSemiBold: require('../../assets/fonts/DMSans-600.ttf'), Manrope: require('../../assets/fonts/Manrope-600.ttf'), ManropeBold: require('../../assets/fonts/Manrope-800.ttf') }); if (!loaded && !error) return null; return <Providers><StatusBar style={isDark ? 'light' : 'dark'} /><Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}><Stack.Screen name="(tabs)" /><Stack.Screen name="alert/[id]" options={{ presentation: 'modal', headerShown: false, title: t("Szczegóły ostrzeżenia"), headerStyle: { backgroundColor: colors.background }, headerTintColor: colors.text, headerShadowVisible: false }} /><Stack.Screen name="model-setup" options={{ headerShown: true, title: t("Model i dostęp") }} /><Stack.Screen name="model-settings" options={{ headerShown: true, title: t("Silnik Gemma") }} /><Stack.Screen name="analyses" options={{ headerShown: true, title: t("Analizy na urządzeniu") }} /><Stack.Screen name="analysis/[id]" options={{ headerShown: true, title: t("Szczegóły analizy") }} /><Stack.Screen name="settings" /><Stack.Screen name="onboarding" options={{ presentation: 'modal' }} /></Stack></Providers>; }
+
+export default function RootLayout() {
+  useLanguage();
+  const { isDark, colors } = useTheme();
+  const hydrated = usePreferences(s => s.hydrated);
+  const onboarded = usePreferences(s => s.onboarded);
+  const onboardingOpen = usePreferences(s => s.onboardingOpen);
+  const [loaded, error] = useFonts({
+    DMSans: require('../../assets/fonts/DMSans-400.ttf'),
+    DMSansMedium: require('../../assets/fonts/DMSans-500.ttf'),
+    DMSansSemiBold: require('../../assets/fonts/DMSans-600.ttf'),
+    Manrope: require('../../assets/fonts/Manrope-600.ttf'),
+    ManropeBold: require('../../assets/fonts/Manrope-800.ttf'),
+  });
+  if ((!loaded && !error) || !hydrated) return null;
+  return <Providers>
+    <StatusBar style={isDark ? 'light' : 'dark'} />
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
+      <Stack.Protected guard={onboarded}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="alert/[id]" options={{ presentation: 'modal', title: t('Szczegóły ostrzeżenia') }} />
+        <Stack.Screen name="model-setup" options={{ headerShown: true, title: t('Model i dostęp') }} />
+        <Stack.Screen name="model-settings" options={{ headerShown: true, title: t('Silnik Gemma') }} />
+        <Stack.Screen name="analyses" options={{ headerShown: true, title: t('Analizy na urządzeniu') }} />
+        <Stack.Screen name="analysis/[id]" options={{ headerShown: true, title: t('Szczegóły analizy') }} />
+        <Stack.Screen name="settings" />
+        <Stack.Screen name="help" options={{ presentation: 'modal' }} />
+      </Stack.Protected>
+      <Stack.Protected guard={!onboarded || onboardingOpen}>
+        <Stack.Screen name="onboarding" options={{ presentation: onboarded ? 'modal' : 'card' }} />
+      </Stack.Protected>
+    </Stack>
+  </Providers>;
+}

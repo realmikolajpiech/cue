@@ -4,7 +4,8 @@ import { AccessibilityInfo, Animated, Easing, Pressable, StyleSheet, View } from
 import { Copy } from '@/components/ui';
 import { useTheme } from '@/theme/useTheme';
 
-export function ProtectionToggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void }) { useLanguage();
+export function ProtectionToggle({ enabled, onToggle, disabled = false }: { enabled: boolean; onToggle: () => void; disabled?: boolean }) {
+  useLanguage();
   const { isDark, colors } = useTheme();
   const green = isDark ? '#6DDB98' : '#237A46';
   const [position] = useState(() => new Animated.Value(enabled ? 1 : 0));
@@ -38,8 +39,8 @@ export function ProtectionToggle({ enabled, onToggle }: { enabled: boolean; onTo
   }
 
   return <Pressable accessibilityRole="switch" accessibilityLabel={t("Ochrona wiadomości")}
-    accessibilityHint={enabled ? t("Naciśnij, aby wyłączyć ochronę") : t("Naciśnij, aby włączyć ochronę")}
-    accessibilityState={{ checked: enabled }} aria-checked={enabled}
+    accessibilityHint={enabled ? t('Naciśnij, aby wyłączyć ochronę') : t('Naciśnij, aby włączyć ochronę')}
+    accessibilityState={{ checked: enabled, disabled }} aria-checked={enabled} disabled={disabled}
     onPress={onToggle} onPressIn={() => animatePress(true)} onPressOut={() => animatePress(false)}
     style={styles.target}>
     <Animated.View style={[styles.track, { backgroundColor: isDark ? '#424A46' : '#C5CCC8', transform: [{ scale: pressScale }] }]}>

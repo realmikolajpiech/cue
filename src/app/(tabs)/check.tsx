@@ -7,7 +7,8 @@ import { Screen, Copy, Card, Row, Action, InlineError, Risk, Icon, type IconName
 import { useTheme } from '@/theme/useTheme';
 import { guardian } from '@/services/guardian';
 import { useGuardianStatus } from '@/services/queries';
-import { categoryLabels, riskLabels, type ManualResult, type GuardianNotification } from '@/types/guardian';
+import { riskLabels, type ManualResult, type GuardianNotification } from '@/types/guardian';
+import { analysisTitle } from '@/features/protection/presentation';
 import { NotificationPicker } from '@/features/check/NotificationPicker';
 import { normalizeWebsiteLink } from '@/features/check/link';
 
@@ -123,7 +124,7 @@ export default function CheckMessage() {
     <InlineError message={error ? t(error) : null} />
     {mode && status && !status.available && <Copy style={styles.subtitle}>{t('Analiza wymaga buildu Guardian na Androidzie.')}</Copy>}
     {mode && status?.available && !status.modelInstalled && <Action secondary label={t('Skonfiguruj model')} onPress={() => router.push('/model-setup')} />}
-    {result && <Card><Risk label={t(riskLabels[result.risk])} /><Copy title style={{ fontSize: 26, lineHeight: 36 }}>{t(categoryLabels[result.category])}</Copy><Copy>{result.explanation}</Copy><Copy title>{t('Co zrobić teraz?')}</Copy><Copy>{result.recommendedAction}</Copy><Copy style={styles.subtitle}>{t('Analiza lokalna. AI może się pomylić.')}</Copy></Card>}
+    {result && <Card>{result.risk !== 'low' && <Risk label={t(riskLabels[result.risk])} />}<Copy title style={{ fontSize: 26, lineHeight: 36 }}>{t(analysisTitle(result))}</Copy>{result.risk !== 'low' && <><Copy>{result.explanation}</Copy><Copy title>{t('Co zrobić teraz?')}</Copy><Copy>{result.recommendedAction}</Copy></>}<Copy style={styles.subtitle}>{t('Analiza lokalna. AI może się pomylić.')}</Copy></Card>}
     </Animated.View>}
     {picker && Platform.OS !== 'ios' && <NotificationPicker visible onClose={() => setPicker(false)} onSelect={item => { setSelected(item); resetResult(); }} />}
   </Screen>;

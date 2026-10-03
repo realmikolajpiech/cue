@@ -1,1 +1,1 @@
-export { default } from '@/features/demo/screens/Onboarding';
+export { default } from '@/features/onboarding/Onboarding';

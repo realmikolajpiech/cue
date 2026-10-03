@@ -59,5 +59,5 @@ ANDROID_SERIAL=<serial telefonu> ./android/gradlew -p android :guardian:connecte
 - [Produkt](docs/PRODUCT.md), [architektura](docs/ARCHITECTURE.md), [pozostałe taski dla dwóch osób](docs/TASKS.md).
 - [Zgodność z challenge](docs/CHALLENGE.md), [zasoby i licencje](docs/RESOURCES.md).
 
-Guardian nie włącza zgód systemowych automatycznie. Surowe wiadomości nie trafiają do JS.
+Guardian nie włącza zgód systemowych automatycznie. Pełne wiadomości pozostają w buforze Kotlin. Dla ostrzeżeń o podwyższonym ryzyku lokalna historia i UI zachowują nadawcę oraz do 5 fragmentów analizowanych wiadomości (300 znaków każdy) przez 7 dni.
 Expo Go, iOS i web nie obsługują Androidowego listenera. Nie ma cloud fallbacku ani modelu w repo.

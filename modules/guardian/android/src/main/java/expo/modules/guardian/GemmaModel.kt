@@ -7,14 +7,14 @@ import java.io.InputStream
 import java.security.MessageDigest
 
 /** One pinned, portable CPU/GPU artifact. Never initialize unverified model bytes. */
-data class GemmaModel(val id: String, val sizeBytes: Long, val sha256: String, val maxNumTokens: Int) {
+data class GemmaModel(val id: String, val sizeBytes: Long, val sha256: String, val maxNumTokens: Int, val downloadUrl: String = "") {
   companion object {
     fun load(context: Context): GemmaModel {
       val json = JSONObject(context.assets.open("gemma3-1b.json").bufferedReader().use { it.readText() })
-      return GemmaModel(json.getString("id"), json.getLong("sizeBytes"), json.getString("sha256"), json.getInt("maxNumTokens"))
+      return GemmaModel(json.getString("id"), json.getLong("sizeBytes"), json.getString("sha256"), json.getInt("maxNumTokens"), json.optString("downloadUrl"))
     }
   }
-  fun copyVerified(input: InputStream, target: File, checkCancelled: () -> Unit = {}) {
+  fun copyVerified(input: InputStream, target: File, onProgress: (Long) -> Unit = {}, checkCancelled: () -> Unit = {}) {
     try {
       val hash = MessageDigest.getInstance("SHA-256")
       var count = 0L
@@ -27,6 +27,7 @@ data class GemmaModel(val id: String, val sizeBytes: Long, val sha256: String, v
           count += n
           require(count <= sizeBytes) { "model_size_mismatch" }
           hash.update(chunk, 0, n); output.write(chunk, 0, n)
+          onProgress(count)
         }
         require(count == sizeBytes) { "model_size_mismatch" }
         require(hash.digest().joinToString("") { "%02x".format(it) } == sha256) { "model_checksum_mismatch" }

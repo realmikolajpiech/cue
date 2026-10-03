@@ -42,7 +42,7 @@ Przykład: po zmianie numeru i pilnej prośbie o pieniądze aplikacja wskazuje m
 | Wynik | low, medium, high, uncertain; kategoria, sygnały, wyjaśnienie, zalecenie | Lepsza personalizacja na podstawie dobrowolnego feedbacku |
 | Ostrzeżenie | Systemowe powiadomienie, szczegóły w aplikacji | Ostrożnie projektowane dodatkowe interwencje |
 | Prywatność | Maximum Privacy, bez backendu analizy | Enhanced AI Analysis, osobna zgoda, redakcja PII |
-| Historia | Same wyniki bez treści rozmów | Konfigurowana retencja |
+| Historia | Wyniki i krótkie podglądy podejrzanych powiadomień | Konfigurowana retencja |
 | Platforma | Android; iOS i web tylko podgląd UI | Osobna koncepcja wejścia na iOS |
 
 Poza MVP: lokalny czat ogólnego przeznaczenia, automatyczne przelewy, automatyczne odpowiedzi do nadawcy, blokowanie kontaktów, pełny dostęp do historii komunikatorów, konto i synchronizacja w chmurze, accessibility scraping, czytanie zaszyfrowanych baz aplikacji.
@@ -78,7 +78,7 @@ Użytkownik widzi rzeczywisty status ochrony, ma możliwość pauzy, usunięcia 
 - Ustawienia: Maximum Privacy, informacja o modelu, reset demonstracyjnej historii.
 - Konfiguracja Androida i pobranie modelu: planowane kolejne ekrany.
 
-Zakładki są równorzędne. Szczegóły są push nad zakładkami; Back wraca do miejsca wejścia. Deep link do szczegółów powinien mieć ekran bazowy pod spodem. Brak wprowadzania tekstu prywatnej rozmowy do JS.
+Zakładki są równorzędne. Szczegóły są push nad zakładkami; Back wraca do miejsca wejścia. Deep link do szczegółów powinien mieć ekran bazowy pod spodem. Pełna rozmowa pozostaje w buforze Kotlin; szczegóły ostrzeżenia pokazują wyłącznie krótkie podglądy analizowanego kontekstu, lokalnie przez 7 dni.
 
 Proponowany styl: neutralne powierzchnie, jeden zielony akcent dla działań, kolor ryzyka jako semantyczna informacja, systemowa typografia, SF Symbols / Material, jasny i ciemny motyw, duże cele dotyku i obsługa skalowania tekstu. Bez procentowych wskaźników „pewności”.
 

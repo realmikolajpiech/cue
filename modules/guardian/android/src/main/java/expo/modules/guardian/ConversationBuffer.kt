@@ -1,7 +1,7 @@
 package expo.modules.guardian
 
-/** Sensitive, transient data. Monotonic timestamps only; the picker exposes selected recent text. */
-data class PrivateMessage(val identity: String, val text: String, val receivedAt: Long)
+/** Full text and hashed identities stay in RAM. Warning previews are bounded separately. */
+data class PrivateMessage(val identity: String, val text: String, val receivedAt: Long, val sender: String = "")
 
 class ConversationBuffer(
   private val clock: () -> Long,
@@ -16,6 +16,7 @@ class ConversationBuffer(
     prune()
     if (messages.isEmpty()) return null
     val current = conversations.remove(key) ?: mutableListOf()
+    val previous = current.toList()
     var changed = false
     messages.forEach { incoming ->
       if (incoming.receivedAt <= clock() - ttl || incoming.text.isBlank()) return@forEach
@@ -28,7 +29,9 @@ class ConversationBuffer(
     while (current.size > maxMessages) current.removeAt(0)
     if (current.isNotEmpty()) conversations[key] = current
     while (conversations.size > maxConversations) conversations.remove(conversations.keys.first())
-    return if (changed) current.toList() else null
+    // A replay can reintroduce older messages that are immediately evicted. Analyze only
+    // when the final retained context changes; new retained messages are never delayed.
+    return if (changed && current != previous) current.toList() else null
   }
   @Synchronized fun prune() {
     val cutoff = clock() - ttl

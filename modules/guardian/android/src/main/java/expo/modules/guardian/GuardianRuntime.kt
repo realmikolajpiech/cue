@@ -12,6 +12,8 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.BufferOverflow
 import org.json.JSONObject
 import java.io.File
+import java.net.HttpURLConnection
+import java.net.URL
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.CopyOnWriteArraySet
@@ -34,12 +36,16 @@ class GuardianRuntime private constructor(val context: Context) {
   private val buffer = ConversationBuffer(SystemClock::elapsedRealtime)
   private val notificationHistory = NotificationHistory(SystemClock::elapsedRealtime)
   private val generation = AtomicLong(0)
-  private data class Work(val key: String, val source: String, val messages: List<PrivateMessage>, val epoch: Long, val received: Long)
+  private data class Work(val key: String, val source: String, val messages: List<PrivateMessage>, val epoch: Long, val received: Long, val title: String, val postedAt: Long)
   private val queue = Channel<Work>(16, BufferOverflow.DROP_OLDEST)
-  val observers = CopyOnWriteArraySet<() -> Unit>()
+  val observers = CopyOnWriteArraySet<(Boolean) -> Unit>()
   @Volatile var connected = false
   @Volatile var processing = false
   @Volatile var lastError: String? = null
+  @Volatile private var modelDownloadState = "idle"
+  @Volatile private var modelDownloadProgress = 0
+  @Volatile private var modelDownloadError: String? = null
+  private val downloadGate = Any()
   val modelFile get() = File(context.noBackupFilesDir, "guardian-model.litertlm")
   val enabled get() = preferences.getBoolean("monitoring", false)
   private val gate = Any()
@@ -65,6 +71,7 @@ class GuardianRuntime private constructor(val context: Context) {
         val fresh = work.messages.filter { SystemClock.elapsedRealtime() - it.receivedAt < 15 * 60 * 1000L }
         if (fresh.isEmpty()) continue
         processing = true; notifyChanged()
+        var resultsChanged = false
         val child = scope.launch {
           val result = try {
             Assessment.result(inference.analyze(fresh.map { it.text }), work.source)
@@ -72,14 +79,15 @@ class GuardianRuntime private constructor(val context: Context) {
           catch (_: Exception) { lastError = "analysis_failed"; Assessment.uncertain(work.source) }
           synchronized(gate) {
             if (eligibleWork(work)) {
-              store.add(result)
+              store.add(NotificationContext.attach(result, work.title, work.postedAt, fresh))
+              resultsChanged = true
               warn(result, work.key)
             }
           }
         }
         currentJob = child
         child.join(); currentJob = null
-        processing = false; notifyChanged()
+        processing = false; notifyChanged(resultsChanged)
       }
     }
   }
@@ -87,7 +95,7 @@ class GuardianRuntime private constructor(val context: Context) {
   private fun eligibleWork(work: Work) = synchronized(gate) {
     eligible(work.epoch) && work.received > (removals[work.key] ?: -1L)
   }
-  fun notifyChanged() { observers.forEach { runCatching { it() } } }
+  fun notifyChanged(resultsChanged: Boolean = false) { observers.forEach { runCatching { it(resultsChanged) } } }
   fun permissionGranted(): Boolean {
     val expected = ComponentName(context, GuardianNotificationService::class.java)
     return Settings.Secure.getString(context.contentResolver, "enabled_notification_listeners")
@@ -133,7 +141,7 @@ class GuardianRuntime private constructor(val context: Context) {
       val epoch = generation.get()
       if (!eligible(epoch)) return
       notificationHistory.add(input.key, input.source, input.messages, System.currentTimeMillis())
-      buffer.append(input.key, input.messages)?.let { queue.trySend(Work(input.key, input.source, it, epoch, SystemClock.elapsedRealtime())) }
+      buffer.append(input.key, input.messages)?.let { queue.trySend(Work(input.key, input.source, it, epoch, SystemClock.elapsedRealtime(), input.title, input.postedAt)) }
     }
     notifyChanged()
   }
@@ -152,7 +160,7 @@ class GuardianRuntime private constructor(val context: Context) {
     stopPending()
     synchronized(gate) { store.clear(); alertTimes.clear(); sourceTimes.clear() }
     (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).cancelAll()
-    notifyChanged()
+    notifyChanged(resultsChanged = true)
   }
   suspend fun importModel(uri: String): String = withContext(Dispatchers.IO) {
     modelLifecycle.withLock {
@@ -180,6 +188,56 @@ class GuardianRuntime private constructor(val context: Context) {
         lastError = e.message?.takeIf { it in setOf("model_insufficient_space", "model_file_unreadable", "model_size_mismatch", "model_checksum_mismatch", "model_install_failed", "model_initialization_failed") } ?: "model_import_failed"
         notifyChanged()
         throw IllegalStateException(lastError)
+      }
+    }
+  }
+  /** Process-owned download continues while the user visits Android permission settings. */
+  fun downloadModel() {
+    synchronized(downloadGate) {
+      if (modelDownloadState == "downloading" || modelDownloadState == "installing") return
+      if (modelFile.isFile && preferences.getString("modelSha256", null) == model.sha256) return
+      modelDownloadState = "downloading"
+      modelDownloadProgress = 0
+      modelDownloadError = null
+      notifyChanged()
+      scope.launch {
+        val temp = File(context.noBackupFilesDir, "guardian-model-download.part")
+        try {
+          modelLifecycle.withLock {
+            if (modelFile.isFile && preferences.getString("modelSha256", null) == model.sha256) return@withLock
+            temp.delete()
+            check(context.noBackupFilesDir.usableSpace >= model.sizeBytes + 64L * 1024 * 1024) { "model_insufficient_space" }
+            val url = URL(model.downloadUrl)
+            require(url.protocol == "https") { "model_download_failed" }
+            val connection = url.openConnection() as HttpURLConnection
+            connection.connectTimeout = 30_000
+            connection.readTimeout = 30_000
+            try {
+              check(connection.responseCode == HttpURLConnection.HTTP_OK) { "model_download_failed" }
+              connection.inputStream.use { input ->
+                model.copyVerified(input, temp, onProgress = { bytes ->
+                  val progress = (bytes * 100 / model.sizeBytes).toInt()
+                  if (progress != modelDownloadProgress) {
+                    modelDownloadProgress = progress
+                    notifyChanged()
+                  }
+                }) { ensureActive() }
+              }
+            } finally { connection.disconnect() }
+            modelDownloadState = "installing"; notifyChanged()
+            stopPending(); inference.close()
+            check(temp.renameTo(modelFile)) { "model_install_failed" }
+            check(preferences.edit().putString("modelSha256", model.sha256).putString("modelId", model.id).commit())
+            inference.initialize(modelFile)
+            check(inference.state == "ready") { "model_initialization_failed" }
+            lastError = null
+          }
+          modelDownloadState = "ready"
+          modelDownloadProgress = 100
+        } catch (e: Exception) {
+          modelDownloadError = e.message?.takeIf { it in setOf("model_insufficient_space", "model_size_mismatch", "model_checksum_mismatch", "model_install_failed", "model_initialization_failed") } ?: "model_download_failed"
+          modelDownloadState = "error"
+        } finally { temp.delete(); notifyChanged() }
       }
     }
   }
@@ -214,6 +272,7 @@ class GuardianRuntime private constructor(val context: Context) {
     "processing" to processing, "error" to (lastError ?: inference.error),
     "active" to (enabled && connected && permissionGranted() && inference.state == "ready"),
     "modelInstalled" to (modelFile.isFile && preferences.getString("modelSha256", null) == model.sha256),
+    "modelDownloadState" to modelDownloadState, "modelDownloadProgress" to modelDownloadProgress, "modelDownloadError" to modelDownloadError,
     "modelSha256" to preferences.getString("modelSha256", null), "initializationMs" to inference.initializationMs,
     "promptVersion" to inference.promptVersion, "runtimeVersion" to "0.15.0",
     "notificationPermission" to NotificationManagerCompat.from(context).areNotificationsEnabled(),
