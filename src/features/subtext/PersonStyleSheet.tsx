@@ -6,6 +6,6 @@ export default function PersonStyle() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const room = useRoom(id);
   return <><Stack.Screen options={{ title: 'Pamięć i styl', headerBackTitle: room.data?.name ?? 'Rozmowa' }} />
-    <WritingStyle roomId={id} personName={room.data?.name ?? 'tej osoby'} />
+    <WritingStyle roomId={id} personName={room.data?.name ?? 'tej osoby'} isExample={room.data?.demo} />
   </>;
 }

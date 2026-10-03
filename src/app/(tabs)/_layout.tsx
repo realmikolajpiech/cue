@@ -31,6 +31,9 @@ export default function TabsLayout() {
     tabBarIconStyle: styles.icon,
     tabBarLabelStyle: styles.label,
     tabBarItemStyle: styles.item,
+    tabBarButton: ({ android_ripple: _ripple, ref: _ref, ...props }) => <Pressable {...props}
+      style={({ pressed }) => [props.style, { opacity: pressed ? 0.65 : 1 }]} />,
+    animation: 'none',
     tabBarHideOnKeyboard: true }}>
     <Tabs.Screen name="index" options={{ title: 'Rozmowy', headerTitle: () => <CueMark size={36} />, tabBarIcon: ({ focused }) => <TabIcon name="message" focused={focused} />, headerRight: () =>
       <Pressable accessibilityRole="button" accessibilityLabel="Połączone konta" onPress={() => router.push('/connections')} style={({ pressed }) => ({ width: 44, height: 44, marginRight: 12, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.5 : 1 })}><Icon name="accounts" size={24} color={colors.accent} /></Pressable> }} />

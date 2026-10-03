@@ -5,10 +5,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Copy } from '@/components/ui';
 import { useTheme } from '@/theme/useTheme';
 
-export function Page({ children }: { children: ReactNode }) {
+export function Page({ children, compact = false }: { children: ReactNode; compact?: boolean }) {
   const { colors } = useTheme(); const insets = useSafeAreaInsets();
   return <KeyboardAwareScrollView bottomOffset={24} style={{ flex: 1, backgroundColor: colors.background }} contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled"
-    keyboardDismissMode="on-drag" contentContainerStyle={{ padding: 20, gap: 20, paddingBottom: insets.bottom + 24, width: '100%', maxWidth: 600, alignSelf: 'center' }}>{children}</KeyboardAwareScrollView>;
+    keyboardDismissMode="on-drag" contentContainerStyle={{ padding: compact ? 16 : 20, gap: compact ? 12 : 20, paddingBottom: insets.bottom + 24, width: '100%', maxWidth: 600, alignSelf: 'center' }}>{children}</KeyboardAwareScrollView>;
 }
 export function Intro({ eyebrow, title, text }: { eyebrow: string; title: string; text?: string }) {
   return <View style={{ gap: 8 }}><Copy style={ui.eyebrow}>{eyebrow}</Copy><Copy title style={ui.heading}>{title}</Copy>{text && <Copy style={ui.body}>{text}</Copy>}</View>;
