@@ -3,9 +3,9 @@ import { Pressable, View } from 'react-native';
 import { router } from 'expo-router';
 import { Screen, Copy, Card, Row, Icon, SectionHeading, TextAction, Toggle, Tags, Risk, Empty, Action, InlineError } from '@/components/ui';
 import { useProtection } from '@/features/protection/useProtection';
-import { useTheme } from '@/theme/useTheme';
-export default function Protection() { const { enabled, active: monitoringActive, toggleProtection, threats, apps, native, stateLabel, busy, error, status, openAccess } = useProtection(); const { colors } = useTheme(); const active = threats.filter(t => !t.reviewed && (!native || t.risk === 'Wysokie ryzyko')); const first = active[0]; return <Screen title="Ochrona">
-<Card><Row><Icon name="shield" size={25} /><View style={{ flex: 1 }}><Copy style={{ color: colors.text, fontSize: 16, fontWeight: '500' }}>{monitoringActive ? 'Ochrona włączona' : enabled ? 'Ochrona niegotowa' : 'Ochrona wyłączona'}</Copy><Copy style={{ fontSize: 11 }}>{stateLabel}</Copy></View><Toggle value={enabled} onChange={toggleProtection} disabled={busy || (native && !status?.available)} label="Monitorowanie powiadomień" /></Row></Card>
+import { useTheme, riskColors, riskFromLabel } from '@/theme/useTheme';
+export default function Protection() { const { enabled, active: monitoringActive, toggleProtection, threats, apps, native, stateLabel, busy, error, status, openAccess } = useProtection(); const { colors, isDark } = useTheme(); const active = threats.filter(t => !t.reviewed && (!native || t.risk === 'Wysokie ryzyko')); const first = active[0]; return <Screen title="Ochrona">
+<Card><Row><Icon name="shield" size={25} color={first ? riskColors(riskFromLabel(first.risk), isDark).foreground : colors.text} /><View style={{ flex: 1 }}><Copy style={{ color: colors.text, fontSize: 16, fontWeight: '500' }}>{monitoringActive ? 'Ochrona włączona' : enabled ? 'Ochrona niegotowa' : 'Ochrona wyłączona'}</Copy><Copy style={{ fontSize: 11 }}>{stateLabel}</Copy></View><Toggle value={enabled} onChange={toggleProtection} disabled={busy || (native && !status?.available)} label="Monitorowanie powiadomień" /></Row></Card>
 <InlineError message={error} />
 {native && !status?.notificationAccess && <Card><Copy>Android wymaga zgody na odczyt powiadomień. Włącz Guardian w ustawieniach dostępu.</Copy><Action secondary label="Włącz dostęp do powiadomień" onPress={openAccess} /></Card>}
 {native && !status?.notificationPermission && <Action secondary label="Zezwól na ostrzeżenia" onPress={() => { guardian.warningPermission(); }} />}

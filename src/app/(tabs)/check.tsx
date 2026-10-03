@@ -29,7 +29,7 @@ export default function CheckMessage() {
         : 'Nie udało się sprawdzić wiadomości. Spróbuj ponownie lub sprawdź konfigurację modelu.');
     } finally { pending.current = false; setBusy(false); }
   }
-  return <Screen title="Sprawdź wiadomość">
+  return <Screen title="Sprawdź wiadomość" risk={result?.risk}>
     {result ? <Card>
       <Risk label={riskLabels[result.risk]} />
       <Copy title style={{ fontSize: 20 }}>{categoryLabels[result.category]}</Copy>

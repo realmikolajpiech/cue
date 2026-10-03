@@ -6,11 +6,31 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import androidx.core.content.ContextCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import org.json.JSONObject
 
 object GuardianWarnings {
+  const val HIGH_RISK_CHANNEL = "guardian_high_risk"
+  private fun riskColor(risk: String) = Color.parseColor(when (risk) {
+    "high" -> "#D92D20"
+    "medium" -> "#F79009"
+    "low" -> "#EAB308"
+    else -> "#667085"
+  })
+  private fun shield(context: Context, color: Int): Bitmap {
+    val icon = requireNotNull(ContextCompat.getDrawable(context, R.drawable.guardian_notification_shield)).mutate()
+    icon.setTint(color)
+    val size = (64 * context.resources.displayMetrics.density).toInt().coerceAtLeast(64)
+    return Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888).also {
+      icon.setBounds(0, 0, size, size)
+      icon.draw(Canvas(it))
+    }
+  }
   private val titles = mapOf(
     "family_impersonation" to "Możliwe podszywanie się pod bliską osobę",
     "credential_theft" to "Możliwa próba wyłudzenia kodu lub hasła",
@@ -52,9 +72,18 @@ object GuardianWarnings {
     return Copy(titles[category] ?: titles.getValue("unknown"), action, evidence)
   }
 
-  fun post(context: Context, result: JSONObject): Boolean {
+  fun ensureChannel(context: Context) {
     val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-    manager.createNotificationChannel(NotificationChannel("guardian_risk", "Ostrzeżenia Guardian", NotificationManager.IMPORTANCE_HIGH))
+    manager.createNotificationChannel(NotificationChannel(HIGH_RISK_CHANNEL, "Wysokie ryzyko — pilne ostrzeżenia", NotificationManager.IMPORTANCE_HIGH).apply {
+      description = "Podejrzenie oszustwa: baner, dźwięk i wibracja. Możesz zmienić zachowanie w ustawieniach Androida."
+      enableVibration(true)
+      vibrationPattern = longArrayOf(0, 200, 120, 200)
+    })
+  }
+
+  fun post(context: Context, result: JSONObject): Boolean {
+    ensureChannel(context)
+    val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) return false
     val id = result.getString("id")
     val intent = Intent(Intent.ACTION_VIEW, Uri.parse("guardian://alert/$id")).setPackage(context.packageName)
@@ -64,9 +93,13 @@ object GuardianWarnings {
     val source = result.getString("sourceApp")
     val expanded = if (copy.evidence.isEmpty()) copy.action
       else "${copy.action}\n\nZauważone sygnały: ${copy.evidence}"
-    val icon = context.applicationInfo.icon
-    val notification = NotificationCompat.Builder(context, "guardian_risk")
-      .setSmallIcon(icon).setContentTitle(copy.title)
+    val color = riskColor(result.getString("risk"))
+    val notification = NotificationCompat.Builder(context, HIGH_RISK_CHANNEL)
+      .setSmallIcon(R.drawable.guardian_notification_shield)
+      .setLargeIcon(shield(context, color))
+      .setColor(color)
+      .setPriority(NotificationCompat.PRIORITY_MAX)
+      .setContentTitle(copy.title)
       .setSubText("$source · ocena AI")
       .setContentText(copy.action)
       .setStyle(NotificationCompat.BigTextStyle().bigText(expanded))

@@ -49,3 +49,7 @@ On Android, the main protection switch and Settings use the native monitoring st
 ## Useful system warnings
 
 The warning title names the suspected mechanism, rather than repeating a generic risk level. Collapsed text gives an immediate action appropriate to the category. Expanded text includes only the signals actually returned by the model. The source app and “ocena AI” appear in the subtitle, and “Zobacz analizę” opens the saved result. No message quote, contact name or inferred signal is inserted. Wording describes a suspicion rather than a verified crime.
+
+## Priority and risk colors
+
+High-risk warnings use the urgent `guardian_high_risk` channel (IMPORTANCE_HIGH, sound, vibration) and PRIORITY_MAX for compatibility. Android settings and Do Not Disturb remain authoritative; visibility cannot be guaranteed. Settings links directly to this channel's banner/sound/vibration controls. A dedicated monochrome shield is used for the status-bar icon; the notification accent and large shield reflect risk (red high, orange medium, yellow low, gray uncertain). The app uses corresponding light/dark risk colors and retains textual risk labels. Its header shield reflects the highest unreviewed result, or the manual result currently displayed. Only high risks trigger automatic system warnings; medium/low colors are used for in-app results.

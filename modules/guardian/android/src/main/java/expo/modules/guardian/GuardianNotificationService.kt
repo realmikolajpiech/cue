@@ -12,7 +12,7 @@ class GuardianNotificationService : NotificationListenerService() {
       // Fetch only after the engine is ready; the normal buffer deduplicates updates.
       val visible = activeNotifications ?: emptyArray()
       val saved = runtime.store.list().associateBy { it.getString("id").hashCode() }
-      visible.filter { it.packageName == packageName && it.notification.channelId == "guardian_risk" }.forEach { warning ->
+      visible.filter { it.packageName == packageName && it.notification.channelId in setOf("guardian_risk", GuardianWarnings.HIGH_RISK_CHANNEL) }.forEach { warning ->
         saved[warning.id]?.let { GuardianWarnings.post(this, it) }
       }
       val cutoff = System.currentTimeMillis() - 15 * 60 * 1000L

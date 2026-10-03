@@ -11,6 +11,7 @@ declare class GuardianModule extends NativeModule<{ onChanged: () => void }> {
   clearHistory(): Promise<void>;
   markReviewed(id: string): Promise<void>;
   importModel(uri: string): Promise<string>;
+  openWarningChannelSettings(): Promise<void>;
   openNotificationSettings(): Promise<void>;
   requestWarningPermission(): void;
 }
@@ -30,6 +31,7 @@ export const guardian = {
   clear: () => requireGuardian().clearHistory(),
   review: (id: string) => requireGuardian().markReviewed(id),
   importModel: (uri: string) => requireGuardian().importModel(uri),
+  openWarningChannelSettings: () => requireGuardian().openWarningChannelSettings(),
   openSettings: () => requireGuardian().openNotificationSettings(),
   warningPermission: () => requireGuardian().requestWarningPermission(),
   subscribe: (changed: () => void) => native?.addListener('onChanged', changed),
