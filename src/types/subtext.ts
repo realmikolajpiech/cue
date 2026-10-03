@@ -31,7 +31,11 @@ export const reminderSchema = z.object({
 });
 export type ConversationReminder = z.infer<typeof reminderSchema>;
 
+export const writingToneSchema = z.enum(['natural', 'flirt', 'assertive', 'empathetic', 'calming']);
+export type WritingTone = z.infer<typeof writingToneSchema>;
+
 export const writingStyleSchema = z.object({
+  selectedTone: writingToneSchema.default('natural'),
   reminders: z.array(reminderSchema).optional(),
   generated: z.boolean().optional(),
   updatedAt: z.number().optional(), contextUpdatedAt: z.number().optional(), pendingMessages: z.number().optional(), contextError: z.string().optional(),

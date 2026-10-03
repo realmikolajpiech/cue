@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider, focusManager, useQuery, useMutation, 
 import { useEffect, type ReactNode } from 'react';
 import { AppState } from 'react-native';
 import { z } from 'zod';
-import { profileSchema, roomSchema, subtextStatusSchema, writingStyleSchema, reminderSchema, type Network } from '@/types/subtext';
+import { profileSchema, roomSchema, subtextStatusSchema, writingStyleSchema, reminderSchema, type Network, type WritingTone } from '@/types/subtext';
 import { withDeadline } from './deadline';
 
 declare class SubtextModule extends NativeModule<{ onChanged: () => void }> {
@@ -15,6 +15,7 @@ declare class SubtextModule extends NativeModule<{ onChanged: () => void }> {
   editConversationReminder(id: string, reminderId: string, patch: string): Promise<void>;
   conversationMemory(id: string): Promise<string>;
   previewConversationWritingStyle(id: string): Promise<string>;
+  setWritingTone(id: string | null, tone: WritingTone): Promise<string>;
   writingStyle(): Promise<string>;
   previewWritingStyle(): Promise<string>;
   conversations(): Promise<string>;
@@ -44,6 +45,7 @@ export const subtext = {
     requireSubtext().editConversationReminder(id, reminderId, JSON.stringify(patch)),
   conversationMemory: async (id: string) => z.object({ conversationId: z.string(), storedMemory: z.record(z.string(), z.unknown()), aiMemory: z.record(z.string(), z.unknown()) })
     .parse(JSON.parse(await requireSubtext().conversationMemory(id))),
+  setWritingTone: async (id: string | undefined, tone: WritingTone) => writingStyleSchema.parse(JSON.parse(await requireSubtext().setWritingTone(id ?? null, tone))),
   conversationWritingStyle: async (id: string) => writingStyleSchema.parse(JSON.parse(await requireSubtext().conversationWritingStyle(id))),
   previewConversationWritingStyle: async (id: string) => writingStyleSchema.parse(JSON.parse(await requireSubtext().previewConversationWritingStyle(id))),
   previewWritingStyle: async () => writingStyleSchema.parse(JSON.parse(await requireSubtext().previewWritingStyle())),

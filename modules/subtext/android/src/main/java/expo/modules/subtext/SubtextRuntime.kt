@@ -292,13 +292,24 @@ class SubtextRuntime private constructor(private val context: Context) {
   }
   private fun styleRooms(id: String?): List<JSONObject> = if (id == null) store.rooms()
     else listOf(requireNotNull(store.room(id)) { "Nie znaleziono rozmowy." })
-  private fun styleCacheKey(id: String?) = "writing-style-preview:v2:" + (id ?: "general")
+  private fun styleToneKey(id: String?) = "writing-style-tone:" + (id ?: "general")
+  private fun selectedTone(id: String?) = prefs.getString(styleToneKey(id), "natural") ?: "natural"
+  private fun styleCacheKey(id: String?, tone: String) = "writing-style-preview:v3:" + (id ?: "general") + ":" + tone
+  fun setWritingTone(id: String?, tone: String): String {
+    WritingTone.requireValid(tone)
+    if (id != null) requireNotNull(store.room(id)) { "Nie znaleziono rozmowy." }
+    prefs.edit().putString(styleToneKey(id), tone).apply()
+    changed()
+    return writingStyle(id)
+  }
   private fun styleSamples(id: String?): JSONArray = if (id == null) DeepSeek.generalWritingHistory(styleRooms(null))
     else PersonMemory.writingSamples(store.memory(id))
   fun writingStyle(id: String? = null): String {
     val result = if (id == null) writingStyleOverview(styleRooms(id)) else PersonMemory.overview(store.memory(id))
     val samples = styleSamples(id)
-    val saved = runCatching { JSONObject(prefs.getString(styleCacheKey(id), "") ?: "") }.getOrNull()
+    val tone = selectedTone(id)
+    result.put("selectedTone", tone)
+    val saved = runCatching { JSONObject(prefs.getString(styleCacheKey(id, tone), "") ?: "") }.getOrNull()
     if (saved?.optInt("sampleHash") == samples.toString().hashCode()) {
       result.put("previewExamples", saved.getJSONArray("examples"))
     }
@@ -309,6 +320,7 @@ class SubtextRuntime private constructor(private val context: Context) {
     val samples = styleSamples(id)
     check(samples.length() >= 5) { "Potrzebujemy przynajmniej 5 Twoich wiadomości. Zsynchronizuj rozmowy." }
     val token = generation.get()
+    val tone = selectedTone(id)
     val scenarios = listOf(
       "Hej, co u Ciebie?" to "Odpowiedz na luźne przywitanie bez wymyślania wydarzeń ze swojego życia.",
       "Masz ochotę spotkać się jutro?" to "Wyraź chęć spotkania i zapytaj o godzinę, bez wymyślania swoich planów.",
@@ -328,14 +340,15 @@ class SubtextRuntime private constructor(private val context: Context) {
         }
         messages.put(message("preview-$index", "Rozmówca", scenario.first, 1000L, false))
         val intent = "Podgląd mojego ogólnego stylu pisania. Wcześniejsze wiadomości isMe=true to tylko próbki formy wypowiedzi z rozmów, a nie kontekst ani fakty. " +
-          "To ćwiczenie stylu: zwróć wyłącznie propozycje wiadomości action=reply, bez no_reply. Naśladuj ich długość, skróty, wielkość liter, interpunkcję i emoji. Nie przenoś nazw, faktów ani tematów z próbek. " + scenario.second
+          "To ćwiczenie stylu: zwróć wyłącznie propozycje wiadomości action=reply, bez no_reply. Naśladuj ich długość, skróty, wielkość liter, interpunkcję i emoji. Jeśli próbki są pisane małymi literami, zachowaj małe litery; nie poprawiaj ich na formalny język. Nie przenoś nazw, faktów ani tematów z próbek. " +
+          WritingTone.instruction(tone) + " " + scenario.second
         val profile = DeepSeek.analyze(gateway, messages, intent, JSONObject())
         examples.put(JSONObject().put("id", "preview-$index").put("incoming", scenario.first)
           .put("reply", profile.getJSONArray("suggestions").getJSONObject(0).getString("text"))
           .put("timestamp", System.currentTimeMillis()))
       }
       check(token == generation.get() && prefs.getBoolean("cloud", false)) { "Tworzenie podglądu zostało anulowane." }
-      prefs.edit().putString(styleCacheKey(id), JSONObject().put("sampleHash", samples.toString().hashCode()).put("examples", examples).toString()).apply()
+      prefs.edit().putString(styleCacheKey(id, tone), JSONObject().put("sampleHash", samples.toString().hashCode()).put("examples", examples).toString()).apply()
       writingStyle(id)
     } finally { analyzing = null; changed() }
   }
@@ -354,7 +367,7 @@ class SubtextRuntime private constructor(private val context: Context) {
   }
   private fun clearStylePreviews() {
     val editor = prefs.edit()
-    prefs.all.keys.filter { it.startsWith("writing-style-preview") }.forEach { editor.remove(it) }
+    prefs.all.keys.filter { it.startsWith("writing-style-preview") || it.startsWith("writing-style-tone:") }.forEach { editor.remove(it) }
     editor.apply()
   }
   fun clear() = synchronized(photoLifecycleLock) { generation.incrementAndGet(); clearStylePreviews(); images.clear(); photos.clear(); store.clear(); changed() }
