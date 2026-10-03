@@ -29,10 +29,11 @@ class SubtextModule : Module() {
     AsyncFunction("writingStyle") { subtextRuntime.writingStyle() }
     AsyncFunction("previewWritingStyle") Coroutine { -> subtextRuntime.previewWritingStyle() }
     AsyncFunction("conversations") {
-      JSONArray(subtextRuntime.store.rooms().map { it.apply { put("messageCount", getJSONArray("messages").length()); remove("messages") } }).toString()
+      JSONArray(subtextRuntime.store.summaries()).toString()
     }
     AsyncFunction("refresh") Coroutine { -> subtextRuntime.startConnections(); subtextRuntime.refresh() }
-    AsyncFunction("conversation") Coroutine { id: String -> subtextRuntime.read(id) }
+    AsyncFunction("conversation") { id: String -> subtextRuntime.cachedConversation(id) }
+    AsyncFunction("syncConversation") Coroutine { id: String -> subtextRuntime.read(id) }
     AsyncFunction("analyze") Coroutine { id: String, draft: String -> subtextRuntime.analyze(id, draft) }
     AsyncFunction("setCloudEnabled") { enabled: Boolean -> subtextRuntime.cloud(enabled) }
     AsyncFunction("clearHistory") { subtextRuntime.clear() }

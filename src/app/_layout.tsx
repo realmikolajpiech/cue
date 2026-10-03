@@ -1,6 +1,7 @@
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { useTheme } from '@/theme/useTheme';
 import { SubtextProvider } from '@/services/subtext';
 import { useSubtextPreferences } from '@/features/subtext/preferences';
@@ -15,15 +16,17 @@ export default function RootLayout() {
     ManropeBold: require('../../assets/fonts/Manrope-800.ttf'),
   });
   if ((!loaded && !error) || !hydrated) return null;
-  return <SubtextProvider><StatusBar style={isDark ? 'light' : 'dark'} />
-    <Stack screenOptions={{ contentStyle: { backgroundColor: colors.background }, headerStyle: { backgroundColor: colors.background }, headerTintColor: colors.text }}>
+  return <SubtextProvider><KeyboardProvider><StatusBar style={isDark ? 'light' : 'dark'} />
+    <Stack screenOptions={{ contentStyle: { backgroundColor: colors.background }, headerStyle: { backgroundColor: colors.background }, headerTintColor: colors.text, headerShadowVisible: false, headerTitleStyle: { fontFamily: 'Manrope' } }}>
       <Stack.Protected guard={onboarded}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="person/[id]" options={{ title: 'Rozmowa' }} />
+        <Stack.Screen name="messages/[id]" options={{ title: 'Wiadomości' }} />
+        <Stack.Screen name="person-style/[id]" options={{ title: 'Twój styl' }} />
         <Stack.Screen name="connections" options={{ title: 'Połączone konta' }} />
         <Stack.Screen name="settings" options={{ title: 'Ustawienia' }} />
       </Stack.Protected>
       <Stack.Protected guard={!onboarded}><Stack.Screen name="onboarding" options={{ headerShown: false }} /></Stack.Protected>
     </Stack>
-  </SubtextProvider>;
+  </KeyboardProvider></SubtextProvider>;
 }

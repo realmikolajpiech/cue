@@ -81,10 +81,20 @@ class SubtextRuntime private constructor(private val context: Context) {
     .put("whatsapp", JSONObject().put("phase", whatsapp.state.value.phase.name).put("detail", whatsapp.state.value.detail)
       .put("pairingCode", whatsapp.state.value.pairingCode ?: JSONObject.NULL)).toString()
   suspend fun refresh() { restore(); messenger.refreshConversations(); whatsapp.refreshConversations() }
-  suspend fun read(id: String): String {
+  fun cachedConversation(id: String): String {
     val room = requireNotNull(store.room(id)) { "Nie znaleziono rozmowy." }
     check(room.optString("kind") == "PRIVATE") { "Obsługiwane są tylko rozmowy prywatne." }
-    if (room.optBoolean("demo")) return room.toString()
+    if (room.getJSONArray("messages").length() == 0 && !room.optBoolean("demo")) {
+      room.put("historyNotice", if (room.optString("network") == "messenger" && messenger.isEncrypted(room.getString("remoteId")))
+        "Messenger nie udostępnił historii tego szyfrowanego czatu. Cue może zapisywać nowe wiadomości odebrane po połączeniu konta."
+      else "Nie ma jeszcze zapisanych wiadomości. Zsynchronizuj rozmowę, aby Cue mógł przygotować podsumowanie i odpowiedzi.")
+    }
+    return room.toString()
+  }
+  suspend fun read(id: String): String = withTimeout(20000) {
+    val room = requireNotNull(store.room(id)) { "Nie znaleziono rozmowy." }
+    check(room.optString("kind") == "PRIVATE") { "Obsługiwane są tylko rozmowy prywatne." }
+    if (room.optBoolean("demo")) return@withTimeout room.toString()
     val remote = room.getString("remoteId"); val network = room.getString("network")
     val messages = if (network == "messenger") messenger.readMessages(remote, 100).map { message(it.id, it.senderName, it.text, it.timestamp, it.isMe) }
       else whatsapp.readMessages(remote, 100).map { message(it.id, it.senderName, it.text, it.timestamp, it.isMe) }
@@ -96,14 +106,16 @@ class SubtextRuntime private constructor(private val context: Context) {
         "Messenger nie udostępnił historii tego szyfrowanego czatu. Cue może zapisywać nowe wiadomości odebrane po połączeniu konta."
       else "Komunikator nie udostępnił jeszcze wiadomości. Spróbuj odświeżyć po synchronizacji.")
     }
-    return result.toString()
+    result.toString()
   }
   suspend fun analyze(id: String, draft: String): String = analysisMutex.withLock {
     check(prefs.getBoolean("cloud", false)) { "Włącz analizę DeepSeek w ustawieniach. Wybrana rozmowa zostanie wysłana do API." }
     val token = generation.get()
     analyzing = id; changed()
     try {
-      val fetched = JSONObject(read(id))
+      // Existing local messages are already enough to help; avoid another blocking history fetch.
+      val cached = JSONObject(cachedConversation(id))
+      val fetched = if (cached.getJSONArray("messages").length() > 0 || cached.optBoolean("demo")) cached else JSONObject(read(id))
       val room = requireNotNull(store.room(id)) { "Rozmowa została usunięta." }
       val all = room.getJSONArray("messages")
       val recent = JSONArray((maxOf(0, all.length() - 80) until all.length()).map { all.getJSONObject(it) })

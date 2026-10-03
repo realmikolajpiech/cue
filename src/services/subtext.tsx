@@ -4,6 +4,7 @@ import { useEffect, type ReactNode } from 'react';
 import { AppState } from 'react-native';
 import { z } from 'zod';
 import { profileSchema, roomSchema, subtextStatusSchema, writingStyleSchema, type Network } from '@/types/subtext';
+import { withDeadline } from './deadline';
 
 declare class SubtextModule extends NativeModule<{ onChanged: () => void }> {
   status(): Promise<string>;
@@ -14,6 +15,7 @@ declare class SubtextModule extends NativeModule<{ onChanged: () => void }> {
   previewWritingStyle(): Promise<string>;
   conversations(): Promise<string>;
   conversation(id: string): Promise<string>;
+  syncConversation(id: string): Promise<string>;
   refresh(): Promise<void>;
   analyze(id: string, draft: string): Promise<string>;
   setCloudEnabled(enabled: boolean): Promise<void>;
@@ -39,8 +41,9 @@ export const subtext = {
   demo: () => requireSubtext().loadDemo(),
   status: async () => native ? subtextStatusSchema.parse(JSON.parse(await native.status())) : unavailable,
   rooms: async () => native ? z.array(roomSchema).parse(JSON.parse(await native.conversations())) : [],
-  room: async (id: string) => roomSchema.parse(JSON.parse(await requireSubtext().conversation(id))),
-  refresh: () => requireSubtext().refresh(),
+  room: async (id: string) => roomSchema.parse(JSON.parse(await withDeadline(requireSubtext().conversation(id), 5000, 'Nie udało się odczytać zapisanej rozmowy. Spróbuj ponownie.'))),
+  syncRoom: async (id: string) => roomSchema.parse(JSON.parse(await withDeadline(requireSubtext().syncConversation(id), 25000, 'Synchronizacja trwa zbyt długo. Zapisane wiadomości są nadal dostępne. Spróbuj ponownie.'))),
+  refresh: () => withDeadline(requireSubtext().refresh(), 30000, 'Nie udało się odświeżyć rozmów. Sprawdź połączenie komunikatora i spróbuj ponownie.'),
   analyze: async (id: string, draft = '') => profileSchema.parse(JSON.parse(await requireSubtext().analyze(id, draft))),
   cloud: (enabled: boolean) => requireSubtext().setCloudEnabled(enabled),
   clear: () => requireSubtext().clearHistory(),
@@ -72,7 +75,17 @@ export function SubtextProvider({ children }: { children: ReactNode }) {
 }
 export function useSubtextStatus() { return useQuery({ queryKey: ['subtext', 'status'], queryFn: subtext.status, refetchInterval: 10000 }); }
 export function useRooms() { return useQuery({ queryKey: ['subtext', 'rooms'], queryFn: subtext.rooms }); }
-export function useRoom(id: string) { return useQuery({ queryKey: ['subtext', 'room', id], queryFn: () => subtext.room(id), enabled: !!id }); }
+export function useRoom(id: string) { return useQuery({ queryKey: ['subtext', 'room', id], queryFn: () => subtext.room(id), enabled: !!id, staleTime: 0, retry: false }); }
+export function useSyncRoom(id: string, enabled: boolean) {
+  return useQuery({ queryKey: ['subtext', 'sync', id], enabled: !!id && enabled, retry: false, staleTime: 30000, refetchOnWindowFocus: false,
+    queryFn: async () => {
+      const room = await subtext.syncRoom(id);
+      subtextCache.setQueryData(['subtext', 'room', id], room);
+      void subtextCache.invalidateQueries({ queryKey: ['subtext', 'rooms'] });
+      return room;
+    },
+  });
+}
 export function useSubtextAction() {
   const client = useQueryClient();
   return useMutation({ mutationFn: (action: () => Promise<unknown>) => action(), onSuccess: () => client.invalidateQueries({ queryKey: ['subtext'] }) });

@@ -14,7 +14,8 @@ export default function Connections() {
     ]);
   }
   return <Page>
-    {!status?.available && <Copy style={ui.body}>Połączenie kont jest dostępne w aplikacji na Androidzie.</Copy>}
+    <Copy style={ui.body}>Połącz komunikator, aby zobaczyć swoje rozmowy w Cue.</Copy>
+    {status && !status.available && <Copy style={ui.body}>Połączenie kont jest dostępne w aplikacji na Androidzie.</Copy>}
     <Card><Row><Icon name="message" /><Copy style={ui.title}>Messenger</Copy></Row><Copy style={ui.body}>{phases[status?.messenger.phase ?? 'NOT_CONFIGURED']}</Copy>
       <Button label={status?.messenger.phase === 'CONNECTED' ? 'Odśwież rozmowy' : 'Połącz Messengera'} disabled={!status?.available || action.isPending} onPress={() => action.mutate(status?.messenger.phase === 'CONNECTED' ? subtext.refresh : subtext.messenger)} />
       {status?.messenger.phase !== 'NOT_CONFIGURED' && status?.available && <Disclosure label="Zarządzaj kontem">

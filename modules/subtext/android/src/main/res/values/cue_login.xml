@@ -1,14 +1,16 @@
 <resources>
-  <color name="cue_login_background">#F7F7F7</color>
+  <color name="cue_login_background">#F5F6FC</color>
   <color name="cue_login_surface">#FFFFFF</color>
-  <color name="cue_login_text">#202020</color>
-  <color name="cue_login_secondary">#626262</color>
-  <color name="cue_login_border">#E7E7E7</color>
+  <color name="cue_login_text">#24283F</color>
+  <color name="cue_login_secondary">#606982</color>
+  <color name="cue_login_border">#DDE3F3</color>
+  <color name="cue_login_accent">#4563AB</color>
+  <color name="cue_login_on_accent">#FFFFFF</color>
   <color name="cue_login_error">#B42318</color>
   <color name="cue_login_error_surface">#FEECE9</color>
   <style name="CueLoginTheme" parent="android:style/Theme.Material.Light.NoActionBar">
     <item name="android:fontFamily">sans</item>
-    <item name="android:colorAccent">@color/cue_login_text</item>
+    <item name="android:colorAccent">@color/cue_login_accent</item>
     <item name="android:windowBackground">@color/cue_login_background</item>
     <item name="android:windowLightStatusBar">true</item>
     <item name="android:windowLightNavigationBar">true</item>

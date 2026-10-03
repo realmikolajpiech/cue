@@ -1,6 +1,12 @@
-const { withAppBuildGradle, withSettingsGradle } = require('expo/config-plugins');
+const { AndroidConfig, withAndroidManifest, withAppBuildGradle, withSettingsGradle } = require('expo/config-plugins');
 
 module.exports = config => {
+  config = withAndroidManifest(config, config => {
+    const application = AndroidConfig.Manifest.getMainApplicationOrThrow(config.modResults);
+    // Keep development controls available through the gesture/menu, clear of the product UI.
+    AndroidConfig.Manifest.addMetaDataItemToMainApplication(application, 'EXDevMenuShowFloatingActionButton', 'false');
+    return config;
+  });
   config = withSettingsGradle(config, config => {
     const marker = "include ':cue-heliboard'";
     if (!config.modResults.contents.includes(marker)) {

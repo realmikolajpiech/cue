@@ -2,6 +2,7 @@ import { View, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, Copy, Icon, Row } from '@/components/ui';
+import { CueCompanion, CueMascot } from '@/components/CueBrand';
 import { subtext, useSubtextStatus } from '@/services/subtext';
 import { useTheme } from '@/theme/useTheme';
 import { Button, ErrorText, Page, ui } from './components';
@@ -20,13 +21,9 @@ export default function WritingStyle({ roomId, personName }: { roomId?: string; 
   const examples = style?.examples ?? [];
 
   return <Page>
-    <View style={{ gap: 10 }}>
-      <Copy style={ui.eyebrow}>Tak piszesz Ty</Copy>
-      <Copy title style={ui.heading}>{roomId ? 'Pamięć rozmowy' : 'Twój styl.'}</Copy>
-      <Copy style={ui.body}>{roomId ? `Tak piszesz do: ${personName}. Pamięć uzupełnia się po synchronizacji nowych wiadomości i pozostaje osobna dla tego czatu.` : 'Twój sposób pisania, zebrany z różnych rozmów. Zobacz, jak brzmi na co dzień.'}</Copy>
-    </View>
+    <CueCompanion title={roomId ? 'Każda rozmowa jest inna' : 'Brzmij jak Ty'} text={roomId ? `Poznaję Twój styl w rozmowie z: ${personName}. Pamięć tego czatu uzupełnia się po synchronizacji.` : 'Poznam Twój sposób pisania, żeby podpowiedzi brzmiały po Twojemu.'} />
     <ErrorText error={query.error ?? preview.error} />
-    {query.isPending ? <Row style={{ paddingVertical: 24 }}><ActivityIndicator color={colors.text} /><Copy style={ui.body}>Poznaję Twój styl…</Copy></Row> : style && <>
+    {query.isPending ? <Row style={{ paddingVertical: 24 }}><ActivityIndicator color={colors.accent} /><Copy style={ui.body}>Poznaję Twój styl…</Copy></Row> : style && <>
       {hasMessages ? <Card style={styles.summary}>
         <Row style={{ justifyContent: 'space-between' }}>
           <Row><View style={[styles.avatar, { backgroundColor: colors.secondary }]}><Icon name="style" size={22} /></View><Copy style={styles.cardTitle}>Po Twojemu</Copy></Row>
@@ -48,9 +45,9 @@ export default function WritingStyle({ roomId, personName }: { roomId?: string; 
           <Button label={preview.isPending ? 'Przygotowuję 5 rozmów…' : style.generated || style.previewExamples?.length ? 'Odśwież przykłady AI' : 'Zobacz 5 przykładowych rozmów'}
             disabled={style.sampleCount < 5 || !!status.analyzing || preview.isPending} onPress={() => preview.mutate()} />
           <Copy style={ui.small}>{style.sampleCount < 5 ? 'Potrzebujemy przynajmniej 5 Twoich wiadomości.' : roomId ? 'AI użyje tylko Twoich wiadomości z tą osobą.' : 'AI użyje Twoich wiadomości z różnych rozmów. Próbki stylu trafią przez Supabase do DeepSeek.'}</Copy>
-        </> : <Button label="Włącz analizę AI" secondary onPress={() => router.navigate('/alerts')} />}
+        </> : <Button label="Włącz analizę AI" secondary onPress={() => router.push('/settings')} />}
       </Card> : <Card style={styles.summary}>
-        <Icon name="style" size={28} />
+        <CueMascot size={160} />
         <Copy title style={ui.title}>Zacznijmy od Twoich wiadomości</Copy>
         <Copy style={ui.body}>{roomId ? 'Brakuje Twoich wiadomości w tej rozmowie. Zsynchronizuj historię, aby zobaczyć swój styl z tą osobą.' : 'Połącz Messenger lub WhatsApp i zsynchronizuj rozmowy. Twój styl powstaje z wiadomości, które piszesz Ty.'}</Copy>
         <Button label="Połącz konto" onPress={() => router.push('/connections')} />
@@ -89,8 +86,8 @@ export default function WritingStyle({ roomId, personName }: { roomId?: string; 
             {!!example.incoming && <View style={[styles.bubble, styles.incoming, { backgroundColor: colors.secondary }]}>
               <Copy selectable style={[styles.message, { color: colors.text }]}>{example.incoming}</Copy>
             </View>}
-            <View style={[styles.bubble, styles.outgoing, { backgroundColor: colors.text }]}>
-              <Copy selectable style={[styles.message, { color: colors.surface }]}>{example.reply}</Copy>
+            <View style={[styles.bubble, styles.outgoing, { backgroundColor: colors.accent }]}>
+              <Copy selectable style={[styles.message, { color: colors.onAccent }]}>{example.reply}</Copy>
             </View>
             <Row style={{ alignSelf: 'flex-end', gap: 4 }}><Copy style={ui.small}>Ty</Copy><Icon name="check" size={13} color={colors.secondaryText} /></Row>
           </View>) : <View style={styles.emptyChat}>
@@ -113,12 +110,12 @@ export default function WritingStyle({ roomId, personName }: { roomId?: string; 
 }
 
 const styles = StyleSheet.create({
-  summary: { padding: 20, gap: 14, borderRadius: 20 },
+  summary: { padding: 24, gap: 16, borderRadius: 24, borderCurve: 'continuous' },
   cardTitle: { fontFamily: 'DMSansSemiBold', fontSize: 16, lineHeight: 23 },
   avatar: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   tag: { paddingHorizontal: 11, paddingVertical: 7, borderRadius: 20 },
-  chat: { borderWidth: 1, borderRadius: 22, overflow: 'hidden' },
+  chat: { borderWidth: 1, borderRadius: 24, borderCurve: 'continuous', overflow: 'hidden' },
   chatHeader: { padding: 16, borderBottomWidth: 1 },
   chatBody: { padding: 16, gap: 22 },
   exchange: { gap: 7 },

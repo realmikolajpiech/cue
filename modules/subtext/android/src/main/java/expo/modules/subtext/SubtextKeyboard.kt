@@ -111,12 +111,22 @@ class SubtextKeyboard : LatinIME() {
     val network = when (packageName) { "com.facebook.orca" -> "messenger"; "com.whatsapp", "com.whatsapp.w4b" -> "whatsapp"; else -> null }
     val rooms = runtime.store.rooms().filter { network == null || it.optString("network") == network }
     val toolbar = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL; setPadding(dp(4), 0, dp(4), dp(4)) }
+    toolbar.addView(ImageView(this).apply {
+      setImageResource(R.drawable.cue_brand)
+      contentDescription = "Cue"
+    }, LinearLayout.LayoutParams(dp(32), dp(32)).apply { marginEnd = dp(4) })
     val chooser = key(if (rooms.isEmpty()) "Brak rozmów" else "Wybierz rozmowę ▾") {}.apply {
       textSize = 14f; gravity = Gravity.CENTER_VERTICAL or Gravity.START
       setPadding(dp(8), 0, dp(8), 0); maxLines = 1; ellipsize = TextUtils.TruncateAt.END
       background = null
     }
-    generateButton = key("Podpowiedz") { generate() }.apply { textSize = 14f; isEnabled = false; alpha = 0.45f }
+    generateButton = key("Podpowiedz") { generate() }.apply {
+      textSize = 14f; isEnabled = false; alpha = 0.45f
+      setTextColor(getColor(R.color.cue_login_on_accent))
+      background = RippleDrawable(ColorStateList.valueOf(0x22FFFFFF), GradientDrawable().apply {
+        setColor(getColor(R.color.cue_login_accent)); cornerRadius = dp(20).toFloat()
+      }, null)
+    }
     chooser.setOnClickListener {
       val themed = android.view.ContextThemeWrapper(this, if (dark) android.R.style.Theme_Material else android.R.style.Theme_Material_Light)
       PopupMenu(themed, chooser).apply {
