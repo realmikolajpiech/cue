@@ -217,7 +217,7 @@ class SubtextRuntime private constructor(private val context: Context) {
     }
     return output
   }
-  suspend fun analyze(id: String, draft: String, tone: String? = null): String = analysisMutex.withLock {
+  suspend fun analyze(id: String, draft: String, tone: String? = null, intensity: Int? = null): String = analysisMutex.withLock {
     check(prefs.getBoolean("cloud", false)) { "Włącz analizę DeepSeek w ustawieniach. Wybrana rozmowa zostanie wysłana do API." }
     val token = generation.get()
     analyzing = id; changed()
@@ -230,7 +230,8 @@ class SubtextRuntime private constructor(private val context: Context) {
       val recent = JSONArray((maxOf(0, all.length() - 80) until all.length()).map { all.getJSONObject(it) })
       check(recent.length() > 0) { fetched.optString("historyNotice", "Wiadomości nie zostały jeszcze zsynchronizowane.") }
       val memory = store.memory(id)
-      val intent = ConversationGoal.intent(draft, tone ?: selectedTone(id), conversationGoal(id))
+      val chosenTone = tone ?: selectedTone(id)
+      val intent = ConversationGoal.intent(draft, chosenTone, conversationGoal(id), intensity ?: selectedIntensity(id, chosenTone))
       val profile = DeepSeek.analyze(gateway, recent, intent, memory, images = analysisImages(id, recent))
       check(token == generation.get() && prefs.getBoolean("cloud", false)) { "Analiza anulowana po zmianie ustawień." }
       profile.put("replyDraft", draft)
@@ -304,6 +305,15 @@ class SubtextRuntime private constructor(private val context: Context) {
   private fun styleToneKey(id: String?) = "writing-style-tone:" + (id ?: "general")
   fun selectedTone(id: String?) = prefs.getString(styleToneKey(id),
     prefs.getString(styleToneKey(null), "natural")) ?: "natural"
+  private fun styleIntensityKey(id: String?, tone: String) = "writing-style-intensity:" + (id ?: "general") + ":" + tone
+  fun selectedIntensity(id: String?, tone: String) = WritingTone.clampIntensity(tone, prefs.getInt(styleIntensityKey(id, tone),
+    prefs.getInt(styleIntensityKey(null, tone), WritingTone.DEFAULT_INTENSITY)))
+  fun setWritingIntensity(id: String?, tone: String, intensity: Int) {
+    WritingTone.requireValid(tone)
+    if (id != null) requireNotNull(store.room(id)) { "Nie znaleziono rozmowy." }
+    prefs.edit().putInt(styleIntensityKey(id, tone), WritingTone.clampIntensity(tone, intensity)).apply()
+    changed()
+  }
   private fun styleCacheKey(id: String?, tone: String) = "writing-style-preview:v3:" + (id ?: "general") + ":" + tone
   fun setWritingTone(id: String?, tone: String): String {
     WritingTone.requireValid(tone)

@@ -618,10 +618,11 @@ class SubtextKeyboard : LatinIME() {
     toolbar.addView(cell, LinearLayout.LayoutParams(0, dp(48), 1f))
   }
 
+  private var toneButton: Button? = null
   private fun addToneSelector(toolbar: LinearLayout) {
     val tone = runtime.selectedTone(selected)
     val expanded = mode == Mode.STYLES
-    toolbar.addView(button(if (tone == "calming") "Łagodzący" else WritingTone.label(tone), false) {
+    toolbar.addView(button("", false) {
       undo = null; generateAfterChoice = false
       if (expanded) typing() else open(Mode.STYLES)
     }.apply {
@@ -634,53 +635,60 @@ class SubtextKeyboard : LatinIME() {
         setBounds(0, 0, dp(12), dp(12)); level = if (expanded) 10000 else 0
       }
       setCompoundDrawablesRelative(null, null, arrow, null); compoundDrawablePadding = dp(3)
-      contentDescription = "Styl odpowiedzi: ${WritingTone.label(tone)}. " + if (expanded) "Zamknij listę stylów" else "Wybierz styl"
+      bindToneButton(this, tone, expanded); toneButton = this
     }, LinearLayout.LayoutParams(dp(88), dp(44)).apply { marginEnd = dp(2) })
+  }
+  private fun bindToneButton(button: Button, tone: String, expanded: Boolean) {
+    button.text = if (tone == "calming") "Łagodzący" else WritingTone.label(tone)
+    button.contentDescription = "Styl odpowiedzi: ${WritingTone.label(tone)}. " + if (expanded) "Zamknij wybór stylu" else "Wybierz styl"
   }
 
   private fun renderTones() {
-    val current = runtime.selectedTone(selected)
-    val options = WritingTone.labels.entries.toList()
-    val list = ListView(this).apply {
-      divider = null; isVerticalScrollBarEnabled = true
-      val navigation = ViewCompat.getRootWindowInsets(panel)?.getInsets(WindowInsetsCompat.Type.navigationBars())?.bottom ?: dp(24)
-      setPadding(dp(12), 0, dp(12), navigation + dp(8)); clipToPadding = false
-    }
-    list.adapter = object : BaseAdapter() {
-      override fun getCount() = options.size + 1
-      override fun getItem(position: Int): Any = if (position == 0) "goal" else options[position - 1]
-      override fun getItemId(position: Int) = position.toLong()
-      override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
-        if (position == 0) return LinearLayout(this@SubtextKeyboard).apply {
-          orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_VERTICAL
-          setPadding(dp(16), dp(8), dp(16), dp(8))
-          addView(label("Cel rozmowy…", 16f, true).apply { setTextColor(accent) })
-          addView(label(selected?.let(runtime::conversationGoal)?.ifBlank { null } ?: "Co chcesz osiągnąć?", 12f).apply {
-            setTextColor(muted); maxLines = 2; ellipsize = TextUtils.TruncateAt.END; setPadding(0, dp(4), 0, 0)
-          })
-          layoutParams = AbsListView.LayoutParams(-1, dp(76))
-        }
-        val option = options[position - 1]
-        return label(option.value + if (option.key == current) "   ✓" else "", 16f, option.key == current).apply {
-          gravity = Gravity.CENTER_VERTICAL; setPadding(dp(16), 0, dp(16), 0)
-          setTextColor(if (option.key == current) accent else ink)
-          background = rounded(if (option.key == current) card else Color.TRANSPARENT, 12)
-          contentDescription = "${option.value}" + if (option.key == current) ", wybrany" else ""
-          layoutParams = AbsListView.LayoutParams(-1, dp(52))
-        }
-      }
-    }
-    list.setOnItemClickListener { _, _, position, _ ->
-      if (position == 0) {
+    val keys = WritingTone.labels.keys.toList()
+    var tone = runtime.selectedTone(selected)
+    val navigation = ViewCompat.getRootWindowInsets(panel)?.getInsets(WindowInsetsCompat.Type.navigationBars())?.bottom ?: dp(24)
+    val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(12), 0, dp(12), navigation + dp(8)) }
+    val goalText = selected?.let(runtime::conversationGoal)?.ifBlank { null }
+    val goal = LinearLayout(this).apply {
+      gravity = Gravity.CENTER_VERTICAL; setPadding(dp(16), dp(8), dp(12), dp(8))
+      background = RippleDrawable(ColorStateList.valueOf(0x225F78B8), null, rounded(Color.WHITE, 16))
+      val texts = LinearLayout(this@SubtextKeyboard).apply { orientation = LinearLayout.VERTICAL }
+      texts.addView(label("Cel rozmowy", 12f).apply { setTextColor(muted) })
+      texts.addView(label(goalText ?: "np. umówić się w piątek na 18", 15f, goalText != null).apply {
+        setTextColor(if (goalText != null) ink else muted); maxLines = 1; ellipsize = TextUtils.TruncateAt.END; setPadding(0, dp(2), 0, 0)
+      })
+      addView(texts, LinearLayout.LayoutParams(0, -2, 1f))
+      addView(label(if (goalText != null) "Edytuj" else "Dodaj", 14f, true).apply { setTextColor(accent); setPadding(dp(12), 0, dp(4), 0) })
+      contentDescription = "Cel rozmowy: ${goalText ?: "nie ustawiono"}. " + if (goalText != null) "Edytuj cel" else "Dodaj cel"
+      setOnClickListener {
         generateAfterChoice = false
         if (selected == null) { goalAfterChoice = true; open(Mode.PEOPLE) } else open(Mode.GOAL)
-        return@setOnItemClickListener
       }
-      runtime.setWritingTone(selected, options[position - 1].key)
-      replies = emptyList(); typing()
-      panel.announceForAccessibility("Styl odpowiedzi: ${options[position - 1].value}")
     }
-    panel.addView(list, LinearLayout.LayoutParams(-1, pickerHeight))
+    content.addView(goal, LinearLayout.LayoutParams(-1, dp(60)).apply { topMargin = dp(4) })
+    val intensity = FrameLayout(this)
+    val hint = label("", 15f).apply { setTextColor(ink); gravity = Gravity.CENTER; maxLines = 2; ellipsize = TextUtils.TruncateAt.END }
+    fun showIntensity() {
+      intensity.removeAllViews()
+      val levels = WritingTone.levels(tone)
+      hint.text = WritingTone.hint(tone, runtime.selectedIntensity(selected, tone))
+      if (levels.isEmpty()) return
+      intensity.addView(KeyboardLevelSlider(this, levels, runtime.selectedIntensity(selected, tone), ink, muted, accent, onAccent) { level ->
+        runtime.setWritingIntensity(selected, tone, level); replies = emptyList()
+        hint.text = WritingTone.hint(tone, level)
+      }, FrameLayout.LayoutParams(-1, -1))
+    }
+    content.addView(KeyboardSwipeSelector(this, keys.map { if (it == "calming") "Łagodzący" else WritingTone.label(it) }, keys.indexOf(tone).coerceAtLeast(0), 20f, ink, muted, accent,
+      { "Styl odpowiedzi: $it" }) { position ->
+      tone = keys[position]
+      runtime.setWritingTone(selected, tone); replies = emptyList()
+      toneButton?.let { bindToneButton(it, tone, true) }
+      showIntensity()
+    }, LinearLayout.LayoutParams(-1, dp(72)).apply { topMargin = dp(6) })
+    content.addView(intensity, LinearLayout.LayoutParams(-1, dp(60)).apply { topMargin = dp(10); marginStart = dp(8); marginEnd = dp(8) })
+    content.addView(hint, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(14); marginStart = dp(20); marginEnd = dp(20) })
+    showIntensity()
+    panel.addView(content, LinearLayout.LayoutParams(-1, pickerHeight))
   }
 
   private fun styleRecipient(view: Button, expanded: Boolean) {
