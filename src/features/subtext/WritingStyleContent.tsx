@@ -26,14 +26,20 @@ function countLabel(count: number, forms: [string, string, string]) {
 
 function Exchanges({ examples }: { examples: Example[] }) {
   const { colors } = useTheme();
-  return <View style={{ gap: 16 }}>{examples.map(example => <View key={example.id} style={{ gap: 6 }}>
-    {!!example.incoming && <View style={[styles.bubble, { alignSelf: 'flex-start', backgroundColor: colors.secondary }]}>
-      <Copy selectable style={[styles.example, { color: colors.text }]}>{example.incoming}</Copy>
-    </View>}
-    <View style={[styles.bubble, { alignSelf: 'flex-end', backgroundColor: colors.accent }]}>
-      <Copy selectable style={[styles.example, { color: colors.onAccent }]}>{example.reply}</Copy>
+  return <View style={styles.exchanges}>{examples.map((example, index) => (
+    <View key={example.id} style={[styles.exchange, {
+      borderColor: colors.border,
+      borderTopWidth: index ? StyleSheet.hairlineWidth : 0,
+      paddingTop: index ? 24 : 0,
+    }]}>
+      {!!example.incoming && <View style={[styles.bubble, styles.incoming, { backgroundColor: colors.surface }]}>
+        <Copy selectable accessibilityLabel={`Rozmówca: ${example.incoming}`} style={[styles.message, { color: colors.text }]}>{example.incoming}</Copy>
+      </View>}
+      <View style={[styles.bubble, styles.reply, { backgroundColor: colors.accent }]}>
+        <Copy selectable accessibilityLabel={`Propozycja Cue: ${example.reply}`} style={[styles.message, { color: colors.onAccent }]}>{example.reply}</Copy>
+      </View>
     </View>
-  </View>)}</View>;
+  ))}</View>;
 }
 
 /** Shared content, with one scroll owner when embedded in a person's screen. */
@@ -52,10 +58,20 @@ export default function WritingStyleContent({ roomId, isExample = false }: Writi
     onSuccess: result => { preview.reset(); client.setQueryData(queryKey, result); },
   });
   const style = query.data;
-  const examples = style?.examples ?? [];
   const previews = style?.previewExamples ?? [];
   const tone = tones.find(item => item.id === style?.selectedTone) ?? tones[0];
   const busy = selection.isPending || preview.isPending || !!status?.analyzing;
+  const previewContent = style && <View style={{ gap: 16 }}>
+    {!previews.length && <Copy style={styles.body}>Sprawdź, jak Cue odpowie na przykładowe wiadomości w Twoim stylu.</Copy>}
+    <Copy style={styles.caption}>Wybrany styl: {tone.label.toLocaleLowerCase('pl')}</Copy>
+    <ErrorText error={preview.error} />
+    {style.sampleCount >= 5 ? status?.cloudEnabled ?
+      <Button label={preview.isPending ? 'Przygotowuję przykłady…' : previews.length ? 'Odśwież przykłady' : 'Pokaż przykłady'}
+        secondary={!!roomId} disabled={busy} onPress={() => preview.mutate()} /> :
+      <Button label="Włącz analizę AI" secondary onPress={() => router.push('/settings')} /> :
+      <Copy style={styles.caption}>Przykłady będą dostępne po kilku Twoich wiadomościach.</Copy>}
+    {!!previews.length && <Exchanges examples={previews} />}
+  </View>;
 
   return <View style={{ gap: 4 }}>
     <View style={[styles.section, { paddingTop: roomId ? 20 : 0, borderColor: colors.border, borderTopWidth: roomId ? StyleSheet.hairlineWidth : 0 }]}>
@@ -82,18 +98,9 @@ export default function WritingStyleContent({ roomId, isExample = false }: Writi
       {query.isError && !style && <Button label="Spróbuj ponownie" secondary onPress={() => { void query.refetch(); }} />}
     </View>
 
-    {!roomId && !!examples.length && <View style={[styles.savedExamples, { borderColor: colors.border }]}>
-      <View style={{ gap: 4 }}>
-        <Copy accessibilityRole="header" style={[styles.title, { color: colors.text }]}>Z Twoich rozmów</Copy>
-        <Copy style={styles.caption}>Twoje odpowiedzi, w Twoim stylu</Copy>
-      </View>
-      <Exchanges examples={examples.slice(0, 2)} />
-      {examples.length > 2 && <Disclosure label="Więcej Twoich odpowiedzi" small><Exchanges examples={examples.slice(2)} /></Disclosure>}
-    </View>}
-
     {style && <View style={[styles.examplesSection, { borderColor: colors.border }]}>
-      <View style={{ gap: 10, paddingVertical: 16 }}>
-        <Copy style={[styles.title, { color: colors.text }]}>Styl odpowiedzi</Copy>
+      <View style={{ gap: 10 }}>
+        <Copy accessibilityRole="header" style={[styles.title, { color: colors.text }]}>{roomId ? 'Styl odpowiedzi' : 'Wypróbuj swój styl'}</Copy>
         <Copy style={styles.body}>Wybierz ton. Odpowiedzi zachowają Twój sposób pisania: wielkość liter, długość, skróty i emoji.</Copy>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
           {tones.map(item => <Pressable key={item.id} accessibilityRole="radio"
@@ -107,16 +114,7 @@ export default function WritingStyleContent({ roomId, isExample = false }: Writi
         <Copy style={styles.caption}>{selection.isPending ? 'Zapisuję wybór…' : tone.description}</Copy>
         <ErrorText error={selection.error} />
       </View>
-      <Disclosure label="Przykładowe odpowiedzi">
-        <Copy style={styles.caption}>Wybrany styl: {tone.label.toLocaleLowerCase('pl')}</Copy>
-        <ErrorText error={preview.error} />
-        {previews.length ? <Exchanges examples={previews} /> : <Copy style={styles.body}>Zobacz, jak mogłaby brzmieć odpowiedź napisana w Twoim stylu.</Copy>}
-        {style.sampleCount >= 5 ? status?.cloudEnabled ?
-          <Button label={preview.isPending ? 'Przygotowuję przykłady…' : previews.length ? 'Odśwież przykłady' : 'Pokaż przykłady'}
-            secondary disabled={busy} onPress={() => preview.mutate()} /> :
-          <Button label="Włącz analizę AI" secondary onPress={() => router.push('/settings')} /> :
-          <Copy style={styles.caption}>Przykłady będą dostępne po kilku Twoich wiadomościach.</Copy>}
-      </Disclosure>
+      {roomId ? <Disclosure label="Przykładowe odpowiedzi">{previewContent}</Disclosure> : previewContent}
     </View>}
   </View>;
 }
@@ -128,8 +126,11 @@ const styles = StyleSheet.create({
   body: { fontSize: 14, lineHeight: 21 },
   habit: { fontSize: 14, lineHeight: 21 },
   refresh: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  examplesSection: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 4 },
-  savedExamples: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 20, paddingBottom: 12, gap: 16 },
-  bubble: { maxWidth: '90%', paddingHorizontal: 12, paddingVertical: 9, borderRadius: 14, borderCurve: 'continuous' },
-  example: { fontSize: 14, lineHeight: 21 },
+  examplesSection: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 20, gap: 12 },
+  exchanges: { gap: 24 },
+  exchange: { gap: 8 },
+  bubble: { maxWidth: '88%', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 18, borderCurve: 'continuous' },
+  incoming: { alignSelf: 'flex-start', borderBottomLeftRadius: 5 },
+  reply: { alignSelf: 'flex-end', borderBottomRightRadius: 5 },
+  message: { fontSize: 14, lineHeight: 21 },
 });
