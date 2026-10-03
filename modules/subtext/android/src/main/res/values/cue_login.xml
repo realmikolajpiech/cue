@@ -1,0 +1,34 @@
+<resources>
+  <color name="cue_login_background">#F7F7F7</color>
+  <color name="cue_login_surface">#FFFFFF</color>
+  <color name="cue_login_text">#202020</color>
+  <color name="cue_login_secondary">#626262</color>
+  <color name="cue_login_border">#E7E7E7</color>
+  <color name="cue_login_error">#B42318</color>
+  <color name="cue_login_error_surface">#FEECE9</color>
+  <style name="CueLoginTheme" parent="android:style/Theme.Material.Light.NoActionBar">
+    <item name="android:fontFamily">sans</item>
+    <item name="android:colorAccent">@color/cue_login_text</item>
+    <item name="android:windowBackground">@color/cue_login_background</item>
+    <item name="android:windowLightStatusBar">true</item>
+    <item name="android:windowLightNavigationBar">true</item>
+    <item name="android:windowActionModeOverlay">true</item>
+  </style>
+  <string name="cue_login_back">Wróć do Cue</string>
+  <string name="cue_login_heading">Połącz Messengera</string>
+  <string name="cue_login_description">Zaloguj się na swoje konto Facebook. Po połączeniu wrócisz do Cue.</string>
+  <string name="cue_login_loading">Otwieranie Facebooka…</string>
+  <string name="cue_login_loading_detail">Za chwilę pojawi się strona logowania.</string>
+  <string name="cue_login_connecting">Łączenie z Messengerem…</string>
+  <string name="cue_login_connecting_detail">Przygotowujemy Twoje rozmowy w Cue.</string>
+  <string name="cue_login_page_error">Nie można otworzyć strony</string>
+  <string name="cue_login_page_error_detail">Sprawdź połączenie z internetem i spróbuj ponownie.</string>
+  <string name="cue_login_retry">Spróbuj ponownie</string>
+  <string name="cue_login_reload">Odśwież stronę</string>
+  <string name="cue_login_options">Opcje logowania</string>
+  <string name="cue_login_desktop">Wersja komputerowa</string>
+  <string name="cue_login_mobile">Wersja mobilna</string>
+  <string name="cue_login_failed">Nie udało się połączyć Messengera. Spróbuj ponownie.</string>
+  <string name="cue_login_checkpoint">Potwierdź logowanie w aplikacji Facebook, a potem wróć tutaj.</string>
+  <string name="cue_login_footer">Logowanie odbywa się na stronie Facebooka.</string>
+</resources>

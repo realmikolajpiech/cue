@@ -1,0 +1,9 @@
+<resources>
+  <color name="cue_login_background">#111111</color>
+  <color name="cue_login_surface">#1B1B1B</color>
+  <color name="cue_login_text">#F5F5F5</color>
+  <color name="cue_login_secondary">#B5B5B5</color>
+  <color name="cue_login_border">#303030</color>
+  <color name="cue_login_error">#FFB4AB</color>
+  <color name="cue_login_error_surface">#3B211F</color>
+</resources>

@@ -17,7 +17,10 @@ export default function Connections() {
     {!status?.available && <Copy style={ui.body}>Połączenie kont jest dostępne w aplikacji na Androidzie.</Copy>}
     <Card><Row><Icon name="message" /><Copy style={ui.title}>Messenger</Copy></Row><Copy style={ui.body}>{phases[status?.messenger.phase ?? 'NOT_CONFIGURED']}</Copy>
       <Button label={status?.messenger.phase === 'CONNECTED' ? 'Odśwież rozmowy' : 'Połącz Messengera'} disabled={!status?.available || action.isPending} onPress={() => action.mutate(status?.messenger.phase === 'CONNECTED' ? subtext.refresh : subtext.messenger)} />
-      {status?.messenger.phase !== 'NOT_CONFIGURED' && status?.available && <Disclosure label="Zarządzaj kontem"><Button label="Odłącz" secondary disabled={action.isPending} onPress={() => disconnect('messenger')} /></Disclosure>}
+      {status?.messenger.phase !== 'NOT_CONFIGURED' && status?.available && <Disclosure label="Zarządzaj kontem">
+        <Button label="Zaloguj się ponownie" secondary disabled={action.isPending} onPress={() => action.mutate(subtext.messenger)} />
+        <Button label="Odłącz" secondary disabled={action.isPending} onPress={() => disconnect('messenger')} />
+      </Disclosure>}
     </Card>
     <Card><Row><Icon name="message" /><Copy style={ui.title}>WhatsApp</Copy></Row><Copy style={ui.body}>{phases[status?.whatsapp.phase ?? 'NOT_CONFIGURED']}</Copy>
       {status?.whatsapp.phase !== 'CONNECTED' ? <>

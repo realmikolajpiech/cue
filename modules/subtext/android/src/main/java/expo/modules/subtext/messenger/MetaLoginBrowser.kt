@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
 import android.os.Message
@@ -13,6 +14,8 @@ import android.view.ViewGroup
 import android.webkit.CookieManager
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceError
+import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -21,6 +24,8 @@ import androidx.webkit.WebViewFeature
 
 /** Which browser identity the sign-in page sees. */
 internal enum class MetaUserAgent {
+    /** Mobile Chrome identity without WebView markers, for phone-sized sign-in controls. */
+    MOBILE_CHROME,
     /** Desktop Chrome. m.facebook.com's cookie dialog never paints in WebView (grey screen). */
     DESKTOP_CHROME,
 
@@ -41,6 +46,9 @@ internal fun Context.createMetaLoginWebView(
     userAgent: MetaUserAgent,
     onPageFinished: (String?) -> Unit,
     onBlocked: (Uri) -> Unit,
+    onPageStarted: (String?) -> Unit = {},
+    onProgress: (Int) -> Unit = {},
+    onLoadError: () -> Unit = {},
 ): WebView = WebView(this).also { browser ->
     val cookies = CookieManager.getInstance()
     cookies.setAcceptCookie(true)
@@ -57,16 +65,36 @@ internal fun Context.createMetaLoginWebView(
         allowContentAccess = false
         javaScriptCanOpenWindowsAutomatically = true
         setSupportMultipleWindows(true)
+        // Honor Meta's viewport and fit desktop fallback pages to the phone.
+        useWideViewPort = true
+        loadWithOverviewMode = true
+        builtInZoomControls = true
+        displayZoomControls = false
         mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) safeBrowsingEnabled = true
         if (userAgent == MetaUserAgent.DESKTOP_CHROME) {
             userAgentString = desktopChromeUserAgent(WebSettings.getDefaultUserAgent(this@createMetaLoginWebView))
+        } else if (userAgent == MetaUserAgent.MOBILE_CHROME) {
+            userAgentString = mobileChromeUserAgent(WebSettings.getDefaultUserAgent(this@createMetaLoginWebView))
         }
     }
     if (WebViewFeature.isFeatureSupported(WebViewFeature.REQUESTED_WITH_HEADER_ALLOW_LIST)) {
         WebSettingsCompat.setRequestedWithHeaderOriginAllowList(browser.settings, emptySet())
     }
     browser.webViewClient = object : WebViewClient() {
+        override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+            super.onPageStarted(view, url, favicon)
+            onPageStarted(url)
+        }
+
+        override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
+            if (request?.isForMainFrame == true) onLoadError()
+        }
+
+        override fun onReceivedHttpError(view: WebView?, request: WebResourceRequest?, response: WebResourceResponse?) {
+            if (request?.isForMainFrame == true && (response?.statusCode ?: 0) >= 400) onLoadError()
+        }
+
         override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
             val uri = request?.url ?: return true
             return when (classifyMetaNavigation(uri)) {
@@ -88,6 +116,8 @@ internal fun Context.createMetaLoginWebView(
         }
     }
     browser.webChromeClient = object : WebChromeClient() {
+        override fun onProgressChanged(view: WebView?, newProgress: Int) { onProgress(newProgress) }
+
         // Meta opens some login steps with window.open; keep them in the same, policed browser.
         override fun onCreateWindow(view: WebView, isDialog: Boolean, isUserGesture: Boolean, resultMsg: Message): Boolean {
             val popup = WebView(view.context)
@@ -179,6 +209,9 @@ internal fun desktopChromeUserAgent(webViewUserAgent: String): String {
         ?.substringBefore('.')?.let { "$it.0.0.0" } ?: FALLBACK_CHROME_VERSION
     return "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/$version Safari/537.36"
 }
+
+internal fun mobileChromeUserAgent(webViewUserAgent: String): String =
+    webViewUserAgent.replace("; wv", "").replace(" Version/4.0", "")
 
 private val META_HOSTS = listOf("facebook.com", "messenger.com", "instagram.com", "meta.com", "fb.com")
 private val META_PACKAGES = setOf("com.facebook.katana", "com.facebook.orca", "com.instagram.android", "com.facebook.lite")
