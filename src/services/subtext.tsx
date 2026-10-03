@@ -12,7 +12,6 @@ declare class SubtextModule extends NativeModule<{ onChanged: () => void }> {
   conversation(id: string): Promise<string>;
   refresh(): Promise<void>;
   analyze(id: string, draft: string): Promise<string>;
-  setApiKey(key: string): Promise<void>;
   setCloudEnabled(enabled: boolean): Promise<void>;
   clearHistory(): Promise<void>;
   disconnect(network: Network): Promise<void>;
@@ -34,7 +33,6 @@ export const subtext = {
   room: async (id: string) => roomSchema.parse(JSON.parse(await requireSubtext().conversation(id))),
   refresh: () => requireSubtext().refresh(),
   analyze: async (id: string, draft = '') => profileSchema.parse(JSON.parse(await requireSubtext().analyze(id, draft))),
-  setKey: (key: string) => requireSubtext().setApiKey(key),
   cloud: (enabled: boolean) => requireSubtext().setCloudEnabled(enabled),
   clear: () => requireSubtext().clearHistory(),
   disconnect: (network: Network) => requireSubtext().disconnect(network),

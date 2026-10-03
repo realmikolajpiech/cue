@@ -10,8 +10,8 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
-class SecureValue(context: Context) {
-  private val prefs = context.getSharedPreferences("subtext_secrets", Context.MODE_PRIVATE)
+class SecureValue(context: Context, private val alias: String = "subtext_deepseek") {
+  private val prefs = context.getSharedPreferences(if (alias == "subtext_deepseek") "subtext_secrets" else "${alias}_secrets", Context.MODE_PRIVATE)
   @Synchronized fun set(value: String) {
     if (value.isBlank()) { prefs.edit().clear().commit(); return }
     val cipher = Cipher.getInstance("AES/GCM/NoPadding")
@@ -27,9 +27,9 @@ class SecureValue(context: Context) {
   }.getOrNull()
   private fun key(): SecretKey {
     val store = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
-    (store.getKey("subtext_deepseek", null) as? SecretKey)?.let { return it }
+    (store.getKey(alias, null) as? SecretKey)?.let { return it }
     return KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore").apply {
-      init(KeyGenParameterSpec.Builder("subtext_deepseek", KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
+      init(KeyGenParameterSpec.Builder(alias, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
         .setBlockModes(KeyProperties.BLOCK_MODE_GCM).setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE).build())
     }.generateKey()
   }

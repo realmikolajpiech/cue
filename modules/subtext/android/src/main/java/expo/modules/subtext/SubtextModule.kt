@@ -30,7 +30,6 @@ class SubtextModule : Module() {
     AsyncFunction("refresh") Coroutine { -> subtextRuntime.startConnections(); subtextRuntime.refresh() }
     AsyncFunction("conversation") Coroutine { id: String -> subtextRuntime.read(id) }
     AsyncFunction("analyze") Coroutine { id: String, draft: String -> subtextRuntime.analyze(id, draft) }
-    AsyncFunction("setApiKey") { key: String -> subtextRuntime.secrets.set(key.trim()); subtextRuntime.changed() }
     AsyncFunction("setCloudEnabled") { enabled: Boolean -> subtextRuntime.cloud(enabled) }
     AsyncFunction("clearHistory") { subtextRuntime.clear() }
     AsyncFunction("disconnect") { network: String -> subtextRuntime.disconnect(network) }

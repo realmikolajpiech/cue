@@ -23,6 +23,18 @@ npx expo install --fix      # fix incompatible package versions
 
 Run lint and typecheck before declaring any task done.
 
+## Verification on the user's Android phone
+
+After substantial application changes, launch and verify the app on the connected Android phone automatically. The user has authorized this workflow; do not ask again.
+- Use `adb devices -l` to select the connected phone (currently Samsung SM_S931B).
+- Keep Metro running on port 8081. Reuse an existing server for this project; otherwise start `npx expo start --dev-client --localhost --port 8081` in a persistent terminal.
+- Prefer USB: run `adb -s <serial> reverse tcp:8081 tcp:8081`, then open `exp+guardian://expo-development-client/?url=http%3A%2F%2F127.0.0.1%3A8081` with `adb shell am start -a android.intent.action.VIEW -d <url> com.mikolajpiech.guardian`.
+- After native dependency or config-plugin changes, run `npx expo prebuild --platform android --no-install`, then rebuild/install with `npx expo run:android --device SM_S931B --no-bundler` (Expo expects the device name, adb uses the serial), then reconnect through USB. `npm run android -- --device SM_S931B` runs prebuild automatically; use it for fresh builds.
+- Check ReactNativeJS/AndroidRuntime logs and the visible screen (screenshot or UI hierarchy). A successful Gradle build alone does not confirm that the app renders.
+- Leave Metro running. If no authorized phone is connected, report that device verification could not be completed.
+- The SDK's adb is at `~/Library/Android/sdk/platform-tools/adb` if it is absent from PATH.
+- On this Mac, use `JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home` for Android builds; the default Java 26 fails Android's JdkImageTransform.
+
 ## Navigation & Routing
 
 - Use **Expo Router** for all navigation. Routes live in `src/app/` — every file there is a screen, `_layout.tsx` files define navigators. Keep non-route code (components, hooks, utils) outside `src/app/`.

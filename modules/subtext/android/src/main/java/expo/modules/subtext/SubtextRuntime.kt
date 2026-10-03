@@ -22,7 +22,7 @@ class SubtextRuntime private constructor(private val context: Context) {
   val messenger = MessengerRepository(context)
   val whatsapp = WhatsAppRepository(context)
   val store = SubtextStore(context)
-  val secrets = SecureValue(context)
+  private val gateway = SupabaseGateway(context)
   val prefs = context.getSharedPreferences("subtext", Context.MODE_PRIVATE)
   val observers = CopyOnWriteArraySet<() -> Unit>()
   private val analysisMutex = Mutex()
@@ -30,9 +30,9 @@ class SubtextRuntime private constructor(private val context: Context) {
   @Volatile var analyzing: String? = null
     private set
   init {
-    // Development-only import, provisioned through adb run-as, never packaged in the APK.
-    val imported = File(context.filesDir, "subtext-key.import")
-    if (imported.exists()) runCatching { secrets.set(imported.readText().trim()); imported.delete() }
+    // Retire the old device-side DeepSeek credential and any development import.
+    SecureValue(context).set("")
+    File(context.filesDir, "subtext-key.import").delete()
     scope.launch { messenger.state.collect { changed() } }
     scope.launch { whatsapp.state.collect { changed() } }
     scope.launch { messenger.conversations.debounce(500).collect { rooms ->
@@ -69,7 +69,7 @@ class SubtextRuntime private constructor(private val context: Context) {
     ContextCompat.startForegroundService(context, Intent(context, ConnectionService::class.java))
   }
   fun status(): String = JSONObject().put("available", true).put("model", DeepSeek.MODEL)
-    .put("hasApiKey", secrets.get()?.isNotBlank() == true).put("cloudEnabled", prefs.getBoolean("cloud", false))
+    .put("hasApiKey", true).put("cloudEnabled", prefs.getBoolean("cloud", false))
     .put("backgroundEnabled", prefs.getBoolean("background", false)).put("analyzing", analyzing ?: JSONObject.NULL)
     .put("messenger", JSONObject().put("phase", messenger.state.value.phase.name).put("detail", messenger.state.value.detail))
     .put("whatsapp", JSONObject().put("phase", whatsapp.state.value.phase.name).put("detail", whatsapp.state.value.detail)
@@ -94,7 +94,6 @@ class SubtextRuntime private constructor(private val context: Context) {
   }
   suspend fun analyze(id: String, draft: String): String = analysisMutex.withLock {
     check(prefs.getBoolean("cloud", false)) { "Włącz analizę DeepSeek w ustawieniach. Wybrana rozmowa zostanie wysłana do API." }
-    val key = secrets.get()?.takeIf { it.isNotBlank() } ?: error("Dodaj klucz DeepSeek w ustawieniach.")
     val token = generation.get()
     analyzing = id; changed()
     try {
@@ -103,7 +102,7 @@ class SubtextRuntime private constructor(private val context: Context) {
       val all = room.getJSONArray("messages")
       val recent = JSONArray((maxOf(0, all.length() - 80) until all.length()).map { all.getJSONObject(it) })
       check(recent.length() > 0) { fetched.optString("historyNotice", "Wiadomości nie zostały jeszcze zsynchronizowane.") }
-      val profile = DeepSeek.analyze(key, recent, draft)
+      val profile = DeepSeek.analyze(gateway, recent, draft)
       check(token == generation.get() && prefs.getBoolean("cloud", false)) { "Analiza anulowana po zmianie ustawień." }
       store.profile(id, profile)
       profile.toString()

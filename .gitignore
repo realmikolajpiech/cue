@@ -64,3 +64,8 @@ modules/guardian/android/build/
 modules/subtext/android/build/
 modules/subtext/android/.cxx/
 artifacts/*.apk
+
+# Supabase local metadata and secret files
+supabase/.temp/
+supabase/.branches/
+supabase/.env*

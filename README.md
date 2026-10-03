@@ -7,19 +7,20 @@ komunikatorów i AI. Wersja release zawiera JavaScript i nie wymaga Metro.
 
 ## Uruchomienie
 
-Wymagane: Node 22.13+, Android SDK, JDK 21 i telefon Android **arm64-v8a**.
+Wymagane: Node 22.13+, Android SDK, JDK 17 i telefon Android **arm64-v8a**.
+Na Macu `npm run android` wybiera zainstalowany Homebrew JDK 17 i wykrywa SDK
+w `~/Library/Android/sdk`, jeśli `ANDROID_HOME` nie jest ustawione.
 Repo zawiera AAR z projektu Arie. Szczegóły i źródła: [NOTICE](modules/subtext/NOTICE.md).
 
 ```sh
 npm ci
-npx expo prebuild --platform android --no-install
-npx expo run:android --device
+npm run android -- --device SM_S931B
 ```
 
 Samodzielny APK (kompilacja na Macu lub w EAS; runtime pozostaje na telefonie):
 
 ```sh
-npx expo run:android --variant release --device --no-bundler
+npm run android -- --variant release --device SM_S931B --no-bundler
 ```
 
 W Android Studio otwieraj wygenerowany katalog `android/`, nie główny katalog
@@ -33,16 +34,38 @@ i `plugins/withSubtext.js`; nie edytuj wygenerowanego projektu ręcznie.
    potwierdzenie logowania we własnej aplikacji Facebook.
 3. WhatsApp: podaj numer z kodem kraju; w WhatsAppie użyj opcji połączenia
    urządzenia za pomocą numeru telefonu i wpisz wyświetlony kod.
-4. W **Ustawieniach** wpisz klucz DeepSeek i włącz analizę w chmurze.
+4. W **Ustawieniach** włącz analizę w chmurze. Klucz AI jest po stronie serwera.
 5. Otwórz rozmowę w **Osobach**, przejrzyj wiadomości i uruchom analizę.
 6. Opcjonalnie włącz klawiaturę Cue w ustawieniach Androida. Podczas
    pisania wybierz właściwą rozmowę, poproś o sugestię i dotknij jej, aby
    wstawić tekst. Aplikacja nie wysyła odpowiedzi automatycznie.
 
-Klucz nie jest zapisany w kodzie ani APK. Pole ustawień zapisuje go zaszyfrowanego
-Android Keystore. Do deweloperskiego buildu można dostarczyć go przez
-`node scripts/provision-subtext-key.mjs`, z ignorowanego `.env.subtext.local`.
-Nigdy nie dodawaj tego pliku do Gita.
+Klucz DeepSeek przechowuj wyłącznie w Supabase → Edge Functions → Secrets,
+pod nazwą `DEEPSEEK_API_KEY`. Aplikacja używa publicznego klucza projektu
+oraz automatycznej anonimowej sesji Supabase Auth; włącz **Allow anonymous
+sign-ins** w Authentication → Sign In / Providers. Tokeny sesji urządzenia
+są szyfrowane przez Android Keystore. Sesje nie służą do zapisu rozmów.
+
+Backend: `supabase/functions/deepseek-analyze`. Weryfikuje sesję, ogranicza
+rozmiar żądania i wywołuje DeepSeek. Rozmowy i odpowiedzi nie są zapisywane
+w bazie ani logowane przez funkcję. Prywatna tabela przechowuje wyłącznie
+liczniki: 20 prób analizy dziennie na sesję i 200 dla projektu; liczniki
+starsze niż 7 dni są czyszczone przy kolejnych wywołaniach. Limity obejmują
+również nieudane wywołania dostawcy. Globalny limit zabezpiecza koszt także
+przy tworzeniu kolejnych anonimowych sesji; nie zastępuje ochrony przed DoS.
+Opcjonalny sekret `DEEPSEEK_MODEL` zmienia model (domyślnie `deepseek-flash`).
+
+Wdrożenie po zalogowaniu do CLI:
+
+```sh
+supabase link --project-ref qajdybynwafehizuaxad
+supabase db query --linked --file supabase/migrations/20261003173000_ai_quota.sql
+supabase functions deploy deepseek-analyze --project-ref qajdybynwafehizuaxad --use-api
+```
+
+`verify_jwt = false` wyłącza starszą walidację bramki; funkcja sama sprawdza
+token użytkownika przez Supabase Auth. Klucz publiczny sam nie daje dostępu
+do płatnych analiz. Nie dodawaj sekretów do repozytorium ani APK.
 
 ## Architektura i zakres
 

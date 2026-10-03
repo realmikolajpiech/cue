@@ -1,0 +1,4 @@
+project_id = "guardian"
+
+[functions.deepseek-analyze]
+verify_jwt = false # Handler validates the user token through Supabase Auth.
