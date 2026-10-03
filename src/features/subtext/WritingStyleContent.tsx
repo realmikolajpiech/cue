@@ -5,11 +5,19 @@ import { Copy, Icon, Row } from '@/components/ui';
 import { subtext, useSubtextStatus } from '@/services/subtext';
 import { useTheme } from '@/theme/useTheme';
 import type { z } from 'zod';
-import type { writingStyleSchema } from '@/types/subtext';
+import type { writingStyleSchema, WritingTone } from '@/types/subtext';
 import { Button, Disclosure, ErrorText } from './components';
 
 export type WritingStyleProps = { roomId?: string; isExample?: boolean };
 type Example = z.infer<typeof writingStyleSchema>['examples'][number];
+
+const tones: { id: WritingTone; label: string; description: string }[] = [
+  { id: 'natural', label: 'Naturalny', description: 'Tak, jak zwykle piszesz — bez dodatkowego tonu.' },
+  { id: 'flirt', label: 'Flirtujący', description: 'Subtelne zainteresowanie, ciepło i lekki humor.' },
+  { id: 'assertive', label: 'Asertywny', description: 'Jasne potrzeby i granice, spokojnie i bez agresji.' },
+  { id: 'empathetic', label: 'Empatyczny', description: 'Zrozumienie emocji i wsparcie bez pustych pocieszeń.' },
+  { id: 'calming', label: 'Łagodzący konflikt', description: 'Spokojna odpowiedź, która pomaga dojść do porozumienia.' },
+];
 
 function countLabel(count: number, forms: [string, string, string]) {
   const few = count % 10 >= 2 && count % 10 <= 4 && !(count % 100 >= 12 && count % 100 <= 14);
@@ -45,14 +53,21 @@ export default function WritingStyleContent({ roomId, isExample = false }: Writi
     mutationFn: () => roomId ? subtext.previewConversationWritingStyle(roomId) : subtext.previewWritingStyle(),
     onSuccess: result => { client.setQueryData(queryKey, result); },
   });
+  const selection = useMutation({
+    mutationFn: (tone: WritingTone) => subtext.setWritingTone(roomId, tone),
+    onSuccess: result => { preview.reset(); client.setQueryData(queryKey, result); },
+  });
   const style = query.data;
   const previews = style?.previewExamples ?? [];
+  const tone = tones.find(item => item.id === style?.selectedTone) ?? tones[0];
+  const busy = selection.isPending || preview.isPending || !!status?.analyzing;
   const previewContent = style && <View style={{ gap: 16 }}>
     {!previews.length && <Copy style={styles.body}>Sprawdź, jak Cue odpowie na przykładowe wiadomości w Twoim stylu.</Copy>}
+    <Copy style={styles.caption}>Wybrany styl: {tone.label.toLocaleLowerCase('pl')}</Copy>
     <ErrorText error={preview.error} />
     {style.sampleCount >= 5 ? status?.cloudEnabled ?
       <Button label={preview.isPending ? 'Przygotowuję przykłady…' : previews.length ? 'Odśwież przykłady' : 'Pokaż przykłady'}
-        secondary={!!roomId} disabled={!!status.analyzing || preview.isPending} onPress={() => preview.mutate()} /> :
+        secondary={!!roomId} disabled={busy} onPress={() => preview.mutate()} /> :
       <Button label="Włącz analizę AI" secondary onPress={() => router.push('/settings')} /> :
       <Copy style={styles.caption}>Przykłady będą dostępne po kilku Twoich wiadomościach.</Copy>}
     {!!previews.length && <Exchanges examples={previews} />}
@@ -84,10 +99,22 @@ export default function WritingStyleContent({ roomId, isExample = false }: Writi
     </View>
 
     {style && <View style={[styles.examplesSection, { borderColor: colors.border }]}>
-      {roomId ? <Disclosure label="Przykładowe odpowiedzi">{previewContent}</Disclosure> : <>
-        <Copy accessibilityRole="header" style={[styles.title, { color: colors.text }]}>Wypróbuj swój styl</Copy>
-        {previewContent}
-      </>}
+      <View style={{ gap: 10 }}>
+        <Copy accessibilityRole="header" style={[styles.title, { color: colors.text }]}>{roomId ? 'Styl odpowiedzi' : 'Wypróbuj swój styl'}</Copy>
+        <Copy style={styles.body}>Wybierz ton. Odpowiedzi zachowają Twój sposób pisania: wielkość liter, długość, skróty i emoji.</Copy>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          {tones.map(item => <Pressable key={item.id} accessibilityRole="radio"
+            accessibilityState={{ checked: tone.id === item.id, disabled: busy || !status?.available }}
+            disabled={busy || !status?.available} onPress={() => selection.mutate(item.id)}
+            style={({ pressed }) => ({ minHeight: 44, justifyContent: 'center', borderRadius: 22, paddingHorizontal: 14, paddingVertical: 10,
+              backgroundColor: tone.id === item.id ? colors.accent : colors.secondary, opacity: busy ? .5 : pressed ? .7 : 1 })}>
+            <Copy style={{ fontSize: 14, color: tone.id === item.id ? colors.onAccent : colors.text }}>{item.label}</Copy>
+          </Pressable>)}
+        </View>
+        <Copy style={styles.caption}>{selection.isPending ? 'Zapisuję wybór…' : tone.description}</Copy>
+        <ErrorText error={selection.error} />
+      </View>
+      {roomId ? <Disclosure label="Przykładowe odpowiedzi">{previewContent}</Disclosure> : previewContent}
     </View>}
   </View>;
 }

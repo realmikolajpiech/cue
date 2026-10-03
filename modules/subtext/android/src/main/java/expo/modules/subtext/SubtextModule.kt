@@ -42,6 +42,7 @@ class SubtextModule : Module() {
         .put("aiMemory", PersonMemory.input(memory)).toString()
     }
     AsyncFunction("previewConversationWritingStyle") Coroutine { id: String -> subtextRuntime.previewWritingStyle(id) }
+    AsyncFunction("setWritingTone") { id: String?, tone: String -> subtextRuntime.setWritingTone(id, tone) }
     AsyncFunction("writingStyle") { subtextRuntime.writingStyle() }
     AsyncFunction("previewWritingStyle") Coroutine { -> subtextRuntime.previewWritingStyle() }
     AsyncFunction("conversations") {
