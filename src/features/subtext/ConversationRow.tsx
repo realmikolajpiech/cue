@@ -11,6 +11,10 @@ const platformIcons = {
   whatsapp: require('../../../assets/platforms/whatsapp.svg'),
 };
 
+export function ConversationPlatformIcon({ network, size = 18 }: { network: Network; size?: number }) {
+  return <Image source={platformIcons[network]} contentFit="contain" style={{ width: size, height: size }} accessible={false} />;
+}
+
 export function ConversationAvatar({ name, uri, size = 48, network }: { name: string; uri?: string; size?: number; network?: Network }) {
   const { colors } = useTheme();
   const [failedUri, setFailedUri] = useState<string>();
@@ -21,7 +25,7 @@ export function ConversationAvatar({ name, uri, size = 48, network }: { name: st
       onError={() => setFailedUri(uri)} style={StyleSheet.absoluteFill} accessible={false} />}
     </View>
     {network && <View style={[styles.platformBadge, { backgroundColor: colors.background }]}>
-      <Image source={platformIcons[network]} contentFit="contain" style={{ width: 18, height: 18 }} accessible={false} />
+      <ConversationPlatformIcon network={network} />
     </View>}
   </View>;
 }

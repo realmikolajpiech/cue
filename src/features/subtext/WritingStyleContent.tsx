@@ -44,10 +44,10 @@ export default function WritingStyleContent({ roomId, isExample = false }: Writi
   const previews = style?.previewExamples ?? [];
 
   return <View style={{ gap: 4 }}>
-    <View style={[styles.section, { borderColor: colors.border, borderTopWidth: roomId ? StyleSheet.hairlineWidth : 0 }]}>
+    <View style={[styles.section, { paddingTop: roomId ? 20 : 0, borderColor: colors.border, borderTopWidth: roomId ? StyleSheet.hairlineWidth : 0 }]}>
       <Row style={{ justifyContent: 'space-between', gap: 12 }}>
         <View style={{ flex: 1, gap: 3 }}>
-          <Copy accessibilityRole="header" style={[styles.title, { color: colors.text }]}>{roomId ? 'Twój styl' : 'Jak piszesz'}</Copy>
+          <Copy accessibilityRole="header" style={[styles.title, { color: colors.text }]}>{roomId ? 'Twój styl' : 'Cechy Twoich wiadomości'}</Copy>
           {style && <Copy style={styles.caption}>{isExample ? 'Rozmowa przykładowa' : style.sampleCount ?
             `Na podstawie ${style.sampleCount} wiadomości${!roomId ? ` · ${countLabel(style.conversationCount, ['rozmowa', 'rozmowy', 'rozmów'])}` : ''}` : 'Styl pojawi się wraz z Twoimi wiadomościami'}</Copy>}
         </View>
@@ -68,8 +68,17 @@ export default function WritingStyleContent({ roomId, isExample = false }: Writi
       {query.isError && !style && <Button label="Spróbuj ponownie" secondary onPress={() => { void query.refetch(); }} />}
     </View>
 
+    {!roomId && !!examples.length && <View style={[styles.savedExamples, { borderColor: colors.border }]}>
+      <View style={{ gap: 4 }}>
+        <Copy accessibilityRole="header" style={[styles.title, { color: colors.text }]}>Z Twoich rozmów</Copy>
+        <Copy style={styles.caption}>Twoje odpowiedzi, w Twoim stylu</Copy>
+      </View>
+      <Exchanges examples={examples.slice(0, 2)} />
+      {examples.length > 2 && <Disclosure label="Więcej Twoich odpowiedzi" small><Exchanges examples={examples.slice(2)} /></Disclosure>}
+    </View>}
+
     {style && <View style={[styles.examplesSection, { borderColor: colors.border }]}>
-      <Disclosure label="Przykładowe odpowiedzi">
+      <Disclosure label={roomId ? 'Przykładowe odpowiedzi' : 'Wypróbuj swój styl z AI'}>
         <ErrorText error={preview.error} />
         {previews.length ? <>
           <Exchanges examples={previews.slice(0, 3)} />
@@ -80,20 +89,21 @@ export default function WritingStyleContent({ roomId, isExample = false }: Writi
             secondary disabled={!!status.analyzing || preview.isPending} onPress={() => preview.mutate()} /> :
           <Button label="Włącz analizę AI" secondary onPress={() => router.push('/settings')} /> :
           <Copy style={styles.caption}>Przykłady będą dostępne po kilku Twoich wiadomościach.</Copy>}
-        {!!examples.length && <Disclosure label="Twoje wiadomości" small><Exchanges examples={examples} /></Disclosure>}
+        {!!roomId && !!examples.length && <Disclosure label="Twoje wiadomości" small><Exchanges examples={examples} /></Disclosure>}
       </Disclosure>
     </View>}
   </View>;
 }
 
 const styles = StyleSheet.create({
-  section: { paddingTop: 20, paddingBottom: 16, gap: 14 },
+  section: { paddingBottom: 16, gap: 14 },
   title: { fontFamily: 'DMSansSemiBold', fontSize: 17, lineHeight: 24 },
   caption: { fontSize: 12, lineHeight: 18 },
   body: { fontSize: 14, lineHeight: 21 },
   habit: { fontSize: 14, lineHeight: 21 },
   refresh: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   examplesSection: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 4 },
-  bubble: { maxWidth: '90%', paddingHorizontal: 12, paddingVertical: 9, borderRadius: 14 },
+  savedExamples: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 20, paddingBottom: 12, gap: 16 },
+  bubble: { maxWidth: '90%', paddingHorizontal: 12, paddingVertical: 9, borderRadius: 14, borderCurve: 'continuous' },
   example: { fontSize: 14, lineHeight: 21 },
 });
