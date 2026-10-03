@@ -1,0 +1,3 @@
+<ripple xmlns:android="http://schemas.android.com/apk/res/android" android:color="#22626262">
+  <item><shape><solid android:color="@color/cue_login_text" /><corners android:radius="12dp" /></shape></item>
+</ripple>
