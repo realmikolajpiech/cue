@@ -1,6 +1,33 @@
+import { useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { View } from 'react-native';
-import { Screen, Copy, Card, Row, Icon, Risk, Tags, Action } from '@/components/ui';
+import { Screen, Copy, Card, Icon, Action } from '@/components/ui';
 import { useDemo } from '@/features/demo/store';
+import { threatCopy } from '@/features/demo/presentation';
 import { useTheme } from '@/theme/useTheme';
-export default function Detail() { const { id } = useLocalSearchParams<{ id: string }>(); const { threats, review } = useDemo(); const { colors } = useTheme(); const t = threats.find(t => t.id === id); if (!t) return <Screen header={false}><Copy title>Ostrzeżenie niedostępne</Copy><Action label="Wróć do historii" onPress={() => router.replace('/alerts')} /></Screen>; return <Screen header={false}><Risk label={t.risk} /><View style={{ gap: 10 }}><Copy title>{t.title}</Copy><Copy style={{ fontSize: 11 }}>{t.source} · {t.time}</Copy></View><View style={{ gap: 16 }}><Copy style={{ color: colors.text, fontWeight: '500' }}>Dlaczego to ostrzeżenie?</Copy><Tags values={t.signals} /><Copy>Te sygnały występują razem w krótkim kontekście rozmowy i mogą wskazywać na próbę manipulacji.</Copy></View><Card style={{ backgroundColor: colors.secondary, borderWidth: 0 }}><Row style={{ alignItems: 'flex-start' }}><Icon name="phone" /><View style={{ flex: 1, gap: 8 }}><Copy style={{ color: colors.text, fontWeight: '500' }}>Bezpieczny następny krok</Copy><Copy style={{ color: colors.text }}>{t.advice}</Copy></View></Row></Card><View style={{ gap: 12 }}><Action label={t.reviewed ? 'Zamknij szczegóły' : 'Oznacz jako sprawdzone'} icon="check" onPress={() => { review(t.id); router.back(); }} /><Copy style={{ textAlign: 'center', fontSize: 10 }}>Oznaczenie nie zmienia oceny ryzyka.</Copy></View></Screen>; }
+
+export default function Detail() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const { threats, review } = useDemo();
+  const [showWhy, setShowWhy] = useState(false);
+  const { colors } = useTheme();
+  const t = threats.find(t => t.id === id);
+  if (!t) return <Screen header={false} back title="Nie ma tego ostrzeżenia"><Action label="Wróć do ostrzeżeń" onPress={() => router.replace('/alerts')} /></Screen>;
+  const copy = threatCopy(t);
+  return <Screen header={false} back>
+    <View style={{ gap: 16 }}>
+      <Icon name="warning" size={42} color={colors.warning} />
+      <Copy title>{copy.warning}</Copy>
+      <Copy>{copy.title}.</Copy>
+      <Copy>{t.source} · {t.time}</Copy>
+    </View>
+    <Card style={{ backgroundColor: colors.warningSoft, borderColor: colors.warning }}>
+      <Copy title style={{ fontSize: 26, lineHeight: 36 }}>Co zrobić teraz?</Copy>
+      <Copy style={{ color: colors.text, fontFamily: 'DMSansMedium', fontSize: 22, lineHeight: 33 }}>{copy.advice}</Copy>
+    </Card>
+    <Action label="Rozumiem" icon="check" onPress={() => { review(t.id); if (router.canGoBack()) router.back(); else router.replace('/alerts'); }} />
+    <Copy>Po naciśnięciu „Rozumiem” oznaczymy ostrzeżenie jako przeczytane. To nie oznacza, że wiadomość jest bezpieczna.</Copy>
+    <Action secondary label={showWhy ? 'Ukryj wyjaśnienie' : 'Dlaczego widzę ostrzeżenie?'} onPress={() => setShowWhy(v => !v)} />
+    {showWhy && <Card><Copy>W tej rozmowie pojawiły się sygnały, które mogą oznaczać oszustwo:</Copy>{t.signals.map(signal => <Copy key={signal} style={{ color: colors.text }}>• {signal}</Copy>)}<Copy>To przykład w wersji pokazowej aplikacji.</Copy></Card>}
+  </Screen>;
+}

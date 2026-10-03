@@ -1,5 +1,20 @@
 import { useState } from 'react';
 import { TextInput, View } from 'react-native';
-import { Screen, Copy, Card, Row, Icon, SectionHeading, Action } from '@/components/ui';
+import { Screen, Copy, Card, Action } from '@/components/ui';
 import { useTheme } from '@/theme/useTheme';
-export default function CheckMessage() { const [message, setMessage] = useState(''); const [preview, setPreview] = useState(false); const { colors } = useTheme(); return <Screen title="Sprawdź wiadomość"><Card><SectionHeading title="Wiadomość lub link"><Icon name="scan" /></SectionHeading><TextInput accessibilityLabel="Treść wiadomości lub link" placeholder="Wklej tutaj treść, która budzi Twoje wątpliwości…" placeholderTextColor={colors.secondaryText} value={message} onChangeText={text => { setMessage(text); setPreview(false); }} multiline textAlignVertical="top" style={{ minHeight: 220, padding: 18, borderWidth: 1, borderColor: colors.border, borderRadius: 15, backgroundColor: colors.secondary, color: colors.text, fontFamily: 'DMSans', fontSize: 14, lineHeight: 25 }} /><Row style={{ gap: 6 }}><Icon name="lock" size={14} /><Copy style={{ fontSize: 10 }}>Treść nie jest zapisywana</Copy></Row><Action label="Sprawdź" icon="arrow" disabled={!message.trim()} onPress={() => setPreview(true)} /><Copy style={{ fontSize: 10 }}>Podgląd interfejsu. Analiza wiadomości nie jest jeszcze podłączona.</Copy></Card>{preview && <Card><View style={{ alignSelf: 'flex-start', padding: 8, borderRadius: 8, backgroundColor: colors.secondary }}><Copy style={{ fontSize: 10 }}>PODGLĄD WYNIKU</Copy></View><Copy title style={{ fontSize: 20 }}>Tutaj pojawi się wynik analizy</Copy><Copy>Po podłączeniu analizy zobaczysz ocenę ryzyka, zauważone sygnały i bezpieczny następny krok.</Copy><Action label="Wyczyść wiadomość" secondary onPress={() => { setMessage(''); setPreview(false); }} /></Card>}</Screen>; }
+
+export default function CheckMessage() {
+  const [message, setMessage] = useState('');
+  const [preview, setPreview] = useState(false);
+  const { colors } = useTheme();
+  return <Screen title="Sprawdź wiadomość">
+    <Copy>Wklej wiadomość lub link, który budzi Twoje wątpliwości.</Copy>
+    <TextInput accessibilityLabel="Wiadomość lub link do sprawdzenia" placeholder="Tutaj wklej wiadomość…" placeholderTextColor={colors.secondaryText}
+      value={message} onChangeText={text => { setMessage(text); setPreview(false); }} multiline textAlignVertical="top"
+      style={{ minHeight: 200, padding: 20, borderWidth: 2, borderColor: colors.border, borderRadius: 16, backgroundColor: colors.surface, color: colors.text, fontFamily: 'DMSans', fontSize: 22, lineHeight: 33 }} />
+    {!message.trim() && <Copy>Przycisk poniżej włączy się, gdy wpiszesz lub wkleisz wiadomość.</Copy>}
+    <Action label="Sprawdź tę wiadomość" disabled={!message.trim()} onPress={() => setPreview(true)} />
+    {preview && <Card><Copy title style={{ fontSize: 26, lineHeight: 36 }}>Sprawdzanie nie jest jeszcze dostępne</Copy><Copy>To wersja pokazowa. Ta wiadomość nie została przeanalizowana.</Copy><Action label="Wpisz inną wiadomość" secondary onPress={() => { setMessage(''); setPreview(false); }} /></Card>}
+    <View style={{ gap: 12 }}><Copy>Wersja pokazowa — bez analizy wiadomości.</Copy><Copy>Wpisana treść nie jest zapisywana ani wysyłana.</Copy></View>
+  </Screen>;
+}

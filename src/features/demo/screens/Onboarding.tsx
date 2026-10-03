@@ -1,3 +1,14 @@
 import { router } from 'expo-router';
-import { Screen, Copy, Card, Row, Icon, Action } from '@/components/ui';
-export default function Help() { return <Screen title="Jak działa Guardian"><Icon name="shield" size={54} /><Copy title>Chwila namysłu przed decyzją.</Copy><Copy>Guardian ma analizować krótką sekwencję powiadomień, rozpoznawać wzorce manipulacji i wskazywać bezpieczny kolejny krok.</Copy><Card><Row><Icon name="lock" /><Copy style={{ flex: 1 }}>Twoje wiadomości pozostają na telefonie.</Copy></Row><Copy>Docelowo analiza będzie działać lokalnie, bez przechowywania rozmów.</Copy></Card><Copy>To interaktywny podgląd z przykładowymi zdarzeniami. Nie nasłuchuje powiadomień i nie zapewnia rzeczywistej ochrony.</Copy><Action label="Rozumiem" onPress={() => router.canGoBack() ? router.back() : router.replace('/')} /></Screen>; }
+import { Screen, Copy, Card, Icon, Action } from '@/components/ui';
+
+export default function Help() {
+  return <Screen title="Jak działa aplikacja?" header={false} back>
+    <Icon name="shield" size={48} />
+    <Copy>Guardian ma pomóc Ci rozpoznać podejrzaną wiadomość i podpowiedzieć, co zrobić.</Copy>
+    <Card><Copy title style={{ fontSize: 26, lineHeight: 36 }}>1. Zobacz ostrzeżenie</Copy><Copy>Gdy wiadomość budzi wątpliwości, zobaczysz wyraźny komunikat.</Copy></Card>
+    <Card><Copy title style={{ fontSize: 26, lineHeight: 36 }}>2. Przeczytaj poradę</Copy><Copy>Naciśnij „Co mam zrobić?”, aby zobaczyć bezpieczny następny krok.</Copy></Card>
+    <Card><Copy title style={{ fontSize: 26, lineHeight: 36 }}>3. Sprawdź nadawcę</Copy><Copy>Przed wysłaniem pieniędzy lub danych zadzwoń do tej osoby na znany Ci numer.</Copy></Card>
+    <Copy>Teraz oglądasz wersję pokazową z przykładami. Aplikacja nie sprawdza jeszcze wiadomości.</Copy>
+    <Action label="Rozumiem" onPress={() => router.canGoBack() ? router.back() : router.replace('/')} />
+  </Screen>;
+}

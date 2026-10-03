@@ -1,8 +1,28 @@
-import { useState } from 'react';
-import { Pressable, View } from 'react-native';
 import { router } from 'expo-router';
-import { Screen, Copy, Card, Row, Icon, Empty } from '@/components/ui';
-import { useDemo } from '@/features/demo/store';
+import { View } from 'react-native';
+import { Screen, Copy, Card, Action, SectionHeading, Empty } from '@/components/ui';
+import { useDemo, type Threat } from '@/features/demo/store';
+import { threatCopy } from '@/features/demo/presentation';
 import { useTheme } from '@/theme/useTheme';
-export default function History() { const [filter, setFilter] = useState('Wszystkie'); const threats = useDemo(s => s.threats); const { colors } = useTheme(); const visible = threats.filter(t => filter === 'Wszystkie' || (filter === 'Sprawdzone' ? t.reviewed : !t.reviewed)); return <Screen title="Historia"><Row style={{ gap: 3, padding: 4, borderRadius: 30, backgroundColor: colors.secondary }}>{['Wszystkie', 'Do sprawdzenia', 'Sprawdzone'].map(f => <Pressable accessibilityRole="button" accessibilityState={{ selected: f === filter }} key={f} onPress={() => setFilter(f)} style={{ flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 30, backgroundColor: f === filter ? colors.surface : 'transparent' }}><Copy style={{ fontSize: 10, color: f === filter ? colors.text : colors.secondaryText }}>{f}</Copy></Pressable>)}</Row>
-{visible.length ? <Card style={{ padding: 0, gap: 0, overflow: 'hidden' }}>{visible.map((t, i) => <Pressable accessibilityRole="button" accessibilityLabel={`${t.title}, ${t.reviewed ? 'Sprawdzone' : 'Do sprawdzenia'}`} key={t.id} onPress={() => router.push(`/alert/${t.id}`)} style={{ paddingVertical: 22, paddingHorizontal: 16, borderTopWidth: i ? 1 : 0, borderColor: colors.border }}><Row><View style={{ padding: 10, borderRadius: 14, backgroundColor: t.reviewed ? colors.secondary : colors.warningSoft }}><Icon name={t.reviewed ? 'check' : 'warning'} size={21} color={t.reviewed ? colors.text : colors.warning} /></View><View style={{ flex: 1, gap: 5 }}><Copy style={{ color: colors.text, fontWeight: '500', lineHeight: 20 }}>{t.title}</Copy><Copy style={{ fontSize: 10 }}>{t.source} · {t.time}</Copy></View><Icon name="chevron" size={18} color={colors.secondaryText} /></Row></Pressable>)}</Card> : <Empty title="Brak zdarzeń" subtitle="Nie ma wyników w tej kategorii." />}</Screen>; }
+
+function AlertCard({ threat }: { threat: Threat }) {
+  const { colors } = useTheme();
+  return <Card>
+    <Copy title style={{ fontSize: 25, lineHeight: 35 }}>{threatCopy(threat).title}</Copy>
+    <Copy>{threat.source} · {threat.time}</Copy>
+    <Copy style={{ color: colors.text, fontFamily: 'DMSansMedium' }}>{threat.reviewed ? 'Przeczytane' : 'Nowe ostrzeżenie'}</Copy>
+    <Action label="Co mam zrobić?" secondary={threat.reviewed} onPress={() => router.push(`/alert/${threat.id}`)} />
+  </Card>;
+}
+
+export default function Alerts() {
+  const threats = useDemo(s => s.threats);
+  const unread = threats.filter(t => !t.reviewed);
+  const read = threats.filter(t => t.reviewed);
+  return <Screen title="Ostrzeżenia">
+    <Copy>To przykładowe ostrzeżenia. Otwórz je, aby zobaczyć, co zrobić.</Copy>
+    {!threats.length && <Empty title="Nie ma ostrzeżeń" subtitle="Nowe ostrzeżenia pojawią się tutaj." />}
+    {!!unread.length && <View style={{ gap: 16 }}><SectionHeading title="Nowe" />{unread.map(t => <AlertCard key={t.id} threat={t} />)}</View>}
+    {!!read.length && <View style={{ gap: 16 }}><SectionHeading title="Już przeczytane" />{read.map(t => <AlertCard key={t.id} threat={t} />)}</View>}
+  </Screen>;
+}

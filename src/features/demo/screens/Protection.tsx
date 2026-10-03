@@ -1,12 +1,30 @@
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 import { router } from 'expo-router';
-import { Screen, Copy, Card, Row, Icon, SectionHeading, TextAction, Toggle, Tags, Risk, Empty } from '@/components/ui';
+import { Screen, Copy, Row, Icon, Action } from '@/components/ui';
 import { useDemo } from '@/features/demo/store';
+import { ProtectionToggle } from '@/features/demo/components/ProtectionToggle';
+import { ProtectionShield } from '@/features/demo/components/ProtectionShield';
 import { useTheme } from '@/theme/useTheme';
-export default function Protection() { const { enabled, toggleProtection, threats, apps } = useDemo(); const { colors } = useTheme(); const active = threats.filter(t => !t.reviewed); const first = active[0]; return <Screen title="Ochrona">
-<Card><Row><Icon name="shield" size={25} /><View style={{ flex: 1 }}><Copy style={{ color: colors.text, fontSize: 16, fontWeight: '500' }}>{enabled ? 'Ochrona włączona' : 'Ochrona wyłączona'}</Copy><Copy style={{ fontSize: 11 }}>Tryb demonstracyjny</Copy></View><Toggle value={enabled} onChange={toggleProtection} label="Włącz ochronę w podglądzie" /></Row></Card>
-<View><SectionHeading title={`Ostrzeżenia  ${active.length}`}><TextAction label="Historia" onPress={() => router.push('/alerts')} /></SectionHeading>{first ? <Pressable accessibilityRole="button" onPress={() => router.push(`/alert/${first.id}`)}><Card><Row style={{ justifyContent: 'space-between' }}><Risk label={first.risk} /><Copy style={{ fontSize: 11 }}>10:42</Copy></Row><Copy title style={{ fontSize: 18, lineHeight: 27, letterSpacing: -.4 }}>{first.title}</Copy><Tags values={first.signals} /><Row style={{ borderTopWidth: 1, borderColor: colors.border, paddingTop: 16, justifyContent: 'space-between' }}><Row style={{ gap: 7 }}><Icon name="message" size={16} /><Copy style={{ fontSize: 11 }}>{first.source}</Copy></Row><Row style={{ gap: 5 }}><Copy style={{ color: colors.text, fontSize: 11 }}>Zobacz zalecenie</Copy><Icon name="arrow" size={17} /></Row></Row></Card></Pressable> : <Empty title="Wszystko sprawdzone" subtitle="Nowe ostrzeżenia pojawią się tutaj." />}</View>
-<Pressable accessibilityRole="button" onPress={() => router.push('/check')}><Card><Row><Icon name="scan" /><Copy style={{ flex: 1, color: colors.text, fontWeight: '500' }}>Sprawdź wiadomość lub link</Copy><Icon name="chevron" size={18} /></Row></Card></Pressable>
-<View><SectionHeading title="Chronione aplikacje"><TextAction label="Zarządzaj" onPress={() => router.push('/settings')} /></SectionHeading><Card style={{ paddingVertical: 4 }}>{Object.entries(apps).map(([name, on], i) => <Row key={name} style={{ paddingVertical: 15, borderTopWidth: i ? 1 : 0, borderColor: colors.border }}><View style={{ padding: 9, backgroundColor: colors.secondary, borderRadius: 10 }}><Icon name="message" size={19} color={colors.secondaryText} /></View><Copy style={{ flex: 1, color: colors.text }}>{name}</Copy><Copy style={{ fontSize: 10 }}>{on && enabled ? 'Połączono' : 'Wstrzymano'}</Copy></Row>)}</Card></View>
-<Copy style={{ fontSize: 11, textAlign: 'center' }}>Podgląd UI · przykładowe zdarzenia</Copy>
-</Screen>; }
+
+export default function Protection() {
+  const enabled = useDemo(s => s.enabled);
+  const toggleProtection = useDemo(s => s.toggleProtection);
+  const threats = useDemo(s => s.threats);
+  const unread = threats.filter(t => !t.reviewed).length;
+  const { colors } = useTheme();
+  return <Screen>
+    <View style={{ alignItems: 'center', gap: 16, paddingBottom: 8 }}>
+      <ProtectionShield enabled={enabled} />
+      <Copy accessibilityLiveRegion="polite" title style={{ fontSize: 28, lineHeight: 38, textAlign: 'center' }}>{enabled ? 'Ochrona jest włączona' : 'Ochrona jest wyłączona'}</Copy>
+      <ProtectionToggle enabled={enabled} onToggle={toggleProtection} />
+    </View>
+    <View style={{ gap: 16 }}>
+      <Action label="Sprawdź wiadomość" icon="message" onPress={() => router.push('/check')} />
+      <Action label="Zobacz ostrzeżenia" secondary icon="warning" onPress={() => router.push('/alerts')} />
+    </View>
+    <Row style={{ alignItems: 'flex-start' }}>
+      <Icon name={unread ? 'warning' : 'check'} size={28} color={unread ? colors.warning : colors.text} />
+      <Copy style={{ flex: 1, color: colors.text }}>{unread ? `Nowe ostrzeżenia: ${unread}. Przeczytaj, co warto zrobić.` : 'Wszystkie ostrzeżenia zostały przeczytane.'}</Copy>
+    </Row>
+  </Screen>;
+}

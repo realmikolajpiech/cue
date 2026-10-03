@@ -1,7 +1,55 @@
 import { useState } from 'react';
-import { Modal, Pressable, View } from 'react-native';
+import { Modal, Pressable, ScrollView, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Screen, Copy, Card, Row, Icon, Toggle, Action, TextAction, SectionHeading } from '@/components/ui';
+import { Screen, Copy, Card, Row, Toggle, Action, SectionHeading } from '@/components/ui';
 import { useTheme } from '@/theme/useTheme';
 import { useDemo } from '@/features/demo/store';
-export default function Settings() { const s = useDemo(); const { colors } = useTheme(); const [confirm, setConfirm] = useState(false); return <Screen title="Ustawienia"><Card><SectionHeading title="Ochrona" />{[{ label: 'Monitorowanie wiadomości', note: 'Wstrzymaj lub wznów ochronę w demo.', value: s.enabled, change: s.toggleProtection }, { label: 'Natychmiastowe ostrzeżenia', note: 'Preferencja alertów wysokiego ryzyka.', value: s.notifications, change: s.toggleNotifications }].map(item => <Row key={item.label} style={{ borderBottomWidth: 1, borderColor: colors.border, paddingBottom: 18 }}><View style={{ flex: 1 }}><Copy style={{ color: colors.text, fontWeight: '500' }}>{item.label}</Copy><Copy style={{ fontSize: 10 }}>{item.note}</Copy></View><Toggle label={item.label} value={item.value} onChange={item.change} /></Row>)}<SectionHeading title="Analizowane aplikacje" />{Object.entries(s.apps).map(([name, value]) => <Row key={name} style={{ justifyContent: 'space-between' }}><Copy style={{ color: colors.text }}>{name}</Copy><Toggle label={`Analizuj ${name}`} value={value} onChange={() => s.toggleApp(name)} /></Row>)}</Card><Card><Icon name="lock" size={27} /><Copy title style={{ fontSize: 22 }}>Prywatność</Copy><Copy>Docelowo analiza odbywa się lokalnie. Historia zawiera wyłącznie wyniki, nigdy pełne rozmowy.</Copy>{['Bez konta i synchronizacji', 'Bez wysyłania treści do chmury'].map(label => <Row key={label} style={{ gap: 8 }}><Icon name="check" size={16} /><Copy style={{ fontSize: 11, color: colors.text }}>{label}</Copy></Row>)}<Action secondary label="Usuń historię" onPress={() => setConfirm(true)} /><Copy style={{ fontSize: 10 }}>Ustawienia dotyczą podglądu i nie zmieniają uprawnień urządzenia.</Copy></Card>{process.env.EXPO_OS === 'android' && <Card><SectionHeading title="Model na urządzeniu" /><TextAction label="Konfiguracja Gemma i uprawnień" onPress={() => router.push('/model-setup')} /><TextAction label="Silnik i benchmark" onPress={() => router.push('/model-settings')} /><TextAction label="Rzeczywiste analizy" onPress={() => router.push('/analyses')} /></Card>}<TextAction label="Jak działa Guardian" onPress={() => router.push('/onboarding')} /><Modal visible={confirm} transparent animationType="slide" onRequestClose={() => setConfirm(false)}><View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: '#07120C70' }}><Pressable accessibilityLabel="Zamknij okno" onPress={() => setConfirm(false)} style={{ flex: 1 }} /><View style={{ padding: 28, paddingBottom: 40, borderTopLeftRadius: 30, borderTopRightRadius: 30, backgroundColor: colors.surface, gap: 20, maxWidth: 480, width: '100%', alignSelf: 'center' }}><Copy title>Usunąć historię?</Copy><Copy>Przykładowe wyniki znikną z tego podglądu. Nie dotyczy to danych urządzenia.</Copy><Action label="Usuń historię" onPress={() => { s.clear(); setConfirm(false); }} /><Action secondary label="Anuluj" onPress={() => setConfirm(false)} /></View></View></Modal></Screen>; }
+
+function Setting({ label, description, value, onChange }: { label: string; description?: string; value: boolean; onChange: () => void }) {
+  const { colors } = useTheme();
+  return <View style={{ gap: 12 }}>
+    <Copy style={{ color: colors.text, fontFamily: 'DMSansMedium', fontSize: 22, lineHeight: 32 }}>{label}</Copy>
+    {description && <Copy>{description}</Copy>}
+    <Row style={{ justifyContent: 'space-between' }}>
+      <Copy style={{ color: colors.text }}>{value ? 'Włączone' : 'Wyłączone'}</Copy>
+      <Toggle label={label} value={value} onChange={onChange} />
+    </Row>
+  </View>;
+}
+
+export default function Settings() {
+  const s = useDemo();
+  const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  const [confirm, setConfirm] = useState(false);
+  const [advanced, setAdvanced] = useState(false);
+  return <Screen title="Ustawienia" header={false} back>
+    <Copy>Zmiany dotyczą tylko wersji pokazowej.</Copy>
+    <Card><Setting label="Ochrona wiadomości" description="Ochronę możesz wyłączyć i ponownie włączyć tutaj." value={s.enabled} onChange={s.toggleProtection} /></Card>
+    <Card><Setting label="Pokazuj ostrzeżenia" description="Informuj mnie o podejrzanych wiadomościach." value={s.notifications} onChange={s.toggleNotifications} /></Card>
+    <Card><Setting label="Ciemne tło" description="Zmień jasne tło na ciemne." value={s.dark} onChange={s.toggleTheme} /></Card>
+    <Action label="Jak działa aplikacja?" secondary onPress={() => router.push('/onboarding')} />
+    <Action label={advanced ? 'Ukryj dodatkowe ustawienia' : 'Dodatkowe ustawienia'} secondary onPress={() => setAdvanced(v => !v)} />
+    {advanced && <View style={{ gap: 24 }}>
+      <SectionHeading title="Sprawdzane aplikacje" />
+      {Object.entries(s.apps).map(([name, value]) => <Card key={name}><Setting label={name} value={value} onChange={() => s.toggleApp(name)} /></Card>)}
+      <Card><Copy title style={{ fontSize: 26, lineHeight: 36 }}>Twoja prywatność</Copy><Copy>Docelowo wiadomości będą sprawdzane na telefonie, bez wysyłania ich do internetu.</Copy></Card>
+      <Action secondary label="Usuń przykładowe ostrzeżenia" onPress={() => setConfirm(true)} />
+      {process.env.EXPO_OS === 'android' && <Card><SectionHeading title="Ustawienia techniczne" /><Copy>Konfiguracja modelu na urządzeniu.</Copy><Action secondary label="Model i uprawnienia" onPress={() => router.push('/model-setup')} /><Action secondary label="Silnik i test modelu" onPress={() => router.push('/model-settings')} /><Action secondary label="Analizy na urządzeniu" onPress={() => router.push('/analyses')} /></Card>}
+    </View>}
+    <Modal visible={confirm} transparent animationType="slide" onRequestClose={() => setConfirm(false)}>
+      <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: '#00000080' }}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Anuluj usuwanie" onPress={() => setConfirm(false)} style={{ flex: 1 }} />
+        <View accessibilityViewIsModal style={{ maxHeight: '85%', paddingTop: 28, paddingHorizontal: 24, paddingBottom: insets.bottom + 24, borderTopLeftRadius: 24, borderTopRightRadius: 24, backgroundColor: colors.surface, maxWidth: 520, width: '100%', alignSelf: 'center' }}>
+          <ScrollView contentContainerStyle={{ gap: 24 }}>
+            <Copy title>Usunąć ostrzeżenia?</Copy>
+            <Copy>Usuniesz tylko przykładowe ostrzeżenia z tej wersji pokazowej.</Copy>
+            <Action secondary label="Nie, zostaw ostrzeżenia" onPress={() => setConfirm(false)} />
+            <Action label="Tak, usuń ostrzeżenia" onPress={() => { s.clear(); setConfirm(false); }} />
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  </Screen>;
+}
