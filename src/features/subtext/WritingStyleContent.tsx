@@ -8,7 +8,7 @@ import type { z } from 'zod';
 import type { writingStyleSchema } from '@/types/subtext';
 import { Button, Disclosure, ErrorText } from './components';
 
-export type WritingStyleProps = { roomId?: string; personName?: string; isExample?: boolean };
+export type WritingStyleProps = { roomId?: string; isExample?: boolean };
 type Example = z.infer<typeof writingStyleSchema>['examples'][number];
 
 function countLabel(count: number, forms: [string, string, string]) {
@@ -46,14 +46,14 @@ export default function WritingStyleContent({ roomId, isExample = false }: Writi
     <View style={[styles.section, { borderColor: colors.border, borderTopWidth: roomId ? StyleSheet.hairlineWidth : 0 }]}>
       <Row style={{ justifyContent: 'space-between', gap: 12 }}>
         <View style={{ flex: 1, gap: 3 }}>
-          <Copy accessibilityRole="header" style={[styles.title, { color: colors.text }]}>{roomId ? 'Twój styl w tej rozmowie' : 'Jak piszesz'}</Copy>
+          <Copy accessibilityRole="header" style={[styles.title, { color: colors.text }]}>{roomId ? 'Twój styl' : 'Jak piszesz'}</Copy>
           {style && <Copy style={styles.caption}>{isExample ? 'Rozmowa przykładowa' : style.sampleCount ?
-            `Na podstawie ${countLabel(style.sampleCount, ['wiadomości', 'wiadomości', 'wiadomości'])}${!roomId ? ` · ${countLabel(style.conversationCount, ['rozmowa', 'rozmowy', 'rozmów'])}` : ''}` : 'Styl pojawi się wraz z Twoimi wiadomościami'}</Copy>}
+            `Na podstawie ${style.sampleCount} wiadomości${!roomId ? ` · ${countLabel(style.conversationCount, ['rozmowa', 'rozmowy', 'rozmów'])}` : ''}` : 'Styl pojawi się wraz z Twoimi wiadomościami'}</Copy>}
         </View>
-        <Pressable accessibilityRole="button" accessibilityLabel="Odśwież styl pisania" disabled={query.isFetching}
+        {!roomId && <Pressable accessibilityRole="button" accessibilityLabel="Odśwież styl pisania" accessibilityState={{ disabled: query.isFetching, busy: query.isFetching }} disabled={query.isFetching}
           onPress={() => { void query.refetch(); }} style={({ pressed }) => [styles.refresh, { opacity: pressed ? .6 : 1 }]}>
           {query.isFetching ? <ActivityIndicator size="small" color={colors.accent} /> : <Icon name="refresh" size={18} color={colors.accent} />}
-        </Pressable>
+        </Pressable>}
       </Row>
       <ErrorText error={query.error} />
       {query.isPending ? <Copy style={styles.caption}>Odczytuję styl…</Copy> : style && <View style={{ gap: 10 }}>

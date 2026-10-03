@@ -5,7 +5,7 @@ import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } 
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Copy, Icon, Row } from '@/components/ui';
-import { CueMark } from '@/components/CueBrand';
+import { CueMascot } from '@/components/CueBrand';
 import { subtext, subtextCache, useRooms, useSubtextAction, useSubtextStatus } from '@/services/subtext';
 import { useTheme } from '@/theme/useTheme';
 import { Button, ErrorText, ui } from './components';
@@ -25,7 +25,7 @@ function InboxControls({ search, filter, setSearch, setFilter }: {
   const { colors } = useTheme();
   const input = useRef<TextInput>(null);
   return <View style={[styles.controls, { backgroundColor: colors.background }]}>
-      <View style={[styles.search, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <View style={[styles.search, { backgroundColor: colors.surface }]}>
         <Icon name="search" size={20} color={colors.secondaryText} />
         <TextInput ref={input} value={search} accessibilityLabel="Szukaj rozmowy" placeholder="Szukaj osoby" placeholderTextColor={colors.secondaryText} cursorColor={colors.accent} selectionColor={colors.accent}
           onChangeText={setSearch} autoCorrect={false} autoCapitalize="none" returnKeyType="search" onSubmitEditing={() => input.current?.blur()}
@@ -33,8 +33,10 @@ function InboxControls({ search, filter, setSearch, setFilter }: {
         {!!search && <Pressable accessibilityRole="button" accessibilityLabel="Wyczyść wyszukiwanie" onPress={() => { input.current?.clear(); setSearch(''); }} style={styles.clear}><Icon name="close" size={18} color={colors.secondaryText} /></Pressable>}
       </View>
       <Row style={{ gap: 8, flexWrap: 'wrap' }}>{filters.map(item => <Pressable key={item.id} accessibilityRole="button" accessibilityState={{ selected: filter === item.id }}
-        onPress={() => setFilter(item.id)} style={[styles.filter, { backgroundColor: filter === item.id ? colors.accent : colors.secondary }]}>
-        <Copy style={{ fontSize: 13, lineHeight: 20, fontFamily: 'DMSansSemiBold', color: filter === item.id ? colors.onAccent : colors.secondaryText }}>{item.label}</Copy>
+        onPress={() => setFilter(item.id)} style={({ pressed }) => [styles.filter, { opacity: pressed ? .6 : 1 }]}>
+        <View style={[styles.filterPill, { backgroundColor: filter === item.id ? colors.secondary : 'transparent', borderColor: filter === item.id ? colors.secondary : colors.border }]}>
+          <Copy style={{ fontSize: 12, lineHeight: 18, fontFamily: 'DMSansSemiBold', color: filter === item.id ? colors.accent : colors.secondaryText }}>{item.label}</Copy>
+        </View>
       </Pressable>)}</Row>
     </View>;
 }
@@ -77,10 +79,10 @@ export default function People() {
       keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" refreshing={action.isPending} onRefresh={refresh}
       // Keep short search results tall enough for the active search field to stay pinned.
       contentContainerStyle={{ paddingBottom: 24, minHeight: viewportHeight + introHeight }}
-      renderItem={({ item }) => {
+      renderItem={({ item, index }) => {
         if (item.type === 'intro') return <View style={styles.intro} onLayout={event => { const height = event.nativeEvent.layout.height; introOffset.set(height); setIntroHeight(height); }}>
         <Row style={{ justifyContent: 'space-between' }}>
-          <CueMark welcoming size={40} />
+          <Row style={{ gap: 10 }}><CueMascot pose="wave" size={32} /><Copy title accessibilityRole="header" style={styles.heading}>Rozmowy</Copy></Row>
           <Pressable accessibilityRole="button" accessibilityLabel="Połączone konta" onPress={() => router.push('/connections')}
             style={({ pressed }) => ({ width: 44, height: 44, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.5 : 1 })}>
             <Icon name="accounts" size={24} color={colors.accent} />
@@ -106,7 +108,7 @@ export default function People() {
         </>}
       </View>;
         if (item.type === 'room') return <View><ConversationRow room={item.room} onPress={() => open(item.room)} />
-          <View style={{ height: 1, backgroundColor: colors.border, marginLeft: 76, marginRight: 16 }} />
+          {index < items.length - 1 && <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginLeft: 80, marginRight: 20 }} />}
         </View>;
         return null;
       }} />
@@ -120,12 +122,14 @@ export default function People() {
 const styles = StyleSheet.create({
   screen: { flex: 1, width: '100%', maxWidth: 600, alignSelf: 'center' },
   controlsOverlay: { position: 'absolute', left: 0, right: 0, zIndex: 1 },
-  controls: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12, gap: 16 },
+  controls: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 8, gap: 8 },
   intro: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12, gap: 16 },
-  listHeader: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12, gap: 16 },
-  search: { minHeight: 52, paddingLeft: 16, paddingRight: 8, gap: 10, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 16, borderCurve: 'continuous' },
-  searchInput: { flex: 1, minHeight: 50, fontSize: 16, fontFamily: 'DMSans', paddingVertical: 10 },
+  heading: { fontSize: 26, lineHeight: 34, letterSpacing: -.6 },
+  listHeader: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 4, gap: 12 },
+  search: { minHeight: 44, paddingLeft: 12, paddingRight: 4, gap: 8, flexDirection: 'row', alignItems: 'center', borderRadius: 12, borderCurve: 'continuous' },
+  searchInput: { flex: 1, minHeight: 44, fontSize: 15, fontFamily: 'DMSans', paddingVertical: 8 },
   clear: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  filter: { minHeight: 44, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 24, borderCurve: 'continuous', justifyContent: 'center' },
+  filter: { minHeight: 44, justifyContent: 'center', paddingVertical: 6 },
+  filterPill: { minHeight: 32, paddingHorizontal: 12, paddingVertical: 6, borderWidth: StyleSheet.hairlineWidth, borderRadius: 16, borderCurve: 'continuous', justifyContent: 'center' },
   empty: { gap: 16, padding: 24, paddingTop: 36 },
 });
