@@ -66,7 +66,7 @@ export default function ProfileContent({ id }: { id: string }) {
 
   return <View style={{ gap: 20 }}>
     <Row style={{ gap: 12 }}>
-      <ConversationAvatar name={room.name} size={44} />
+      <ConversationAvatar name={room.name} uri={room.avatarUri} size={44} />
       <View style={{ flex: 1, gap: 2 }}><Copy style={[ui.body, { color: colors.text, fontFamily: 'DMSansSemiBold' }]}>{networkName(room.network)}</Copy>
         <Copy accessibilityLiveRegion="polite" numberOfLines={2} style={[ui.small, { minHeight: 40 }]}>{room.demo ? 'Rozmowa przykładowa' : sync.isFetching ? 'Synchronizuję wiadomości…' : phase === 'CONNECTING' ? 'Łączę komunikator…' : 'Wiadomości zapisane na telefonie'}</Copy>
       </View>
@@ -105,19 +105,19 @@ export default function ProfileContent({ id }: { id: string }) {
     </View>
 
     {!ready && <View style={[styles.notice, { backgroundColor: colors.secondary }]}>
-      <Copy style={[ui.body, { color: colors.text, fontFamily: 'DMSansSemiBold' }]}>Włącz pomoc Cue</Copy>
-      <Copy style={ui.small}>Analiza AI przygotuje podsumowanie i propozycje odpowiedzi. W ustawieniach możesz zdecydować, czy chcesz z niej korzystać.</Copy>
+      <Copy style={[ui.body, { color: colors.text, fontFamily: 'DMSansSemiBold' }]}>{status?.cloudEnabled ? 'Analiza AI jest niedostępna' : 'Analiza AI jest wyłączona'}</Copy>
+      <Copy style={ui.small}>{status?.cloudEnabled ? 'Sprawdź konfigurację analizy w ustawieniach.' : 'Włącz ją w ustawieniach, żeby tworzyć podsumowania i propozycje odpowiedzi.'}</Copy>
       <Button label="Przejdź do ustawień" secondary onPress={() => router.push('/settings')} />
     </View>}
 
     {tab === 'context' ? <>
       <View style={{ gap: 12 }}>
-        <Row style={{ gap: 10 }}><CueMascot size={48} /><View style={{ flex: 1, gap: 2 }}><Copy style={[ui.small, { color: colors.accent }]}>Cue podpowiada</Copy><Copy title style={ui.title}>Kontekst rozmowy</Copy></View></Row>
+        <Copy title style={ui.title}>Podsumowanie</Copy>
         {profile ? <>
           <Copy selectable style={[ui.body, { color: colors.text }]}>{profile.summary}</Copy>
           {!!profile.beforeReply && <View style={[styles.notice, { backgroundColor: colors.secondary }]}><Copy style={[ui.small, { fontFamily: 'DMSansSemiBold', color: colors.accent }]}>Przed odpowiedzią</Copy><Copy selectable style={ui.body}>{profile.beforeReply}</Copy></View>}
           <Copy style={ui.small}>Podsumowanie z {new Date(profile.createdAt).toLocaleDateString('pl-PL')}</Copy>
-        </> : <Copy style={ui.body}>Cue zbierze najważniejsze tematy i ustalenia z tej rozmowy. Zacznij od krótkiego podsumowania.</Copy>}
+        </> : <Row style={{ gap: 12 }}><CueMascot pose="read" size={72} /><Copy style={[ui.body, { flex: 1 }]}>Zobacz najważniejsze tematy i ustalenia z ostatnich wiadomości.</Copy></Row>}
         <Button label={analysis.isPending && analysis.variables.kind === 'context' ? 'Przygotowuję podsumowanie…' : profile ? 'Odśwież podsumowanie' : 'Podsumuj rozmowę'}
           secondary disabled={!ready || busy || !hasMessages} onPress={() => { Keyboard.dismiss(); analysis.mutate({ kind: 'context', draft: '' }); }} />
       </View>
@@ -126,8 +126,7 @@ export default function ProfileContent({ id }: { id: string }) {
       {!!profile?.commitments.length && <View style={[styles.details, { borderColor: colors.border }]}><Disclosure label="Ustalenia"><Evidence items={profile.commitments} room={room} /></Disclosure></View>}
     </> : <>
       <View style={{ gap: 8 }}>
-        <Row style={{ gap: 10 }}><CueMascot size={48} /><View style={{ flex: 1, gap: 2 }}><Copy style={[ui.small, { color: colors.accent }]}>Znajdźmy Twoje słowa</Copy><Copy title style={ui.title}>Co chcesz przekazać?</Copy></View></Row>
-        <Copy style={ui.body}>Napisz krótko, jaki jest Twój cel. Cue zaproponuje odpowiedzi w Twoim stylu.</Copy>
+        <Row style={{ gap: 12 }}><View style={{ flex: 1, gap: 4 }}><Copy title style={ui.title}>Co chcesz przekazać?</Copy><Copy style={ui.small}>Podaj cel albo wpisz szkic odpowiedzi.</Copy></View><CueMascot pose="write" size={72} /></Row>
         <Field key={initialDraft} accessibilityLabel="Cel odpowiedzi" placeholder="Np. potwierdź spotkanie i zapytaj o godzinę" multiline defaultValue={initialDraft}
           style={{ minHeight: 112, textAlignVertical: 'top' }} onChangeText={text => { edited.current = true; draft.current = text; setReplies(null); setCopied(null); }} />
       </View>

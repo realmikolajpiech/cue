@@ -1,0 +1,8 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
+  <application>
+    <!-- Library instrumentation merges the main manifest into a separate APK. Never
+         register a second selectable Cue keyboard with an empty test data store. -->
+    <service android:name="expo.modules.subtext.SubtextKeyboard" tools:node="remove" />
+    <service android:name="expo.modules.subtext.ConnectionService" tools:node="remove" />
+  </application>
+</manifest>

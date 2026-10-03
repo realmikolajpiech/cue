@@ -30,7 +30,7 @@ class SubtextStore(context: Context) {
   @Synchronized fun summaries(): List<JSONObject> = data.keys().asSequence().map { data.getJSONObject(it) }
     .filter { it.optString("kind") == "PRIVATE" }.map { room ->
       JSONObject().apply {
-        listOf("id", "remoteId", "network", "name", "kind", "updatedAt", "snippet", "profile", "demo").forEach { key ->
+        listOf("id", "remoteId", "network", "name", "kind", "updatedAt", "snippet", "profile", "demo", "avatarUri").forEach { key ->
           if (room.has(key)) {
             val value = room.get(key)
             put(key, if (value is JSONObject) JSONObject(value.toString()) else value)
@@ -61,6 +61,11 @@ class SubtextStore(context: Context) {
     room.put("snippet", retained.lastOrNull()?.let { MessageMedia.preview(it.optString("text"), it.optBoolean("isMe")) }?.take(160) ?: room.optString("snippet"))
     data.put(key, room)
     if (data.length() > 150) rooms().drop(150).forEach { data.remove(it.getString("id")) }
+  }
+  @Synchronized fun avatar(key: String, uri: String?) {
+    val room = data.optJSONObject(key) ?: return
+    if (uri == null) room.remove("avatarUri") else room.put("avatarUri", uri)
+    save()
   }
   @Synchronized fun flush() { save(); saveMemories() }
   private fun updateMemory(key: String, messages: List<JSONObject>) {

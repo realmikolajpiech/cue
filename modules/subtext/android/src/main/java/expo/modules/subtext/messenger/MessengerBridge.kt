@@ -209,6 +209,11 @@ open class MessengerRepository(
         activeConversations()
     }
 
+    suspend fun profilePictureUrl(conversationId: String, contactId: String?): String = withContext(Dispatchers.IO) {
+        val active = checkNotNull(bridge) { "Messenger not connected" }
+        active.profilePictureUrl(conversationId, contactId.orEmpty())
+    }
+
     fun searchConversations(query: String): List<MessengerConversationMatch> {
         if (query.isBlank()) return emptyList()
         return activeConversations().mapNotNull { conversation ->
@@ -599,6 +604,7 @@ open class MessengerRepository(
 
 private interface NativeMessagingBridge {
     fun setCookies(raw: String)
+    fun profilePictureUrl(threadId: String, contactId: String): String = ""
     fun setE2EEStorePath(path: String) = Unit
     fun connect()
     fun disconnect()
@@ -610,6 +616,7 @@ private interface NativeMessagingBridge {
 }
 
 private class MessengerNativeBridge(private val delegate: fi.mirrormsg.fbmessagebridge.Bridge) : NativeMessagingBridge {
+    override fun profilePictureUrl(threadId: String, contactId: String): String = delegate.getProfilePictureURL(threadId, contactId)
     override fun setCookies(raw: String) = delegate.setCookies(raw)
     override fun setE2EEStorePath(path: String) = delegate.setE2EEStorePath(path)
     override fun downloadImage(mediaId: String): ByteArray = delegate.downloadImageForCue(mediaId)

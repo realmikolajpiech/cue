@@ -9,6 +9,11 @@ import type { z } from 'zod';
 import type { writingStyleSchema } from '@/types/subtext';
 import { Button, Disclosure, ErrorText, Page, ui } from './components';
 
+function countLabel(count: number, forms: [string, string, string]) {
+  const few = count % 10 >= 2 && count % 10 <= 4 && !(count % 100 >= 12 && count % 100 <= 14);
+  return `${count} ${forms[count === 1 ? 0 : few ? 1 : 2]}`;
+}
+
 type Example = z.infer<typeof writingStyleSchema>['examples'][number];
 
 function Exchanges({ examples }: { examples: Example[] }) {
@@ -37,26 +42,25 @@ export default function WritingStyle({ roomId, personName, isExample = false }: 
   const memories = style?.relationship ?? [];
 
   return <Page compact>
-    <Row style={{ gap: 12 }}>
-      <CueMascot size={64} />
-      <View style={{ flex: 1, gap: 3 }}>
-        <Copy style={[styles.title, { color: colors.text }]}>{roomId ? personName : 'Brzmij jak Ty'}</Copy>
-        <Copy style={ui.small}>{isExample ? 'Przykład nie wpływa na Twój styl.' : 'Cue poznaje Twój sposób pisania.'}</Copy>
-      </View>
-      <Pressable accessibilityRole="button" accessibilityLabel="Odśwież pamięć i styl" disabled={query.isFetching}
-        onPress={() => { void query.refetch(); }} style={styles.refresh}>
-        {query.isFetching ? <ActivityIndicator color={colors.accent} /> : <Icon name="refresh" size={20} color={colors.accent} />}
-      </Pressable>
-    </Row>
     <ErrorText error={query.error ?? preview.error} />
+    {query.isError && !style && <Button label="Spróbuj ponownie" secondary onPress={() => { void query.refetch(); }} />}
     {query.isPending ? <Copy style={ui.small}>Wczytuję…</Copy> : style && <>
       <Card style={styles.card}>
-        <Copy style={[styles.title, { color: colors.text }]}>Tak piszesz</Copy>
+        <Row style={{ gap: 12 }}>
+          <CueMascot pose="read" size={64} />
+          <View style={{ flex: 1, gap: 3 }}>
+            <Copy style={[styles.title, { color: colors.text }]}>{roomId ? personName : 'Cechy i nawyki'}</Copy>
+            <Copy style={ui.small}>{isExample ? 'Przykład nie wpływa na Twój styl.' : style.sampleCount ? `${countLabel(style.sampleCount, ['wiadomość', 'wiadomości', 'wiadomości'])}${!roomId ? ` · ${countLabel(style.conversationCount, ['rozmowa', 'rozmowy', 'rozmów'])}` : ''}` : 'Za mało wiadomości, żeby określić styl.'}</Copy>
+          </View>
+          <Pressable accessibilityRole="button" accessibilityLabel="Odśwież pamięć i styl" disabled={query.isFetching}
+            onPress={() => { void query.refetch(); }} style={styles.refresh}>
+            {query.isFetching ? <ActivityIndicator color={colors.accent} /> : <Icon name="refresh" size={20} color={colors.accent} />}
+          </Pressable>
+        </Row>
         {!!style.summary && <Copy style={ui.body}>{style.summary}</Copy>}
         {style.habits.length ? <View style={styles.tags}>{style.habits.map(habit => <View key={habit} style={[styles.tag, { backgroundColor: colors.secondary }]}>
           <Copy style={[ui.small, { color: colors.text }]}>{habit}</Copy>
         </View>)}</View> : <Copy style={ui.small}>{isExample ? 'Twój styl poznam z Twoich prawdziwych rozmów.' : style.sampleCount ? 'Potrzebuję jeszcze kilku Twoich wiadomości.' : roomId ? 'Zsynchronizuj rozmowę, żeby poznać swój styl.' : 'Połącz konto, żeby poznać swój styl.'}</Copy>}
-        {!!style.sampleCount && <Copy style={ui.small}>{style.sampleCount} Twoich wiadomości{!roomId && ` · ${style.conversationCount} rozmów`}</Copy>}
         {!roomId && !style.sampleCount && <Button label="Połącz konto" onPress={() => router.push('/connections')} />}
       </Card>
 

@@ -25,6 +25,7 @@ class SubtextRuntime private constructor(private val context: Context) {
   val messenger = MessengerRepository(context)
   val whatsapp = WhatsAppRepository(context)
   val store = SubtextStore(context)
+  private val photos = ProfilePhotoCache(context)
   private val gateway = SupabaseGateway(context)
   val prefs = context.getSharedPreferences("subtext", Context.MODE_PRIVATE)
   val observers = CopyOnWriteArraySet<() -> Unit>()
@@ -33,6 +34,7 @@ class SubtextRuntime private constructor(private val context: Context) {
   private val images = ConversationImages(context)
   private val generation = AtomicLong()
   private val memoryRequests = Channel<Unit>(Channel.CONFLATED)
+  private val photoLifecycleLock = Any()
   @Volatile var analyzing: String? = null
     private set
   init {
@@ -73,6 +75,39 @@ class SubtextRuntime private constructor(private val context: Context) {
       }
     }
     memoryRequests.trySend(Unit)
+    scope.launch {
+      while (isActive) {
+        val token = generation.get()
+        val rooms = store.summaries().filterNot { it.optBoolean("demo") }
+        // Three small thumbnails at a time; photo failures never block message sync.
+        rooms.chunked(3).forEach { batch ->
+          coroutineScope {
+            batch.map { room -> async {
+              val network = room.getString("network")
+              val connected = if (network == "messenger") messenger.state.value.phase.name == "CONNECTED"
+                else whatsapp.state.value.phase.name == "CONNECTED"
+              if (!connected || token != generation.get()) return@async
+              val id = room.getString("id")
+              val remote = room.getString("remoteId")
+              runCatching {
+                val result = photos.refresh(id) {
+                  if (network == "messenger") messenger.profilePictureUrl(remote, messenger.conversations.value.find { it.id == remote }?.contactId)
+                  else whatsapp.profilePictureUrl(remote)
+                }
+                synchronized(photoLifecycleLock) {
+                  if (result?.isSuccess == true && token == generation.get()) {
+                    store.avatar(id, result.getOrNull())
+                    changed()
+                  }
+                }
+              }
+            } }.awaitAll()
+          }
+        }
+        photos.prune(store.summaries().map { it.getString("id") }.toSet())
+        delay(10_000)
+      }
+    }
     scope.launch {
       while (isActive) {
         delay(30_000)
@@ -322,12 +357,13 @@ class SubtextRuntime private constructor(private val context: Context) {
     prefs.all.keys.filter { it.startsWith("writing-style-preview") }.forEach { editor.remove(it) }
     editor.apply()
   }
-  fun clear() { generation.incrementAndGet(); clearStylePreviews(); images.clear(); store.clear(); changed() }
-  fun disconnect(network: String) {
+  fun clear() = synchronized(photoLifecycleLock) { generation.incrementAndGet(); clearStylePreviews(); images.clear(); photos.clear(); store.clear(); changed() }
+  fun disconnect(network: String) = synchronized(photoLifecycleLock) {
     generation.incrementAndGet()
     clearStylePreviews()
     if (network == "messenger") messenger.logout() else if (network == "whatsapp") whatsapp.logout() else error("Nieznany komunikator.")
     images.clear(network)
+    photos.clear(network)
     store.clear(network)
     if (!messenger.hasSession() && !whatsapp.hasSession()) {
       prefs.edit().putBoolean("background", false).apply()

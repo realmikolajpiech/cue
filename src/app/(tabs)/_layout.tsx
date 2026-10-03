@@ -1,8 +1,7 @@
-import { router, Tabs } from 'expo-router';
+import { Tabs } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon, type IconName } from '@/components/ui';
-import { CueMark } from '@/components/CueBrand';
 import { useTheme } from '@/theme/useTheme';
 
 function TabIcon({ name, focused }: { name: IconName; focused: boolean }) {
@@ -35,8 +34,7 @@ export default function TabsLayout() {
       style={({ pressed }) => [props.style, { opacity: pressed ? 0.65 : 1 }]} />,
     animation: 'none',
     tabBarHideOnKeyboard: true }}>
-    <Tabs.Screen name="index" options={{ title: 'Rozmowy', headerTitle: () => <CueMark size={36} />, tabBarIcon: ({ focused }) => <TabIcon name="message" focused={focused} />, headerRight: () =>
-      <Pressable accessibilityRole="button" accessibilityLabel="Połączone konta" onPress={() => router.push('/connections')} style={({ pressed }) => ({ width: 44, height: 44, marginRight: 12, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.5 : 1 })}><Icon name="accounts" size={24} color={colors.accent} /></Pressable> }} />
+    <Tabs.Screen name="index" options={{ title: 'Rozmowy', headerShown: false, tabBarIcon: ({ focused }) => <TabIcon name="message" focused={focused} /> }} />
     <Tabs.Screen name="style" options={{ title: 'Twój styl', tabBarIcon: ({ focused }) => <TabIcon name="style" focused={focused} /> }} />
     <Tabs.Screen name="check" options={{ title: 'Konta', href: null }} />
     <Tabs.Screen name="alerts" options={{ title: 'Ustawienia', tabBarIcon: ({ focused }) => <TabIcon name="settings" focused={focused} /> }} />

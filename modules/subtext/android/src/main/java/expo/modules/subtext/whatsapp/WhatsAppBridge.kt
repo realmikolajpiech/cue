@@ -201,6 +201,10 @@ class WhatsAppRepository(
         activeConversations()
     }
 
+    suspend fun profilePictureUrl(conversationId: String): String = withContext(Dispatchers.IO) {
+        checkNotNull(bridge) { "WhatsApp not connected" }.getProfilePictureURL(conversationId)
+    }
+
     fun searchConversations(query: String): List<WhatsAppConversationMatch> {
         if (query.isBlank()) return emptyList()
         return activeConversations().mapNotNull { conversation ->
