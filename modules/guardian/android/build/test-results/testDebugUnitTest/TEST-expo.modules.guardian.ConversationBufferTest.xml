@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="expo.modules.guardian.ConversationBufferTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-03T10:19:04.629Z" hostname="Mikolajs-MacBook-Air.local" time="0.01">
+<testsuite name="expo.modules.guardian.ConversationBufferTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-03T12:13:25.067Z" hostname="Mikolajs-MacBook-Air.local" time="0.002">
   <properties/>
-  <testcase name="does not mix conversations and evicts least recently touched" classname="expo.modules.guardian.ConversationBufferTest" time="0.006"/>
+  <testcase name="does not mix conversations and evicts least recently touched" classname="expo.modules.guardian.ConversationBufferTest" time="0.001"/>
   <testcase name="expires without new messages and clears on pause" classname="expo.modules.guardian.ConversationBufferTest" time="0.0"/>
   <testcase name="rejects stale messages and supports removal" classname="expo.modules.guardian.ConversationBufferTest" time="0.001"/>
-  <testcase name="keeps only five recent messages and bounds text" classname="expo.modules.guardian.ConversationBufferTest" time="0.002"/>
-  <testcase name="updates identity without producing duplicate messages" classname="expo.modules.guardian.ConversationBufferTest" time="0.001"/>
+  <testcase name="keeps only five recent messages and bounds text" classname="expo.modules.guardian.ConversationBufferTest" time="0.0"/>
+  <testcase name="updates identity without producing duplicate messages" classname="expo.modules.guardian.ConversationBufferTest" time="0.0"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>
