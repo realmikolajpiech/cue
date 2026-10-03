@@ -1,0 +1,18 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <uses-permission android:name="android.permission.VIBRATE" />
+  <uses-permission android:name="android.permission.READ_USER_DICTIONARY" />
+  <uses-permission android:name="android.permission.WRITE_USER_DICTIONARY" />
+  <application>
+    <activity android:name="helium314.keyboard.settings.SettingsActivity" android:theme="@style/platformActivityTheme" android:windowSoftInputMode="adjustResize" android:exported="false" />
+    <activity android:name="helium314.keyboard.settings.SettingsActivity2" android:theme="@style/platformActivityTheme" android:windowSoftInputMode="adjustResize" android:exported="false" />
+    <activity android:name="helium314.keyboard.keyboard.emoji.EmojiSearchActivity" android:exported="false" android:theme="@style/TransparentActivityTheme" android:excludeFromRecents="true" android:noHistory="true" android:windowSoftInputMode="adjustResize|stateAlwaysVisible" android:configChanges="orientation|screenSize" />
+    <provider android:name="helium314.keyboard.latin.CueKeyboardInitializer" android:authorities="${applicationId}.keyboard.initializer" android:exported="false" android:initOrder="100" />
+    <provider android:name="helium314.keyboard.latin.database.ClipboardContentProvider" android:authorities="${applicationId}.clipboard" android:grantUriPermissions="true" android:exported="false">
+      <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/clipboard_provider_path" />
+    </provider>
+    <provider android:name="helium314.keyboard.settings.screens.gesturedata.GestureFileProvider" android:authorities="${applicationId}.gesturedata" android:grantUriPermissions="true" android:exported="false">
+      <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/gesture_data_path" />
+    </provider>
+  </application>
+  <queries><intent><action android:name="android.view.InputMethod" /></intent></queries>
+</manifest>

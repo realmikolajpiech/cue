@@ -64,3 +64,7 @@ modules/guardian/android/build/
 modules/subtext/android/build/
 modules/subtext/android/.cxx/
 artifacts/*.apk
+
+# Vendored HeliBoard build output
+vendor/heliboard/android/build/
+vendor/heliboard/android/.cxx/

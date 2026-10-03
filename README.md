@@ -90,3 +90,14 @@ Stare pliki Guardiana w `src/features` i `docs` są materiałem historycznym.
 Jego moduł native ma wyłączone autolinkowanie; stary lokalny model nie jest
 częścią nowego przepływu. Kopia poprzedniego projektu jest na branchu
 `codex/backup-before-sync-20261003`.
+
+### Klawiatura HeliBoard
+
+Klawiatura Cue korzysta z HeliBoard 4.0: silnika pisania, polskiego słownika,
+autokorekty, emoji, schowka i ustawień wyglądu. Nad klawiaturą znajduje się
+panel podpowiedzi Cue. Pierwsze uruchomienie wybiera polski układ i obramowania
+klawiszy; kolejne uruchomienia zachowują ustawienia użytkownika.
+
+Kod i licencje są w `vendor/heliboard`, a szczegóły adaptacji w
+`vendor/heliboard/INTEGRATION.md`. Integracja jest odtwarzana przez config plugin
+`withSubtext` przy `expo prebuild`. Wymaga nowego natywnego buildu Androida.
