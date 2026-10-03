@@ -20,3 +20,9 @@ export const subtextStatusSchema = z.object({
 });
 export type Room = z.infer<typeof roomSchema>;
 export type Profile = z.infer<typeof profileSchema>;
+
+export const writingStyleSchema = z.object({
+  generated: z.boolean().optional(),
+  sampleCount: z.number(), conversationCount: z.number(), summary: z.string(), habits: z.array(z.string()),
+  examples: z.array(z.object({ id: z.string(), incoming: z.string(), reply: z.string(), timestamp: z.number() })),
+});

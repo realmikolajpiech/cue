@@ -102,17 +102,56 @@ class SubtextRuntime private constructor(private val context: Context) {
       val all = room.getJSONArray("messages")
       val recent = JSONArray((maxOf(0, all.length() - 80) until all.length()).map { all.getJSONObject(it) })
       check(recent.length() > 0) { fetched.optString("historyNotice", "Wiadomości nie zostały jeszcze zsynchronizowane.") }
-<<<<<<< HEAD
       val profile = DeepSeek.analyze(gateway, recent, draft)
-=======
-      val profile = DeepSeek.analyze(key, recent, draft, all, DeepSeek.generalWritingHistory(store.rooms()))
->>>>>>> 19c9d6f79feed493ef64882bb902c4e9e6544f65
       check(token == generation.get() && prefs.getBoolean("cloud", false)) { "Analiza anulowana po zmianie ustawień." }
       store.profile(id, profile)
       profile.toString()
     } finally { analyzing = null; changed() }
   }
   fun cloud(enabled: Boolean) { generation.incrementAndGet(); prefs.edit().putBoolean("cloud", enabled).apply(); changed() }
+  fun writingStyle(): String {
+    val result = writingStyleOverview(store.rooms())
+    val samples = DeepSeek.generalWritingHistory(store.rooms())
+    val saved = runCatching { JSONObject(prefs.getString("writing-style-preview", "") ?: "") }.getOrNull()
+    if (saved?.optInt("sampleHash") == samples.toString().hashCode()) {
+      result.put("examples", saved.getJSONArray("examples")).put("generated", true)
+    }
+    return result.toString()
+  }
+  suspend fun previewWritingStyle(): String = analysisMutex.withLock {
+    check(prefs.getBoolean("cloud", false)) { "Włącz analizę AI w ustawieniach, aby utworzyć podgląd." }
+    val samples = DeepSeek.generalWritingHistory(store.rooms())
+    check(samples.length() >= 5) { "Potrzebujemy przynajmniej 5 Twoich wiadomości. Zsynchronizuj rozmowy." }
+    val token = generation.get()
+    val scenarios = listOf(
+      "Hej, co tam?" to "W tej przykładowej sytuacji odpowiedz, że wszystko ok, i zapytaj co u rozmówcy.",
+      "Widzimy się jutro o 18?" to "W tej przykładowej sytuacji krótko potwierdź spotkanie.",
+      "Podeślę Ci to za chwilę." to "W tej przykładowej sytuacji potwierdź, że to w porządku.",
+      "Dzięki za pomoc!" to "W tej przykładowej sytuacji odpowiedz na podziękowanie.",
+      "Masz chwilę, żeby pogadać?" to "W tej przykładowej sytuacji grzecznie odmów i zaproponuj rozmowę później."
+    )
+    val examples = JSONArray()
+    analyzing = "writing-style"; changed()
+    try {
+      for ((index, scenario) in scenarios.withIndex()) {
+        check(token == generation.get() && prefs.getBoolean("cloud", false)) { "Tworzenie podglądu zostało anulowane." }
+        val messages = JSONArray()
+        for (i in maxOf(0, samples.length() - 79) until samples.length()) {
+          messages.put(message("style-$i", "Ty · próbka stylu", samples.getJSONObject(i).getString("text"), i.toLong(), true))
+        }
+        messages.put(message("preview-$index", "Rozmówca", scenario.first, 1000L, false))
+        val intent = "Podgląd mojego ogólnego stylu pisania. Wcześniejsze wiadomości isMe=true to tylko próbki formy wypowiedzi z różnych rozmów, a nie kontekst ani fakty. " +
+          "Naśladuj ich długość, skróty, wielkość liter, interpunkcję i emoji. Nie przenoś nazw, faktów ani tematów z próbek. " + scenario.second
+        val profile = DeepSeek.analyze(gateway, messages, intent)
+        examples.put(JSONObject().put("id", "preview-$index").put("incoming", scenario.first)
+          .put("reply", profile.getJSONArray("suggestions").getJSONObject(0).getString("text"))
+          .put("timestamp", System.currentTimeMillis()))
+      }
+      check(token == generation.get() && prefs.getBoolean("cloud", false)) { "Tworzenie podglądu zostało anulowane." }
+      prefs.edit().putString("writing-style-preview", JSONObject().put("sampleHash", samples.toString().hashCode()).put("examples", examples).toString()).apply()
+      writingStyle()
+    } finally { analyzing = null; changed() }
+  }
   fun loadDemo(): String {
     val now = System.currentTimeMillis()
     val sample = listOf(
@@ -126,9 +165,10 @@ class SubtextRuntime private constructor(private val context: Context) {
     store.markDemo("messenger:subtext-demo"); changed()
     return "messenger:subtext-demo"
   }
-  fun clear() { generation.incrementAndGet(); store.clear(); changed() }
+  fun clear() { generation.incrementAndGet(); prefs.edit().remove("writing-style-preview").apply(); store.clear(); changed() }
   fun disconnect(network: String) {
     generation.incrementAndGet()
+    prefs.edit().remove("writing-style-preview").apply()
     if (network == "messenger") messenger.logout() else if (network == "whatsapp") whatsapp.logout() else error("Nieznany komunikator.")
     store.clear(network)
     if (!messenger.hasSession() && !whatsapp.hasSession()) {

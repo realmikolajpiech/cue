@@ -24,6 +24,8 @@ class SubtextModule : Module() {
     OnDestroy { subtextRuntime.observers.remove(changed) }
     AsyncFunction("status") { subtextRuntime.status() }
     AsyncFunction("loadDemo") { subtextRuntime.loadDemo() }
+    AsyncFunction("writingStyle") { subtextRuntime.writingStyle() }
+    AsyncFunction("previewWritingStyle") Coroutine { -> subtextRuntime.previewWritingStyle() }
     AsyncFunction("conversations") {
       JSONArray(subtextRuntime.store.rooms().map { it.apply { put("messageCount", getJSONArray("messages").length()); remove("messages") } }).toString()
     }

@@ -3,11 +3,13 @@ import { QueryClient, QueryClientProvider, focusManager, useQuery, useMutation, 
 import { useEffect, type ReactNode } from 'react';
 import { AppState } from 'react-native';
 import { z } from 'zod';
-import { profileSchema, roomSchema, subtextStatusSchema, type Network } from '@/types/subtext';
+import { profileSchema, roomSchema, subtextStatusSchema, writingStyleSchema, type Network } from '@/types/subtext';
 
 declare class SubtextModule extends NativeModule<{ onChanged: () => void }> {
   status(): Promise<string>;
   loadDemo(): Promise<string>;
+  writingStyle(): Promise<string>;
+  previewWritingStyle(): Promise<string>;
   conversations(): Promise<string>;
   conversation(id: string): Promise<string>;
   refresh(): Promise<void>;
@@ -27,6 +29,9 @@ const unavailable = {
   messenger: { phase: 'NOT_CONFIGURED', detail: '' }, whatsapp: { phase: 'NOT_CONFIGURED', detail: '', pairingCode: null },
 };
 export const subtext = {
+  previewWritingStyle: async () => writingStyleSchema.parse(JSON.parse(await requireSubtext().previewWritingStyle())),
+  writingStyle: async () => native ? writingStyleSchema.parse(JSON.parse(await native.writingStyle())) :
+    { sampleCount: 0, conversationCount: 0, summary: '', habits: [], examples: [] },
   demo: () => requireSubtext().loadDemo(),
   status: async () => native ? subtextStatusSchema.parse(JSON.parse(await native.status())) : unavailable,
   rooms: async () => native ? z.array(roomSchema).parse(JSON.parse(await native.conversations())) : [],
@@ -52,6 +57,7 @@ export function SubtextProvider({ children }: { children: ReactNode }) {
         void subtextCache.invalidateQueries({ queryKey: ['subtext', 'status'] });
         void subtextCache.invalidateQueries({ queryKey: ['subtext', 'rooms'] });
         void subtextCache.invalidateQueries({ queryKey: ['subtext', 'room'] });
+        void subtextCache.invalidateQueries({ queryKey: ['subtext', 'writing-style'] });
       }, 500);
     };
     const subscription = native?.addListener('onChanged', invalidate);
