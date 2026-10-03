@@ -1,21 +1,7 @@
 import { useState } from 'react';
-import { Alert } from 'react-native';
-import { Screen, Card, Copy, Action, InlineError } from '@/components/ui';
-import { useGuardianStatus, useAction } from '@/services/queries';
-import { guardian } from '@/services/guardian';
-
-export default function Settings() {
-  const { data: s } = useGuardianStatus(); const action = useAction();
-  const [report, setReport] = useState<Record<string, number | null> | null>(null);
-  return <Screen><Copy title>Prywatność pod Twoją kontrolą</Copy>
-    <Card><Copy title>Maximum Privacy</Copy><Copy>Analiza jest lokalna. Guardian nie wysyła wiadomości do chmury. Kontekst jest przechowywany tylko w RAM, do 5 wiadomości przez maksymalnie 15 minut.</Copy></Card>
-    <Card><Copy title>Silnik</Copy><Copy>LiteRT-LM {s?.runtimeVersion ?? '0.15.0'} · {s?.backend ?? 'none'}</Copy><Copy>Prompt: {s?.promptVersion ?? 'guardian-pl-v1'}</Copy>{s?.modelSha256 && <Copy selectable>SHA-256 modelu: {s.modelSha256}</Copy>}<Copy>Mały model może przeoczyć oszustwo lub błędnie ocenić poprawną prośbę. Sprawdzaj informacje niezależnym kanałem.</Copy></Card>
-    <Card><Copy title>Benchmark lokalnego modelu</Copy><Copy>40 syntetycznych rozmów po polsku: 20 oszustw i 20 poprawnych sytuacji. Test wstrzymuje monitorowanie; wynik nie trafia do historii prywatnych analiz.</Copy>
-      <Action label={s?.benchmarkRunning ? `Test ${s.benchmarkProgress}/40…` : 'Uruchom benchmark'} disabled={action.busy || !s?.available || s.modelState !== 'ready'} onPress={() => { void action.run(async () => { setReport((await guardian.benchmark()).metrics); }); }} />
-      {s?.benchmarkRunning && <Action label="Anuluj benchmark" secondary onPress={guardian.cancelBenchmark} />}
-      {report && <Copy selectable>{Object.entries(report).map(([key, value]) => `${key}: ${value === null ? 'brak danych' : Math.round(value * 1000) / 1000}`).join('\n')}</Copy>}
-    </Card>
-    <InlineError message={action.error} />
-    <Action label="Usuń historię analiz" secondary disabled={!s?.available || action.busy} onPress={() => Alert.alert('Usunąć historię?', 'Wszystkie lokalne wyniki zostaną usunięte. Bieżąca analiza zostanie anulowana.', [{ text: 'Anuluj', style: 'cancel' }, { text: 'Usuń', style: 'destructive', onPress: () => { void action.run(guardian.clear); } }])} />
-  </Screen>;
-}
+import { Modal, Pressable, View } from 'react-native';
+import { router } from 'expo-router';
+import { Screen, Copy, Card, Row, Icon, Toggle, Action, TextAction, SectionHeading } from '@/components/ui';
+import { useTheme } from '@/theme/useTheme';
+import { useDemo } from '@/features/demo/store';
+export default function Settings() { const s = useDemo(); const { colors } = useTheme(); const [confirm, setConfirm] = useState(false); return <Screen title="Ustawienia"><Card><SectionHeading title="Ochrona" />{[{ label: 'Monitorowanie wiadomości', note: 'Wstrzymaj lub wznów ochronę w demo.', value: s.enabled, change: s.toggleProtection }, { label: 'Natychmiastowe ostrzeżenia', note: 'Preferencja alertów wysokiego ryzyka.', value: s.notifications, change: s.toggleNotifications }].map(item => <Row key={item.label} style={{ borderBottomWidth: 1, borderColor: colors.border, paddingBottom: 18 }}><View style={{ flex: 1 }}><Copy style={{ color: colors.text, fontWeight: '500' }}>{item.label}</Copy><Copy style={{ fontSize: 10 }}>{item.note}</Copy></View><Toggle label={item.label} value={item.value} onChange={item.change} /></Row>)}<SectionHeading title="Analizowane aplikacje" />{Object.entries(s.apps).map(([name, value]) => <Row key={name} style={{ justifyContent: 'space-between' }}><Copy style={{ color: colors.text }}>{name}</Copy><Toggle label={`Analizuj ${name}`} value={value} onChange={() => s.toggleApp(name)} /></Row>)}</Card><Card><Icon name="lock" size={27} /><Copy title style={{ fontSize: 22 }}>Prywatność</Copy><Copy>Docelowo analiza odbywa się lokalnie. Historia zawiera wyłącznie wyniki, nigdy pełne rozmowy.</Copy>{['Bez konta i synchronizacji', 'Bez wysyłania treści do chmury'].map(label => <Row key={label} style={{ gap: 8 }}><Icon name="check" size={16} /><Copy style={{ fontSize: 11, color: colors.text }}>{label}</Copy></Row>)}<Action secondary label="Usuń historię" onPress={() => setConfirm(true)} /><Copy style={{ fontSize: 10 }}>Ustawienia dotyczą podglądu i nie zmieniają uprawnień urządzenia.</Copy></Card><TextAction label="Jak działa Guardian" onPress={() => router.push('/onboarding')} /><Modal visible={confirm} transparent animationType="slide" onRequestClose={() => setConfirm(false)}><View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: '#07120C70' }}><Pressable accessibilityLabel="Zamknij okno" onPress={() => setConfirm(false)} style={{ flex: 1 }} /><View style={{ padding: 28, paddingBottom: 40, borderTopLeftRadius: 30, borderTopRightRadius: 30, backgroundColor: colors.surface, gap: 20, maxWidth: 480, width: '100%', alignSelf: 'center' }}><Copy title>Usunąć historię?</Copy><Copy>Przykładowe wyniki znikną z tego podglądu. Nie dotyczy to danych urządzenia.</Copy><Action label="Usuń historię" onPress={() => { s.clear(); setConfirm(false); }} /><Action secondary label="Anuluj" onPress={() => setConfirm(false)} /></View></View></Modal></Screen>; }

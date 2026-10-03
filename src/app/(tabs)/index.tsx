@@ -1,40 +1,12 @@
-import { Switch } from 'react-native';
-import * as DocumentPicker from 'expo-document-picker';
-import { Screen, Copy, Card, Action, InlineError } from '@/components/ui';
-import { guardian } from '@/services/guardian';
-import { useAction, useGuardianStatus } from '@/services/queries';
-
-export default function Protection() {
-  const status = useGuardianStatus(); const action = useAction(); const s = status.data;
-  async function importModel() {
-    const file = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: false, multiple: false });
-    if (file.canceled) return;
-    if (!file.assets[0].name.endsWith('.litertlm')) throw new Error('invalid_format');
-    await guardian.importModel(file.assets[0].uri);
-  }
-  return <Screen>
-    <Copy title>{s?.active ? 'Ochrona jest aktywna' : 'Skonfiguruj ochronę'}</Copy>
-    <Copy>{s?.active ? 'Analiza działa lokalnie. Brak ostrzeżenia nie gwarantuje bezpieczeństwa.' : 'Guardian potrzebuje lokalnego modelu i dostępu do powiadomień.'}</Copy>
-    {status.isPending && <Copy>Sprawdzam stan urządzenia…</Copy>}
-    <InlineError message={status.isError ? 'Nie można odczytać stanu ochrony.' : action.error} />
-    {status.isError && <Action label="Spróbuj ponownie" onPress={() => { void status.refetch(); }} />}
-    {s && !s.available && <Card><Copy title>Wymagany Android</Copy><Copy>Uruchom własny build Guardian na Androidzie. Expo Go, iOS i web nie obsługują odczytu powiadomień innych aplikacji.</Copy></Card>}
-    <Card><Copy title>1. Model na urządzeniu</Copy>
-      <Copy>{s?.modelState === 'ready' ? `Model gotowy · ${s.backend.toUpperCase()}` : s?.modelState === 'loading' ? 'Ładowanie modelu…' : s?.modelState === 'error' ? 'Model nie uruchomił się. Sprawdź zgodność pliku .litertlm.' : 'Nie zaimportowano modelu.'}</Copy>
-      <Copy>Pobierz zgodny plik Gemma 3 1B .litertlm po zapoznaniu się z licencją na Hugging Face. Import nie włącza monitorowania.</Copy>
-      <Action label={action.busy ? 'Trwa operacja…' : 'Importuj model .litertlm'} disabled={!s?.available || action.busy} onPress={() => { void action.run(importModel); }} />
-    </Card>
-    <Card><Copy title>2. Dostęp do powiadomień</Copy><Copy>Po włączeniu dostępu Android udostępni Guardian treść powiadomień. Analizowane są tylko WhatsApp, Messenger oraz SMS z Google i Samsung. Wiadomości są przetwarzane lokalnie, a kontekst znika z RAM po 15 minutach.</Copy>
-      <Copy>{s?.notificationAccess ? s.listenerConnected ? 'Listener jest połączony.' : 'Zgoda udzielona. Oczekiwanie na połączenie…' : 'Dostęp nie jest włączony.'}</Copy>
-      <Action label="Otwórz ustawienia dostępu" secondary disabled={!s?.available || action.busy} onPress={() => { void action.run(guardian.openSettings); }} />
-    </Card>
-    <Card><Copy title>3. Ostrzeżenia systemowe</Copy><Copy>{s?.notificationPermission ? 'Powiadomienia są dozwolone.' : 'Zezwól na ostrzeżenia, aby widzieć wysokie ryzyko poza aplikacją.'}</Copy>
-      <Action label="Zezwól na ostrzeżenia" secondary disabled={!s?.available} onPress={guardian.warningPermission} />
-    </Card>
-    <Card><Copy title>Monitorowanie</Copy><Copy>Przełącznik włącza analizę nowych powiadomień. Wyłączenie czyści kontekst i zatrzymuje bieżącą analizę.</Copy>
-      <Switch accessibilityLabel="Monitorowanie powiadomień" value={s?.monitoringEnabled ?? false} disabled={!s?.available || action.busy || (!s.monitoringEnabled && (s.modelState !== 'ready' || !s.notificationAccess))} onValueChange={value => { void action.run(() => guardian.monitor(value)); }} />
-      {s?.processing && <Copy>Analizuję kontekst…</Copy>}
-      {s?.error && <Copy>Ostatnia operacja silnika nie powiodła się. Sprawdź model i uruchom ochronę ponownie.</Copy>}
-    </Card>
-  </Screen>;
-}
+import { Pressable, View } from 'react-native';
+import { router } from 'expo-router';
+import { Screen, Copy, Card, Row, Icon, SectionHeading, TextAction, Toggle, Tags, Risk, Empty } from '@/components/ui';
+import { useDemo } from '@/features/demo/store';
+import { useTheme } from '@/theme/useTheme';
+export default function Protection() { const { enabled, toggleProtection, threats, apps } = useDemo(); const { colors } = useTheme(); const active = threats.filter(t => !t.reviewed); const first = active[0]; return <Screen title="Ochrona">
+<Card><Row><Icon name="shield" size={25} /><View style={{ flex: 1 }}><Copy style={{ color: colors.text, fontSize: 16, fontWeight: '500' }}>{enabled ? 'Ochrona włączona' : 'Ochrona wyłączona'}</Copy><Copy style={{ fontSize: 11 }}>Tryb demonstracyjny</Copy></View><Toggle value={enabled} onChange={toggleProtection} label="Włącz ochronę w podglądzie" /></Row></Card>
+<View><SectionHeading title={`Ostrzeżenia  ${active.length}`}><TextAction label="Historia" onPress={() => router.push('/alerts')} /></SectionHeading>{first ? <Pressable accessibilityRole="button" onPress={() => router.push(`/alert/${first.id}`)}><Card><Row style={{ justifyContent: 'space-between' }}><Risk label={first.risk} /><Copy style={{ fontSize: 11 }}>10:42</Copy></Row><Copy title style={{ fontSize: 18, lineHeight: 27, letterSpacing: -.4 }}>{first.title}</Copy><Tags values={first.signals} /><Row style={{ borderTopWidth: 1, borderColor: colors.border, paddingTop: 16, justifyContent: 'space-between' }}><Row style={{ gap: 7 }}><Icon name="message" size={16} /><Copy style={{ fontSize: 11 }}>{first.source}</Copy></Row><Row style={{ gap: 5 }}><Copy style={{ color: colors.text, fontSize: 11 }}>Zobacz zalecenie</Copy><Icon name="arrow" size={17} /></Row></Row></Card></Pressable> : <Empty title="Wszystko sprawdzone" subtitle="Nowe ostrzeżenia pojawią się tutaj." />}</View>
+<Pressable accessibilityRole="button" onPress={() => router.push('/check')}><Card><Row><Icon name="scan" /><Copy style={{ flex: 1, color: colors.text, fontWeight: '500' }}>Sprawdź wiadomość lub link</Copy><Icon name="chevron" size={18} /></Row></Card></Pressable>
+<View><SectionHeading title="Chronione aplikacje"><TextAction label="Zarządzaj" onPress={() => router.push('/settings')} /></SectionHeading><Card style={{ paddingVertical: 4 }}>{Object.entries(apps).map(([name, on], i) => <Row key={name} style={{ paddingVertical: 15, borderTopWidth: i ? 1 : 0, borderColor: colors.border }}><View style={{ padding: 9, backgroundColor: colors.secondary, borderRadius: 10 }}><Icon name="message" size={19} color={colors.secondaryText} /></View><Copy style={{ flex: 1, color: colors.text }}>{name}</Copy><Copy style={{ fontSize: 10 }}>{on && enabled ? 'Połączono' : 'Wstrzymano'}</Copy></Row>)}</Card></View>
+<Copy style={{ fontSize: 11, textAlign: 'center' }}>Podgląd UI · przykładowe zdarzenia</Copy>
+</Screen>; }

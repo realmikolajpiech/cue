@@ -1,17 +1,3 @@
-import { SymbolView } from 'expo-symbols';
-import { Screen, Copy, Card, Action } from '@/components/ui';
-import { usePreferences } from '@/features/preferences';
-import { useTheme } from '@/theme/useTheme';
-
-export default function Onboarding() {
-  const { colors } = useTheme();
-  const complete = usePreferences(s => s.completeOnboarding);
-  return <Screen>
-    <SymbolView name={{ ios: 'shield.lefthalf.filled', android: 'shield', web: 'shield' }} tintColor={colors.accent} size={64} />
-    <Copy title>Chwila namysłu przed decyzją.</Copy>
-    <Copy>Guardian szuka oznak manipulacji w kontekście powiadomień z wybranych komunikatorów i SMS.</Copy>
-    <Card><Copy title>Twoje wiadomości pozostają na telefonie</Copy><Copy>Analiza działa lokalnie na Androidzie. Historia przechowuje tylko wyniki, bez wiadomości i nazw kontaktów.</Copy></Card>
-    <Copy>AI może się pomylić. Sprawdzaj nietypowe prośby niezależnym kanałem. Dostęp do powiadomień włączysz samodzielnie po konfiguracji.</Copy>
-    <Action label="Przejdź do konfiguracji" onPress={complete} />
-  </Screen>;
-}
+import { router } from 'expo-router';
+import { Screen, Copy, Card, Row, Icon, Action } from '@/components/ui';
+export default function Help() { return <Screen title="Jak działa Guardian"><Icon name="shield" size={54} /><Copy title>Chwila namysłu przed decyzją.</Copy><Copy>Guardian ma analizować krótką sekwencję powiadomień, rozpoznawać wzorce manipulacji i wskazywać bezpieczny kolejny krok.</Copy><Card><Row><Icon name="lock" /><Copy style={{ flex: 1 }}>Twoje wiadomości pozostają na telefonie.</Copy></Row><Copy>Docelowo analiza będzie działać lokalnie, bez przechowywania rozmów.</Copy></Card><Copy>To interaktywny podgląd z przykładowymi zdarzeniami. Nie nasłuchuje powiadomień i nie zapewnia rzeczywistej ochrony.</Copy><Action label="Rozumiem" onPress={() => router.canGoBack() ? router.back() : router.replace('/')} /></Screen>; }

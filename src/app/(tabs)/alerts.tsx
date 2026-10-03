@@ -1,19 +1,8 @@
-import { FlashList } from '@shopify/flash-list';
-import { router } from 'expo-router';
+import { useState } from 'react';
 import { Pressable, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Card, Copy, Action } from '@/components/ui';
-import { useGuardianResults } from '@/services/queries';
-import { categoryLabels, riskLabels } from '@/types/guardian';
+import { router } from 'expo-router';
+import { Screen, Copy, Card, Row, Icon, Empty } from '@/components/ui';
+import { useDemo } from '@/features/demo/store';
 import { useTheme } from '@/theme/useTheme';
-
-export default function Alerts() {
-  const results = useGuardianResults(); const { colors } = useTheme(); const insets = useSafeAreaInsets();
-  return <View style={{ flex: 1, backgroundColor: colors.background }}>
-    <FlashList data={results.data ?? []} keyExtractor={item => item.id} contentContainerStyle={{ padding: 24, paddingBottom: insets.bottom + 24 }}
-      ListHeaderComponent={<View style={{ gap: 12, marginBottom: 24 }}><Copy title>Historia analiz</Copy><Copy>Wyniki pozostają na urządzeniu przez 7 dni. Bez treści wiadomości i nazw kontaktów.</Copy></View>}
-      ListEmptyComponent={<Card><Copy title>{results.isPending ? 'Wczytuję analizy…' : results.isError ? 'Nie można odczytać historii' : 'Nie ma jeszcze analiz'}</Copy><Copy>{results.isError ? 'Spróbuj ponownie.' : 'Po uruchomieniu ochrony znajdziesz tu wyniki nowych powiadomień.'}</Copy>{results.isError && <Action label="Spróbuj ponownie" onPress={() => { void results.refetch(); }} />}</Card>}
-      ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
-      renderItem={({ item }) => <Pressable accessibilityRole="button" accessibilityLabel={`${riskLabels[item.risk]}, ${categoryLabels[item.category]}`} onPress={() => router.push(`/alert/${item.id}`)} style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}><Card><Copy title>{riskLabels[item.risk]}</Copy><Copy>{categoryLabels[item.category]}</Copy><Copy>{item.sourceApp} · {new Date(item.createdAt).toLocaleString('pl-PL')} · {item.reviewStatus === 'reviewed' ? 'Sprawdzone' : 'Nowe'}</Copy></Card></Pressable>} />
-  </View>;
-}
+export default function History() { const [filter, setFilter] = useState('Wszystkie'); const threats = useDemo(s => s.threats); const { colors } = useTheme(); const visible = threats.filter(t => filter === 'Wszystkie' || (filter === 'Sprawdzone' ? t.reviewed : !t.reviewed)); return <Screen title="Historia"><Row style={{ gap: 3, padding: 4, borderRadius: 30, backgroundColor: colors.secondary }}>{['Wszystkie', 'Do sprawdzenia', 'Sprawdzone'].map(f => <Pressable accessibilityRole="button" accessibilityState={{ selected: f === filter }} key={f} onPress={() => setFilter(f)} style={{ flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 30, backgroundColor: f === filter ? colors.surface : 'transparent' }}><Copy style={{ fontSize: 10, color: f === filter ? colors.text : colors.secondaryText }}>{f}</Copy></Pressable>)}</Row>
+{visible.length ? <Card style={{ padding: 0, gap: 0, overflow: 'hidden' }}>{visible.map((t, i) => <Pressable accessibilityRole="button" accessibilityLabel={`${t.title}, ${t.reviewed ? 'Sprawdzone' : 'Do sprawdzenia'}`} key={t.id} onPress={() => router.push(`/alert/${t.id}`)} style={{ paddingVertical: 22, paddingHorizontal: 16, borderTopWidth: i ? 1 : 0, borderColor: colors.border }}><Row><View style={{ padding: 10, borderRadius: 14, backgroundColor: t.reviewed ? colors.secondary : colors.warningSoft }}><Icon name={t.reviewed ? 'check' : 'warning'} size={21} color={t.reviewed ? colors.text : colors.warning} /></View><View style={{ flex: 1, gap: 5 }}><Copy style={{ color: colors.text, fontWeight: '500', lineHeight: 20 }}>{t.title}</Copy><Copy style={{ fontSize: 10 }}>{t.source} · {t.time}</Copy></View><Icon name="chevron" size={18} color={colors.secondaryText} /></Row></Pressable>)}</Card> : <Empty title="Brak zdarzeń" subtitle="Nie ma wyników w tej kategorii." />}</Screen>; }

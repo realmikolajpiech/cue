@@ -1,29 +1,33 @@
-import { Pressable, ScrollView, StyleSheet, Text, View, type ViewProps, type TextProps } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View, type ViewProps, type TextProps, type ColorValue } from 'react-native';
+import { SymbolView, type SymbolViewProps } from 'expo-symbols';
+import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ReactNode } from 'react';
 import { useTheme } from '@/theme/useTheme';
-
-export function Screen({ children }: { children: ReactNode }) {
-  const { colors } = useTheme(); const insets = useSafeAreaInsets();
-  return <ScrollView style={{ backgroundColor: colors.background }} contentInsetAdjustmentBehavior="automatic" contentContainerStyle={{ padding: 24, gap: 24, paddingBottom: insets.bottom + 32 }}>{children}</ScrollView>;
+import { useDemo } from '@/features/demo/store';
+const icons = {
+  shield: { ios: 'shield', android: 'shield', web: 'shield' }, scan: { ios: 'viewfinder', android: 'document_scanner', web: 'document_scanner' }, history: { ios: 'clock.arrow.circlepath', android: 'history', web: 'history' }, settings: { ios: 'slider.horizontal.3', android: 'tune', web: 'tune' }, arrow: { ios: 'arrow.right', android: 'arrow_forward', web: 'arrow_forward' }, external: { ios: 'arrow.up.right', android: 'north_east', web: 'north_east' }, chevron: { ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }, message: { ios: 'message', android: 'chat_bubble', web: 'chat_bubble' }, lock: { ios: 'lock', android: 'lock', web: 'lock' }, moon: { ios: 'moon', android: 'dark_mode', web: 'dark_mode' }, sun: { ios: 'sun.max', android: 'light_mode', web: 'light_mode' }, bell: { ios: 'bell', android: 'notifications', web: 'notifications' }, warning: { ios: 'exclamationmark.triangle', android: 'warning', web: 'warning' }, check: { ios: 'checkmark', android: 'check', web: 'check' }, phone: { ios: 'phone', android: 'call', web: 'call' }, close: { ios: 'xmark', android: 'close', web: 'close' }, help: { ios: 'questionmark.circle', android: 'help', web: 'help' },
+} satisfies Record<string, SymbolViewProps['name']>;
+export type IconName = keyof typeof icons;
+export function Icon({ name, size = 21, color }: { name: IconName; size?: number; color?: ColorValue }) { const { colors } = useTheme(); return <SymbolView name={icons[name]} size={size} tintColor={color ?? colors.text} />; }
+export function Row({ children, ...rest }: ViewProps) { return <View {...rest} style={[styles.row, rest.style]}>{children}</View>; }
+export function Copy({ children, title = false, ...rest }: TextProps & { title?: boolean }) { const { colors } = useTheme(); return <Text {...rest} style={[title ? styles.title : styles.body, { color: title ? colors.text : colors.secondaryText, fontFamily: title ? 'Manrope' : 'DMSans' }, rest.style]}>{children}</Text>; }
+export function IconButton({ name, label, onPress }: { name: IconName; label: string; onPress: () => void }) { return <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={({ pressed }) => ({ padding: 11, opacity: pressed ? .5 : 1 })}><Icon name={name} size={20} /></Pressable>; }
+export function Screen({ children, title, header = true }: { children: ReactNode; title?: string; header?: boolean }) {
+  const { colors, isDark } = useTheme(); const insets = useSafeAreaInsets(); const toggle = useDemo(s => s.toggleTheme);
+  return <View style={{ flex: 1, backgroundColor: colors.background }}><View style={{ width: '100%', maxWidth: 480, alignSelf: 'center', flex: 1 }}>
+    {header && <Row style={{ paddingTop: insets.top + 12, paddingHorizontal: 24, paddingBottom: 12, justifyContent: 'space-between' }}><Row style={{ gap: 7 }}><Icon name="shield" size={24} /><Text style={{ color: colors.text, fontSize: 25, fontFamily: 'ManropeBold', letterSpacing: -1.3 }}>guardian.</Text></Row><Row style={{ gap: 0 }}><Copy style={{ fontSize: 8, letterSpacing: 1.2, borderWidth: 1, borderColor: colors.border, padding: 5, borderRadius: 6 }}>DEMO</Copy><IconButton name={isDark ? 'sun' : 'moon'} label="Zmień motyw" onPress={toggle} /><IconButton name="bell" label="Pokaż ostrzeżenia" onPress={() => router.push('/alerts')} /></Row></Row>}
+    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 24, paddingTop: header ? 16 : 24, gap: 26, paddingBottom: insets.bottom + 32 }}>
+      {title && <Copy title accessibilityRole="header">{title}</Copy>}{children}
+    </ScrollView></View></View>;
 }
-export function Copy({ children, title = false, ...rest }: TextProps & { title?: boolean }) {
-  const { colors } = useTheme();
-  return <Text {...rest} style={[title ? styles.title : styles.body, { color: title ? colors.text : colors.secondaryText }, rest.style]}>{children}</Text>;
-}
-export function Card({ children, ...rest }: ViewProps) {
-  const { colors } = useTheme();
-  return <View {...rest} style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }, rest.style]}>{children}</View>;
-}
-export function Action({ label, onPress, disabled = false, secondary = false }: { label: string; onPress: () => void; disabled?: boolean; secondary?: boolean }) {
-  const { colors } = useTheme();
-  return <Pressable accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.button, { backgroundColor: secondary ? colors.surface : colors.accent, borderColor: colors.accent, opacity: disabled ? 0.45 : pressed ? 0.7 : 1 }]}><Text style={{ fontWeight: '600', fontSize: 16, color: secondary ? colors.accent : colors.background }}>{label}</Text></Pressable>;
-}
-export function InlineError({ message }: { message?: string | null }) {
-  return message ? <Copy accessibilityRole="alert">{message}</Copy> : null;
-}
-const styles = StyleSheet.create({
-  title: { fontSize: 28, lineHeight: 36, fontWeight: '700' }, body: { fontSize: 16, lineHeight: 24 },
-  card: { padding: 16, gap: 12, borderWidth: 1, borderRadius: 16, borderCurve: 'continuous' },
-  button: { minHeight: 48, paddingHorizontal: 16, paddingVertical: 12, borderWidth: 1, borderRadius: 12, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
-});
+export function Card({ children, ...rest }: ViewProps) { const { colors } = useTheme(); return <View {...rest} style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }, rest.style]}>{children}</View>; }
+export function Action({ label, onPress, disabled = false, secondary = false, icon }: { label: string; onPress: () => void; disabled?: boolean; secondary?: boolean; icon?: IconName }) { const { colors } = useTheme(); return <Pressable accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.button, { backgroundColor: secondary ? colors.surface : colors.text, borderColor: secondary ? colors.border : colors.text, opacity: disabled ? .4 : pressed ? .7 : 1 }]}><Text style={{ fontFamily: 'DMSansMedium', fontSize: 13, color: secondary ? colors.text : colors.surface }}>{label}</Text>{icon && <Icon name={icon} size={18} color={secondary ? colors.text : colors.surface} />}</Pressable>; }
+export function TextAction({ label, onPress }: { label: string; onPress: () => void }) { return <Pressable onPress={onPress} accessibilityRole="button" style={{ minHeight: 44, justifyContent: 'center' }}><Row style={{ gap: 5 }}><Copy style={{ fontSize: 11 }}>{label}</Copy><Icon name="external" size={16} /></Row></Pressable>; }
+export function SectionHeading({ title, children }: { title: string; children?: ReactNode }) { const { colors } = useTheme(); return <Row style={{ justifyContent: 'space-between', marginBottom: 8 }}><Text style={{ color: colors.text, fontSize: 15, fontFamily: 'DMSansMedium' }}>{title}</Text>{children}</Row>; }
+export function Toggle({ value, onChange, label }: { value: boolean; onChange: () => void; label: string }) { const { colors } = useTheme(); return <Pressable accessibilityRole="switch" accessibilityLabel={label} accessibilityState={{ checked: value }} aria-checked={value} onPress={onChange} style={{ minWidth: 48, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}><View style={{ width: 43, height: 27, padding: 4, borderRadius: 30, backgroundColor: value ? colors.text : '#B5B5B5' }}><View style={{ width: 19, height: 19, borderRadius: 20, backgroundColor: colors.surface, alignSelf: value ? 'flex-end' : 'flex-start' }} /></View></Pressable>; }
+export function Tags({ values }: { values: string[] }) { const { colors } = useTheme(); return <Row style={{ flexWrap: 'wrap', gap: 6 }}>{values.map(v => <Copy key={v} style={{ fontSize: 11, lineHeight: 16, backgroundColor: colors.secondary, borderColor: colors.border, borderWidth: 1, borderRadius: 6, paddingHorizontal: 9, paddingVertical: 5 }}>{v}</Copy>)}</Row>; }
+export function Risk({ label }: { label: string }) { const { colors } = useTheme(); return <Row style={{ alignSelf: 'flex-start', gap: 6, backgroundColor: colors.warningSoft, borderRadius: 24, paddingHorizontal: 10, paddingVertical: 7 }}><Icon name="warning" color={colors.warning} size={14} /><Copy style={{ fontSize: 11, lineHeight: 15, color: colors.warning }}>{label}</Copy></Row>; }
+export function Empty({ title, subtitle }: { title: string; subtitle: string }) { return <Card style={{ alignItems: 'center', paddingVertical: 36 }}><Icon name="shield" size={30} /><Copy title style={{ fontSize: 17 }}>{title}</Copy><Copy style={{ textAlign: 'center' }}>{subtitle}</Copy></Card>; }
+export function InlineError({ message }: { message?: string | null }) { return message ? <Copy accessibilityRole="alert">{message}</Copy> : null; }
+const styles = StyleSheet.create({ row: { flexDirection: 'row', alignItems: 'center', gap: 12 }, title: { fontSize: 27, lineHeight: 35, fontWeight: '600', letterSpacing: -.8 }, body: { fontSize: 13, lineHeight: 22 }, card: { padding: 22, gap: 16, borderWidth: 1, borderRadius: 16 }, button: { minHeight: 48, paddingHorizontal: 20, paddingVertical: 13, borderWidth: 1, borderRadius: 30, flexDirection: 'row', gap: 12, alignItems: 'center', justifyContent: 'center' } });
