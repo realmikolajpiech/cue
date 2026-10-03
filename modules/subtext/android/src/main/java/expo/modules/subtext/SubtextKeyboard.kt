@@ -36,7 +36,7 @@ import kotlinx.coroutines.*
 import org.json.JSONObject
 
 class SubtextKeyboard : LatinIME() {
-  private enum class Mode { TYPING, PEOPLE, SEARCH, LOADING, REPLIES, ERROR }
+  private enum class Mode { TYPING, PEOPLE, STYLES, SEARCH, LOADING, REPLIES, ERROR }
   private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
   private var job: Job? = null
   private var revision = 0
@@ -138,39 +138,43 @@ class SubtextKeyboard : LatinIME() {
     hiddenKeys.clear()
   }
 
+  private fun isPicker(value: Mode) = value == Mode.PEOPLE || value == Mode.STYLES
+
   private fun open(next: Mode) {
     val toolbarBefore = toolbarMotion?.capture(panel.getChildAt(0))
-    val returningKeys = mode == Mode.PEOPLE && next != Mode.PEOPLE
-    val snapshot = if (next == Mode.PEOPLE) pickerMotion?.capture() else null
-    if (next == Mode.PEOPLE) {
+    val returningKeys = isPicker(mode) && !isPicker(next)
+    val snapshot = if (isPicker(next) && !isPicker(mode)) pickerMotion?.capture() else null
+    if (isPicker(next)) {
       revision++; job?.cancel()
       currentInputConnection?.finishComposingText()
-      if (mode != Mode.SEARCH) {
+      if (mode != Mode.SEARCH && !isPicker(mode)) {
         searchRooms = rooms()
         stripVisibility = strip?.visibility ?: View.VISIBLE
       }
       endSearch()
-      val frame = keyboardFrame
-      pickerHeight = frame?.let { parent -> (0 until parent.childCount).map(parent::getChildAt)
-        .filter { it !== panel && it.visibility == View.VISIBLE }.sumOf { it.height } } ?: dp(280)
-      if (pickerHeight <= 0) pickerHeight = dp(280)
-      frame?.let { parent -> for (i in 0 until parent.childCount) {
-        val child = parent.getChildAt(i)
-        if (child !== panel) { hiddenKeys[child] = child.visibility; child.visibility = View.GONE }
-      } }
+      if (!isPicker(mode)) {
+        val frame = keyboardFrame
+        pickerHeight = frame?.let { parent -> (0 until parent.childCount).map(parent::getChildAt)
+          .filter { it !== panel && it.visibility == View.VISIBLE }.sumOf { it.height } } ?: dp(280)
+        if (pickerHeight <= 0) pickerHeight = dp(280)
+        frame?.let { parent -> for (i in 0 until parent.childCount) {
+          val child = parent.getChildAt(i)
+          if (child !== panel) { hiddenKeys[child] = child.visibility; child.visibility = View.GONE }
+        } }
+      }
     } else if (next == Mode.SEARCH) {
       restoreKeys()
       strip?.visibility = View.GONE
     }
     bodyHeight = dp(148)
-    mode = next; render(animate = next != Mode.PEOPLE && next != Mode.SEARCH && !returningKeys)
+    mode = next; render(animate = !isPicker(next) && next != Mode.SEARCH && !returningKeys)
     toolbarMotion?.change(toolbarBefore, panel.getChildAt(0))
-    if (next == Mode.PEOPLE) pickerMotion?.disappear(snapshot, panel.getChildAt(1))
+    if (isPicker(next)) pickerMotion?.disappear(snapshot, panel.getChildAt(1))
     else if (returningKeys) pickerMotion?.appear()
   }
 
   private fun typing() {
-    val returningKeys = mode == Mode.PEOPLE
+    val returningKeys = isPicker(mode)
     pickerMotion?.cancel(); toolbarMotion?.cancel(); panelMotion.cancel()
     val toolbarBefore = toolbarMotion?.capture(panel.getChildAt(0))
     revision++; job?.cancel(); endSearch(); restoreKeys(); mode = Mode.TYPING; render(animate = !returningKeys)
@@ -190,34 +194,38 @@ class SubtextKeyboard : LatinIME() {
     panel.removeAllViews(); panel.setBackgroundColor(surface)
     panel.visibility = if (available) View.VISIBLE else View.GONE
     if (!available) return
-    strip?.visibility = if (mode == Mode.PEOPLE || mode == Mode.SEARCH) View.GONE else stripVisibility
+    strip?.visibility = if (isPicker(mode) || mode == Mode.SEARCH) View.GONE else stripVisibility
     if (mode == Mode.PEOPLE) { renderPicker(); return }
     if (mode == Mode.SEARCH) { renderPeople(); return }
     val toolbar = brandToolbar()
-    if (mode == Mode.TYPING || mode == Mode.REPLIES || mode == Mode.LOADING) {
+    if (mode == Mode.TYPING || mode == Mode.REPLIES || mode == Mode.LOADING || mode == Mode.STYLES) {
       val room = person()
-      toolbar.addView(button((room?.optString("name") ?: "Wybierz osobę"), false) { undo = null; generateAfterChoice = false; open(Mode.PEOPLE) }.apply {
+      addRecipient(toolbar, button((room?.optString("name") ?: "Wybierz osobę"), false) { undo = null; generateAfterChoice = false; open(Mode.PEOPLE) }.apply {
         gravity = Gravity.START or Gravity.CENTER_VERTICAL; maxLines = 1; ellipsize = TextUtils.TruncateAt.END
         styleRecipient(this, false); contentDescription = "Rozmowa: ${room?.optString("name") ?: "nie wybrano"}. Zmień rozmowę"
-      }, LinearLayout.LayoutParams(0, dp(48), 1f))
+      })
+      addToneSelector(toolbar)
       val action = undo
-      if (mode == Mode.LOADING) {
-        toolbar.addView(button("Anuluj", false) { typing() }, LinearLayout.LayoutParams(dp(112), dp(44)))
+      if (mode == Mode.STYLES) {
+        toolbar.addView(button("Zamknij", false) { typing() }, LinearLayout.LayoutParams(dp(96), dp(44)))
+      } else if (mode == Mode.LOADING) {
+        toolbar.addView(button("Anuluj", false) { typing() }, LinearLayout.LayoutParams(dp(96), dp(44)))
       } else toolbar.addView(button(if (mode == Mode.REPLIES) { if (replies[replyIndex].optString("action") == "no_reply") "Gotowe" else if (draft.isEmpty()) "Wstaw" else "Zastąp szkic" } else if (action != null) "Cofnij" else "Podpowiedz", true) {
         if (mode == Mode.REPLIES) {
           val reply = replies[replyIndex]
           if (reply.optString("action") == "no_reply") typing() else insert(reply.getString("text"))
         } else if (action != null) undoInsert(action) else if (room == null) { generateAfterChoice = true; open(Mode.PEOPLE) } else generate()
-      }, LinearLayout.LayoutParams(dp(112), dp(44)))
+      }, LinearLayout.LayoutParams(dp(96), dp(44)))
     } else {
       toolbar.addView(label(person()?.optString("name") ?: "Cue", 13f, true).apply {
         setPadding(dp(8), 0, dp(8), 0); gravity = Gravity.CENTER_VERTICAL
         maxLines = 1; ellipsize = TextUtils.TruncateAt.END
       }, LinearLayout.LayoutParams(0, dp(44), 1f))
-      toolbar.addView(button("Zamknij", false) { typing() }, LinearLayout.LayoutParams(dp(112), dp(44)))
+      toolbar.addView(button("Zamknij", false) { typing() }, LinearLayout.LayoutParams(dp(96), dp(44)))
     }
     finishToolbar(toolbar)
     panel.addView(toolbar, LinearLayout.LayoutParams(-1, dp(56)))
+    if (mode == Mode.STYLES) { renderTones(); return }
     if (mode == Mode.TYPING) return
     if (mode == Mode.LOADING) {
       val loading = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL; setPadding(dp(20), 0, dp(16), dp(8)) }
@@ -229,7 +237,7 @@ class SubtextKeyboard : LatinIME() {
     val body = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(12), 0, dp(12), dp(8)) }
     panel.addView(body, LinearLayout.LayoutParams(-1, bodyHeight))
     when (mode) {
-      Mode.PEOPLE, Mode.SEARCH -> Unit
+      Mode.PEOPLE, Mode.STYLES, Mode.SEARCH -> Unit
       Mode.LOADING -> Unit
       Mode.ERROR -> {
         val center = center(body)
@@ -263,11 +271,12 @@ class SubtextKeyboard : LatinIME() {
 
   private fun renderPicker() {
     val toolbar = brandToolbar()
-    toolbar.addView(button("Wybierz osobę", false) { typing() }.apply {
+    addRecipient(toolbar, button("Wybierz osobę", false) { typing() }.apply {
       gravity = Gravity.START or Gravity.CENTER_VERTICAL; maxLines = 1; ellipsize = TextUtils.TruncateAt.END
       styleRecipient(this, true); contentDescription = "Zamknij wybór rozmowy i wróć do pisania"
-    }, LinearLayout.LayoutParams(0, dp(48), 1f))
-    toolbar.addView(button("Szukaj", false) { open(Mode.SEARCH) }, LinearLayout.LayoutParams(dp(112), dp(44)))
+    })
+    addToneSelector(toolbar)
+    toolbar.addView(button("Szukaj", false) { open(Mode.SEARCH) }, LinearLayout.LayoutParams(dp(96), dp(44)))
     finishToolbar(toolbar)
     panel.addView(toolbar, LinearLayout.LayoutParams(-1, dp(56)))
     val list = ListView(this).apply {
@@ -316,7 +325,7 @@ class SubtextKeyboard : LatinIME() {
     }
     searchEditor = editor
     toolbar.addView(editor, LinearLayout.LayoutParams(0, dp(44), 1f))
-    toolbar.addView(button("Wróć do listy", false) { open(Mode.PEOPLE) }, LinearLayout.LayoutParams(dp(112), dp(44)))
+    toolbar.addView(button("Wróć do listy", false) { open(Mode.PEOPLE) }, LinearLayout.LayoutParams(dp(96), dp(44)))
     finishToolbar(toolbar)
     panel.addView(toolbar, LinearLayout.LayoutParams(-1, dp(56)))
     searchConnection = object : BaseInputConnection(editor, true) {
@@ -421,10 +430,11 @@ class SubtextKeyboard : LatinIME() {
     if (snapshot == null) { errorMessage = "Nie mogę odczytać tego szkicu. Wróć do pisania i spróbuj ponownie."; open(Mode.ERROR); return }
     draft = snapshot; undo = null
     val token = revision
+    val tone = runtime.selectedTone(id)
     open(Mode.LOADING)
     job = scope.launch {
       try {
-        val profile = withContext(Dispatchers.IO) { JSONObject(runtime.analyze(id, snapshot)) }
+        val profile = withContext(Dispatchers.IO) { JSONObject(runtime.analyze(id, snapshot, tone)) }
         if (token != revision) return@launch
         val suggestions = profile.getJSONArray("suggestions")
         replies = (0 until suggestions.length()).map { suggestions.getJSONObject(it) }
@@ -521,6 +531,67 @@ class SubtextKeyboard : LatinIME() {
       marginStart = dp(4); marginEnd = dp(8)
     })
   }
+  private fun addRecipient(toolbar: LinearLayout, recipient: Button) {
+    val cell = FrameLayout(this)
+    cell.addView(recipient, FrameLayout.LayoutParams(-2, dp(48), Gravity.START or Gravity.CENTER_VERTICAL))
+    cell.addOnLayoutChangeListener { _, left, _, right, _, _, _, _, _ ->
+      val width = (right - left).coerceAtLeast(0)
+      if (recipient.maxWidth != width) recipient.maxWidth = width
+    }
+    toolbar.addView(cell, LinearLayout.LayoutParams(0, dp(48), 1f))
+  }
+
+  private fun addToneSelector(toolbar: LinearLayout) {
+    val tone = runtime.selectedTone(selected)
+    val expanded = mode == Mode.STYLES
+    toolbar.addView(button(if (tone == "calming") "Łagodzący" else WritingTone.label(tone), false) {
+      undo = null; generateAfterChoice = false
+      if (expanded) typing() else open(Mode.STYLES)
+    }.apply {
+      textSize = 12f; maxLines = 1; ellipsize = TextUtils.TruncateAt.END
+      setTextColor(accent); setPadding(dp(6), 0, dp(6), 0)
+      background = RippleDrawable(ColorStateList.valueOf(0x225F78B8), rounded(card, 12), null)
+      val arrow = android.graphics.drawable.RotateDrawable().apply {
+        drawable = getDrawable(R.drawable.cue_chevron_down)?.mutate()?.apply { setTint(accent) }
+        fromDegrees = 0f; toDegrees = 180f
+        setBounds(0, 0, dp(12), dp(12)); level = if (expanded) 10000 else 0
+      }
+      setCompoundDrawablesRelative(null, null, arrow, null); compoundDrawablePadding = dp(3)
+      contentDescription = "Styl odpowiedzi: ${WritingTone.label(tone)}. " + if (expanded) "Zamknij listę stylów" else "Wybierz styl"
+    }, LinearLayout.LayoutParams(dp(88), dp(44)).apply { marginEnd = dp(2) })
+  }
+
+  private fun renderTones() {
+    val current = runtime.selectedTone(selected)
+    val options = WritingTone.labels.entries.toList()
+    val list = ListView(this).apply {
+      divider = null; isVerticalScrollBarEnabled = true
+      val navigation = ViewCompat.getRootWindowInsets(panel)?.getInsets(WindowInsetsCompat.Type.navigationBars())?.bottom ?: dp(24)
+      setPadding(dp(12), 0, dp(12), navigation + dp(8)); clipToPadding = false
+    }
+    list.adapter = object : BaseAdapter() {
+      override fun getCount() = options.size
+      override fun getItem(position: Int) = options[position]
+      override fun getItemId(position: Int) = position.toLong()
+      override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
+        val option = options[position]
+        return label(option.value + if (option.key == current) "   ✓" else "", 16f, option.key == current).apply {
+          gravity = Gravity.CENTER_VERTICAL; setPadding(dp(16), 0, dp(16), 0)
+          setTextColor(if (option.key == current) accent else ink)
+          background = rounded(if (option.key == current) card else Color.TRANSPARENT, 12)
+          contentDescription = "${option.value}" + if (option.key == current) ", wybrany" else ""
+          layoutParams = AbsListView.LayoutParams(-1, dp(52))
+        }
+      }
+    }
+    list.setOnItemClickListener { _, _, position, _ ->
+      runtime.setWritingTone(selected, options[position].key)
+      replies = emptyList(); typing()
+      panel.announceForAccessibility("Styl odpowiedzi: ${options[position].value}")
+    }
+    panel.addView(list, LinearLayout.LayoutParams(-1, pickerHeight))
+  }
+
   private fun styleRecipient(view: Button, expanded: Boolean) {
     view.textSize = 14f
     view.letterSpacing = -0.015f

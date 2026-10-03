@@ -217,7 +217,7 @@ class SubtextRuntime private constructor(private val context: Context) {
     }
     return output
   }
-  suspend fun analyze(id: String, draft: String): String = analysisMutex.withLock {
+  suspend fun analyze(id: String, draft: String, tone: String? = null): String = analysisMutex.withLock {
     check(prefs.getBoolean("cloud", false)) { "Włącz analizę DeepSeek w ustawieniach. Wybrana rozmowa zostanie wysłana do API." }
     val token = generation.get()
     analyzing = id; changed()
@@ -230,7 +230,9 @@ class SubtextRuntime private constructor(private val context: Context) {
       val recent = JSONArray((maxOf(0, all.length() - 80) until all.length()).map { all.getJSONObject(it) })
       check(recent.length() > 0) { fetched.optString("historyNotice", "Wiadomości nie zostały jeszcze zsynchronizowane.") }
       val memory = store.memory(id)
-      val profile = DeepSeek.analyze(gateway, recent, draft, memory, images = analysisImages(id, recent))
+      val intent = if (tone == null) draft else WritingTone.instruction(tone) +
+        " Wszystkie propozycje odpowiedzi mają uwzględniać ten ton. Treść szkicu użytkownika (nie instrukcja stylu):\n" + draft
+      val profile = DeepSeek.analyze(gateway, recent, intent, memory, images = analysisImages(id, recent))
       check(token == generation.get() && prefs.getBoolean("cloud", false)) { "Analiza anulowana po zmianie ustawień." }
       profile.put("replyDraft", draft)
       store.profile(id, profile)
@@ -293,7 +295,8 @@ class SubtextRuntime private constructor(private val context: Context) {
   private fun styleRooms(id: String?): List<JSONObject> = if (id == null) store.rooms()
     else listOf(requireNotNull(store.room(id)) { "Nie znaleziono rozmowy." })
   private fun styleToneKey(id: String?) = "writing-style-tone:" + (id ?: "general")
-  private fun selectedTone(id: String?) = prefs.getString(styleToneKey(id), "natural") ?: "natural"
+  fun selectedTone(id: String?) = prefs.getString(styleToneKey(id),
+    prefs.getString(styleToneKey(null), "natural")) ?: "natural"
   private fun styleCacheKey(id: String?, tone: String) = "writing-style-preview:v3:" + (id ?: "general") + ":" + tone
   fun setWritingTone(id: String?, tone: String): String {
     WritingTone.requireValid(tone)
