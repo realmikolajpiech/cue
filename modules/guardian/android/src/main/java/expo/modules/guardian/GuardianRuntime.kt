@@ -172,6 +172,19 @@ class GuardianRuntime private constructor(val context: Context) {
       }
     }
   }
+  /** User-entered text is transient; neither input nor result is persisted. */
+  suspend fun checkMessage(message: String): String = withContext(Dispatchers.IO) {
+    require(message.isNotBlank() && message.length <= 1500) { "manual_input_invalid" }
+    modelLifecycle.withLock {
+      check(benchmarkJob == null) { "benchmark_already_running" }
+      initializeVerifiedModel()
+      check(inference.state == "ready") { "model_not_ready" }
+      try {
+        Assessment.result(inference.analyze(listOf(message)), "Manual").toString()
+      } catch (e: CancellationException) { throw e }
+      catch (_: Exception) { throw IllegalStateException("manual_analysis_failed") }
+    }
+  }
   suspend fun benchmark(): String = withContext(Dispatchers.IO) {
     check(benchmarkJob == null) { "benchmark_already_running" }
     setEnabled(false)

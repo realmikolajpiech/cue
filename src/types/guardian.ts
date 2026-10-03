@@ -18,5 +18,7 @@ export const statusSchema = z.object({
   backend: z.enum(['none', 'cpu', 'gpu']), processing: z.boolean(), error: z.string().nullable(), active: z.boolean(),
   modelInstalled: z.boolean(), modelSha256: z.string().nullable(), initializationMs: z.number(), promptVersion: z.string(), runtimeVersion: z.string(), notificationPermission: z.boolean(),
 }).strict();
+export const manualResultSchema = resultSchema.extend({ sourceApp: z.literal('Manual') });
+export type ManualResult = z.infer<typeof manualResultSchema>;
 export type GuardianResult = z.infer<typeof resultSchema>;
 export type GuardianStatus = z.infer<typeof statusSchema>;

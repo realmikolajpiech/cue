@@ -1,7 +1,8 @@
 import { NativeModule, requireOptionalNativeModule } from 'expo';
-import { resultSchema, statusSchema, type GuardianStatus } from '@/types/guardian';
+import { resultSchema, manualResultSchema, statusSchema, type GuardianStatus } from '@/types/guardian';
 
 declare class GuardianModule extends NativeModule<{ onChanged: () => void }> {
+  checkMessage(message: string): Promise<string>;
   runBenchmark(): Promise<string>;
   cancelBenchmark(): void;
   getStatus(): Promise<unknown>;
@@ -20,6 +21,7 @@ function requireGuardian() {
   return native;
 }
 export const guardian = {
+  async checkMessage(message: string) { return manualResultSchema.parse(JSON.parse(await requireGuardian().checkMessage(message))); },
   async status() { return native ? statusSchema.parse(await native.getStatus()) : unavailable; },
   async results() { return native ? (await native.getResults()).map(value => resultSchema.parse(JSON.parse(value))) : []; },
   async monitor(enabled: boolean) { return statusSchema.parse(await requireGuardian().setMonitoring(enabled)); },

@@ -27,6 +27,7 @@ class GuardianModule : Module() {
     AsyncFunction("clearHistory") Coroutine { -> guardianRuntime.clearHistory() }
     AsyncFunction("markReviewed") { id: String -> guardianRuntime.store.review(id); guardianRuntime.notifyChanged() }
     AsyncFunction("importModel") Coroutine { uri: String -> guardianRuntime.importModel(uri) }
+    AsyncFunction("checkMessage") Coroutine { message: String -> guardianRuntime.checkMessage(message) }
     AsyncFunction("runBenchmark") Coroutine { -> guardianRuntime.benchmark() }
     Function("cancelBenchmark") { guardianRuntime.cancelBenchmark() }
     AsyncFunction("openNotificationSettings") {
