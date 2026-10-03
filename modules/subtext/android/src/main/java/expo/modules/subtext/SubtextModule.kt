@@ -24,6 +24,8 @@ class SubtextModule : Module() {
     OnDestroy { subtextRuntime.observers.remove(changed) }
     AsyncFunction("status") { subtextRuntime.status() }
     AsyncFunction("loadDemo") { subtextRuntime.loadDemo() }
+    AsyncFunction("conversationWritingStyle") { id: String -> subtextRuntime.writingStyle(id) }
+    AsyncFunction("previewConversationWritingStyle") Coroutine { id: String -> subtextRuntime.previewWritingStyle(id) }
     AsyncFunction("writingStyle") { subtextRuntime.writingStyle() }
     AsyncFunction("previewWritingStyle") Coroutine { -> subtextRuntime.previewWritingStyle() }
     AsyncFunction("conversations") {

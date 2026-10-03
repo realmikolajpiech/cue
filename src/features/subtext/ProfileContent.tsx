@@ -7,6 +7,7 @@ import { Copy } from '@/components/ui';
 import { subtext, subtextCache, useRoom, useSubtextStatus } from '@/services/subtext';
 import { useTheme } from '@/theme/useTheme';
 import { Button, Disclosure, ErrorText, Field, ui } from './components';
+import PersonStyleSheet from './PersonStyleSheet';
 import type { Profile, Room } from '@/types/subtext';
 
 function Evidence({ items, room }: { items: Profile['observations']; room: Room }) {
@@ -21,6 +22,7 @@ function Evidence({ items, room }: { items: Profile['observations']; room: Room 
 
 export default function ProfileContent({ id }: { id: string }) {
   const query = useRoom(id); const room = query.data; const { data: status } = useSubtextStatus(); const { colors } = useTheme();
+  const [styleOpen, setStyleOpen] = useState(false);
   const draft = useRef(''); const [tab, setTab] = useState<'profile' | 'replies'>('profile');
   const [copied, setCopied] = useState<number | null>(null); const [copyError, setCopyError] = useState<unknown>();
   const analysis = useMutation({ mutationFn: () => subtext.analyze(id, draft.current), onSuccess: profile => {
@@ -34,6 +36,8 @@ export default function ProfileContent({ id }: { id: string }) {
     <ErrorText error={query.error ?? analysis.error ?? copyError} />
     {query.isPending && <Copy style={ui.body}>Pobieram wiadomości…</Copy>}
     {room && <>
+      <Button label="Twój styl w tej rozmowie" secondary onPress={() => setStyleOpen(true)} />
+      <PersonStyleSheet id={id} name={room.name} visible={styleOpen} onClose={() => setStyleOpen(false)} />
       <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderColor: colors.border }}>
         {(['profile', 'replies'] as const).map(value => <Pressable key={value} accessibilityRole="tab" accessibilityState={{ selected: tab === value }}
           onPress={() => setTab(value)} style={{ flex: 1, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderBottomWidth: 2, borderBottomColor: tab === value ? colors.text : 'transparent' }}>

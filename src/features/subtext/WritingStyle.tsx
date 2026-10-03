@@ -6,14 +6,15 @@ import { subtext, useSubtextStatus } from '@/services/subtext';
 import { useTheme } from '@/theme/useTheme';
 import { Button, ErrorText, Page, ui } from './components';
 
-export default function WritingStyle() {
+export default function WritingStyle({ roomId, personName }: { roomId?: string; personName?: string }) {
   const { colors } = useTheme();
   const client = useQueryClient();
   const { data: status } = useSubtextStatus();
-  const preview = useMutation({ mutationFn: subtext.previewWritingStyle, onSuccess: result => {
-    client.setQueryData(['subtext', 'writing-style'], result);
+  const queryKey = ['subtext', 'writing-style', roomId ?? 'general'];
+  const preview = useMutation({ mutationFn: () => roomId ? subtext.previewConversationWritingStyle(roomId) : subtext.previewWritingStyle(), onSuccess: result => {
+    client.setQueryData(queryKey, result);
   } });
-  const query = useQuery({ queryKey: ['subtext', 'writing-style'], queryFn: subtext.writingStyle });
+  const query = useQuery({ queryKey, queryFn: () => roomId ? subtext.conversationWritingStyle(roomId) : subtext.writingStyle() });
   const style = query.data;
   const hasMessages = !!style?.sampleCount;
   const examples = style?.examples ?? [];
@@ -21,8 +22,8 @@ export default function WritingStyle() {
   return <Page>
     <View style={{ gap: 10 }}>
       <Copy style={ui.eyebrow}>Tak piszesz Ty</Copy>
-      <Copy title style={ui.heading}>Twój styl.</Copy>
-      <Copy style={ui.body}>Twój sposób pisania, zebrany z różnych rozmów. Zobacz, jak brzmi na co dzień.</Copy>
+      <Copy title style={ui.heading}>{roomId ? 'Twój styl w rozmowie' : 'Twój styl.'}</Copy>
+      <Copy style={ui.body}>{roomId ? `Tak piszesz do: ${personName}. Podgląd opiera się wyłącznie na tej rozmowie.` : 'Twój sposób pisania, zebrany z różnych rozmów. Zobacz, jak brzmi na co dzień.'}</Copy>
     </View>
     <ErrorText error={query.error ?? preview.error} />
     {query.isPending ? <Row style={{ paddingVertical: 24 }}><ActivityIndicator color={colors.text} /><Copy style={ui.body}>Poznaję Twój styl…</Copy></Row> : style && <>
@@ -43,12 +44,12 @@ export default function WritingStyle() {
         {status?.cloudEnabled ? <>
           <Button label={preview.isPending ? 'Przygotowuję 5 rozmów…' : style.generated ? 'Odśwież przykłady' : 'Zobacz 5 przykładowych rozmów'}
             disabled={style.sampleCount < 5 || !!status.analyzing || preview.isPending} onPress={() => preview.mutate()} />
-          <Copy style={ui.small}>{style.sampleCount < 5 ? 'Potrzebujemy przynajmniej 5 Twoich wiadomości.' : 'AI użyje Twoich wiadomości z różnych rozmów. Próbki stylu trafią przez Supabase do DeepSeek.'}</Copy>
+          <Copy style={ui.small}>{style.sampleCount < 5 ? 'Potrzebujemy przynajmniej 5 Twoich wiadomości.' : roomId ? 'AI użyje tylko Twoich wiadomości z tą osobą.' : 'AI użyje Twoich wiadomości z różnych rozmów. Próbki stylu trafią przez Supabase do DeepSeek.'}</Copy>
         </> : <Button label="Włącz analizę AI" secondary onPress={() => router.navigate('/alerts')} />}
       </Card> : <Card style={styles.summary}>
         <Icon name="style" size={28} />
         <Copy title style={ui.title}>Zacznijmy od Twoich wiadomości</Copy>
-        <Copy style={ui.body}>Połącz Messenger lub WhatsApp i zsynchronizuj rozmowy. Twój styl powstaje z wiadomości, które piszesz Ty.</Copy>
+        <Copy style={ui.body}>{roomId ? 'Brakuje Twoich wiadomości w tej rozmowie. Zsynchronizuj historię, aby zobaczyć swój styl z tą osobą.' : 'Połącz Messenger lub WhatsApp i zsynchronizuj rozmowy. Twój styl powstaje z wiadomości, które piszesz Ty.'}</Copy>
         <Button label="Połącz konto" onPress={() => router.push('/connections')} />
       </Card>}
 

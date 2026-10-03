@@ -109,18 +109,25 @@ class SubtextRuntime private constructor(private val context: Context) {
     } finally { analyzing = null; changed() }
   }
   fun cloud(enabled: Boolean) { generation.incrementAndGet(); prefs.edit().putBoolean("cloud", enabled).apply(); changed() }
-  fun writingStyle(): String {
-    val result = writingStyleOverview(store.rooms())
-    val samples = DeepSeek.generalWritingHistory(store.rooms())
-    val saved = runCatching { JSONObject(prefs.getString("writing-style-preview", "") ?: "") }.getOrNull()
+  private fun styleRooms(id: String?): List<JSONObject> = if (id == null) store.rooms()
+    else listOf(requireNotNull(store.room(id)) { "Nie znaleziono rozmowy." })
+  private fun styleCacheKey(id: String?) = "writing-style-preview:" + (id ?: "general")
+  fun writingStyle(id: String? = null): String {
+    val result = writingStyleOverview(styleRooms(id))
+    val samples = DeepSeek.generalWritingHistory(styleRooms(id))
+    val saved = runCatching { JSONObject(prefs.getString(styleCacheKey(id), "") ?: "") }.getOrNull()
     if (saved?.optInt("sampleHash") == samples.toString().hashCode()) {
       result.put("examples", saved.getJSONArray("examples")).put("generated", true)
     }
+    if (id != null) {
+      val profile = store.room(id)?.optJSONObject("profile")?.optJSONObject("writingStyle")
+      result.put("summary", profile?.optString("conversation") ?: "")
+    }
     return result.toString()
   }
-  suspend fun previewWritingStyle(): String = analysisMutex.withLock {
+  suspend fun previewWritingStyle(id: String? = null): String = analysisMutex.withLock {
     check(prefs.getBoolean("cloud", false)) { "Włącz analizę AI w ustawieniach, aby utworzyć podgląd." }
-    val samples = DeepSeek.generalWritingHistory(store.rooms())
+    val samples = DeepSeek.generalWritingHistory(styleRooms(id))
     check(samples.length() >= 5) { "Potrzebujemy przynajmniej 5 Twoich wiadomości. Zsynchronizuj rozmowy." }
     val token = generation.get()
     val scenarios = listOf(
@@ -140,7 +147,7 @@ class SubtextRuntime private constructor(private val context: Context) {
           messages.put(message("style-$i", "Ty · próbka stylu", samples.getJSONObject(i).getString("text"), i.toLong(), true))
         }
         messages.put(message("preview-$index", "Rozmówca", scenario.first, 1000L, false))
-        val intent = "Podgląd mojego ogólnego stylu pisania. Wcześniejsze wiadomości isMe=true to tylko próbki formy wypowiedzi z różnych rozmów, a nie kontekst ani fakty. " +
+        val intent = "Podgląd mojego ogólnego stylu pisania. Wcześniejsze wiadomości isMe=true to tylko próbki formy wypowiedzi z rozmów, a nie kontekst ani fakty. " +
           "Naśladuj ich długość, skróty, wielkość liter, interpunkcję i emoji. Nie przenoś nazw, faktów ani tematów z próbek. " + scenario.second
         val profile = DeepSeek.analyze(gateway, messages, intent)
         examples.put(JSONObject().put("id", "preview-$index").put("incoming", scenario.first)
@@ -148,8 +155,8 @@ class SubtextRuntime private constructor(private val context: Context) {
           .put("timestamp", System.currentTimeMillis()))
       }
       check(token == generation.get() && prefs.getBoolean("cloud", false)) { "Tworzenie podglądu zostało anulowane." }
-      prefs.edit().putString("writing-style-preview", JSONObject().put("sampleHash", samples.toString().hashCode()).put("examples", examples).toString()).apply()
-      writingStyle()
+      prefs.edit().putString(styleCacheKey(id), JSONObject().put("sampleHash", samples.toString().hashCode()).put("examples", examples).toString()).apply()
+      writingStyle(id)
     } finally { analyzing = null; changed() }
   }
   fun loadDemo(): String {
@@ -165,10 +172,15 @@ class SubtextRuntime private constructor(private val context: Context) {
     store.markDemo("messenger:subtext-demo"); changed()
     return "messenger:subtext-demo"
   }
-  fun clear() { generation.incrementAndGet(); prefs.edit().remove("writing-style-preview").apply(); store.clear(); changed() }
+  private fun clearStylePreviews() {
+    val editor = prefs.edit()
+    prefs.all.keys.filter { it.startsWith("writing-style-preview") }.forEach { editor.remove(it) }
+    editor.apply()
+  }
+  fun clear() { generation.incrementAndGet(); clearStylePreviews(); store.clear(); changed() }
   fun disconnect(network: String) {
     generation.incrementAndGet()
-    prefs.edit().remove("writing-style-preview").apply()
+    clearStylePreviews()
     if (network == "messenger") messenger.logout() else if (network == "whatsapp") whatsapp.logout() else error("Nieznany komunikator.")
     store.clear(network)
     if (!messenger.hasSession() && !whatsapp.hasSession()) {

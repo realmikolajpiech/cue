@@ -8,6 +8,8 @@ import { profileSchema, roomSchema, subtextStatusSchema, writingStyleSchema, typ
 declare class SubtextModule extends NativeModule<{ onChanged: () => void }> {
   status(): Promise<string>;
   loadDemo(): Promise<string>;
+  conversationWritingStyle(id: string): Promise<string>;
+  previewConversationWritingStyle(id: string): Promise<string>;
   writingStyle(): Promise<string>;
   previewWritingStyle(): Promise<string>;
   conversations(): Promise<string>;
@@ -29,6 +31,8 @@ const unavailable = {
   messenger: { phase: 'NOT_CONFIGURED', detail: '' }, whatsapp: { phase: 'NOT_CONFIGURED', detail: '', pairingCode: null },
 };
 export const subtext = {
+  conversationWritingStyle: async (id: string) => writingStyleSchema.parse(JSON.parse(await requireSubtext().conversationWritingStyle(id))),
+  previewConversationWritingStyle: async (id: string) => writingStyleSchema.parse(JSON.parse(await requireSubtext().previewConversationWritingStyle(id))),
   previewWritingStyle: async () => writingStyleSchema.parse(JSON.parse(await requireSubtext().previewWritingStyle())),
   writingStyle: async () => native ? writingStyleSchema.parse(JSON.parse(await native.writingStyle())) :
     { sampleCount: 0, conversationCount: 0, summary: '', habits: [], examples: [] },
