@@ -8,7 +8,7 @@ import java.security.MessageDigest
 
 object NotificationNormalizer {
   val allowedApps = mapOf(
-    "com.whatsapp" to "WhatsApp", "com.facebook.orca" to "Messenger",
+    "com.whatsapp" to "WhatsApp", "com.facebook.orca" to "Messenger", "com.beeper.android" to "Beeper",
     "com.google.android.apps.messaging" to "SMS", "com.samsung.android.messaging" to "SMS",
   )
   data class Input(val key: String, val source: String, val messages: List<PrivateMessage>)

@@ -91,9 +91,12 @@ class GuardianRuntime private constructor(val context: Context) {
     return Settings.Secure.getString(context.contentResolver, "enabled_notification_listeners")
       ?.split(':')?.any { ComponentName.unflattenFromString(it) == expected } == true
   }
-  fun connect() {
+  fun connect(onReady: () -> Unit = {}) {
     connected = true; notifyChanged()
-    if (enabled) scope.launch { initializeModel(); notifyChanged() }
+    if (enabled) scope.launch {
+      initializeModel(); notifyChanged()
+      if (enabled && connected && permissionGranted() && inference.state == "ready") runCatching(onReady)
+    }
   }
   fun disconnect() { connected = false; stopPending(); notifyChanged(); scope.launch { modelLifecycle.withLock { inference.close() }; notifyChanged() } }
   private fun stopPending() {
@@ -170,6 +173,19 @@ class GuardianRuntime private constructor(val context: Context) {
         notifyChanged()
         throw IllegalStateException(lastError)
       }
+    }
+  }
+  /** User-entered text is transient; neither input nor result is persisted. */
+  suspend fun checkMessage(message: String): String = withContext(Dispatchers.IO) {
+    require(message.isNotBlank() && message.length <= 1500) { "manual_input_invalid" }
+    modelLifecycle.withLock {
+      check(benchmarkJob == null) { "benchmark_already_running" }
+      initializeVerifiedModel()
+      check(inference.state == "ready") { "model_not_ready" }
+      try {
+        Assessment.result(inference.analyze(listOf(message)), "Manual").toString()
+      } catch (e: CancellationException) { throw e }
+      catch (_: Exception) { throw IllegalStateException("manual_analysis_failed") }
     }
   }
   suspend fun benchmark(): String = withContext(Dispatchers.IO) {

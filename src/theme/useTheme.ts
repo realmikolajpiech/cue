@@ -5,3 +5,26 @@ const palettes = {
 };
 export function useTheme() { const isDark = useDemo(s => s.dark); return { isDark, colors: palettes[isDark ? 'dark' : 'light'] }; }
 export const spacing = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32 } as const;
+
+export type RiskLevel = 'high' | 'medium' | 'low' | 'uncertain';
+const riskPalettes = {
+  light: {
+    high: { foreground: '#B42318', background: '#FEE4E2' },
+    medium: { foreground: '#B54708', background: '#FFF0D6' },
+    low: { foreground: '#856300', background: '#FFF5C2' },
+    uncertain: { foreground: '#667085', background: '#EAECF0' },
+  },
+  dark: {
+    high: { foreground: '#FF8A80', background: '#3B1C1A' },
+    medium: { foreground: '#FFBA66', background: '#3C2A15' },
+    low: { foreground: '#EBD34E', background: '#332E12' },
+    uncertain: { foreground: '#B0B8C5', background: '#282D35' },
+  },
+};
+export function riskFromLabel(label: string): RiskLevel {
+  if (label === 'Wysokie ryzyko') return 'high';
+  if (label === 'Umiarkowane ryzyko' || label === 'Średnie ryzyko') return 'medium';
+  if (label === 'Niskie ryzyko') return 'low';
+  return 'uncertain';
+}
+export function riskColors(risk: RiskLevel, dark: boolean) { return riskPalettes[dark ? 'dark' : 'light'][risk]; }

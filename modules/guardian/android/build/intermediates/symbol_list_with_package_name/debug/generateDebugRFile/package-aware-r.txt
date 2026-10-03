@@ -1,1 +1,2 @@
 expo.modules.guardian
+drawable guardian_notification_shield

@@ -1,6 +1,6 @@
 # Guardian — dokument produktu
 
-Stan: fundamenty projektu, 3 października 2026. Dokument służy jako referencja dla implementacji i decyzji produktowych. Guardian ma ostrzegać przed manipulacją w wiadomościach dzięki analizie kontekstu przez lokalny model AI. Surowe wiadomości pozostają na telefonie, w warstwie Kotlin; Expo prezentuje wyłącznie bezpieczne wyniki analizy.
+Stan: fundamenty projektu, 3 października 2026. Dokument służy jako referencja dla implementacji i decyzji produktowych. Guardian ma ostrzegać przed manipulacją w wiadomościach dzięki analizie kontekstu przez lokalny model AI. Treść odczytanych powiadomień pozostaje na telefonie w warstwie Kotlin; Expo otrzymuje wyłącznie bezpieczne wyniki. Ręcznie wklejony tekst istnieje chwilowo w polu React Native i trafia do lokalnego silnika bez zapisu do historii.
 
 ## Źródło i ustalenia
 

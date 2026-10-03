@@ -75,6 +75,6 @@ class NativePipelineTest {
   }
   @Test fun bridgeResultHasOnlySanitizedWhitelistedFields() {
     val result = Assessment.result(Assessment.parse("""{"risk":"high","category":"credential_theft","signals":["credential_request"]}"""), "SMS")
-    assertEquals(setOf("schemaVersion", "id", "createdAt", "sourceApp", "risk", "category", "signals", "explanation", "recommendedAction", "analysisSource", "reviewStatus"), result.keys().asSequence().toSet())
+    assertEquals(setOf("analysisVersion", "schemaVersion", "id", "createdAt", "sourceApp", "risk", "category", "signals", "explanation", "recommendedAction", "analysisSource", "reviewStatus"), result.keys().asSequence().toSet())
   }
 }

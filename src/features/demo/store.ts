@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-export type Threat = { id: string; title: string; source: string; time: string; risk: string; signals: string[]; advice: string; reviewed: boolean };
+export type Threat = { id: string; title: string; source: string; time: string; risk: string; signals: string[]; advice: string; explanation?: string; reviewed: boolean };
 const threats: Threat[] = [
   { id: '1', title: 'Podszywanie się pod bliską osobę', source: 'WhatsApp', time: 'Dzisiaj, 10:42', risk: 'Wysokie ryzyko', signals: ['Nowy numer', 'Presja czasu', 'Prośba o pieniądze'], advice: 'Zadzwoń do tej osoby na wcześniej znany numer. Nie wysyłaj pieniędzy, zanim potwierdzisz jej tożsamość.', reviewed: false },
   { id: '2', title: 'Podejrzany link do płatności', source: 'SMS', time: 'Wczoraj, 16:18', risk: 'Wysokie ryzyko', signals: ['Nieznany link', 'Prośba o płatność'], advice: 'Otwórz oficjalną aplikację usługodawcy. Nie korzystaj z linku w wiadomości.', reviewed: true },

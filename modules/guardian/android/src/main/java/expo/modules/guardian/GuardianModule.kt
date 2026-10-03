@@ -27,8 +27,16 @@ class GuardianModule : Module() {
     AsyncFunction("clearHistory") Coroutine { -> guardianRuntime.clearHistory() }
     AsyncFunction("markReviewed") { id: String -> guardianRuntime.store.review(id); guardianRuntime.notifyChanged() }
     AsyncFunction("importModel") Coroutine { uri: String -> guardianRuntime.importModel(uri) }
+    AsyncFunction("checkMessage") Coroutine { message: String -> guardianRuntime.checkMessage(message) }
     AsyncFunction("runBenchmark") Coroutine { -> guardianRuntime.benchmark() }
     Function("cancelBenchmark") { guardianRuntime.cancelBenchmark() }
+    AsyncFunction("openWarningChannelSettings") {
+      GuardianWarnings.ensureChannel(context)
+      context.startActivity(Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+        .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+        .putExtra(Settings.EXTRA_CHANNEL_ID, GuardianWarnings.HIGH_RISK_CHANNEL)
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
     AsyncFunction("openNotificationSettings") {
       context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
