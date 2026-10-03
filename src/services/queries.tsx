@@ -26,7 +26,17 @@ export function useAction() {
     if (busy) return;
     setBusy(true); setError(null);
     try { await action(); await cache.invalidateQueries({ queryKey: ['guardian'] }); }
-    catch { setError('Nie udało się wykonać działania. Sprawdź stan modelu i spróbuj ponownie.'); }
+    catch (cause) {
+      const message = cause instanceof Error ? cause.message : '';
+      const errors: Record<string, string> = {
+        model_size_mismatch: 'Nieprawidłowy rozmiar pliku. Pobierz pełny model Gemma 3 1B INT4 (584 MB).',
+        model_checksum_mismatch: 'Plik jest uszkodzony lub jest inną wersją modelu. Pobierz wskazany plik Gemma ponownie.',
+        model_insufficient_space: 'Brakuje miejsca na model. Zwolnij co najmniej 650 MB i spróbuj ponownie.',
+        model_initialization_failed: 'Model nie uruchomił się na tym urządzeniu. Zamknij inne aplikacje i spróbuj ponownie.',
+        invalid_format: 'Wybierz plik .litertlm wskazanego modelu Gemma, a nie plik .task.',
+      };
+      setError(Object.entries(errors).find(([code]) => message.includes(code))?.[1] ?? 'Nie udało się wykonać działania. Sprawdź stan modelu i spróbuj ponownie.');
+    }
     finally { setBusy(false); }
   }
   return { busy, error, run };

@@ -16,7 +16,7 @@ export const statusSchema = z.object({
   available: z.boolean(), notificationAccess: z.boolean(), listenerConnected: z.boolean(),
   monitoringEnabled: z.boolean(), modelState: z.enum(['missing', 'loading', 'ready', 'error']),
   backend: z.enum(['none', 'cpu', 'gpu']), processing: z.boolean(), error: z.string().nullable(), active: z.boolean(),
-  modelSha256: z.string().nullable(), initializationMs: z.number(), promptVersion: z.string(), runtimeVersion: z.string(), notificationPermission: z.boolean(),
+  modelInstalled: z.boolean(), modelSha256: z.string().nullable(), initializationMs: z.number(), promptVersion: z.string(), runtimeVersion: z.string(), notificationPermission: z.boolean(),
 }).strict();
 export type GuardianResult = z.infer<typeof resultSchema>;
 export type GuardianStatus = z.infer<typeof statusSchema>;

@@ -16,7 +16,7 @@ for (const expected of corpus.cases) {
   assert(Number.isFinite(row.latencyMs) && row.latencyMs >= 0);
 }
 assert.match(report.modelSha256, /^[0-9a-f]{64}$/);
-assert.equal(report.promptVersion, 'guardian-pl-v1');
+assert.equal(report.promptVersion, 'guardian-pl-v2');
 assert.equal(report.runtimeVersion, '0.15.0');
 assert.equal(report.metrics.tp + report.metrics.fp + report.metrics.fn + report.metrics.tn, 40);
 console.log('Complete benchmark report; inspect quality metrics and device conditions before acceptance.');

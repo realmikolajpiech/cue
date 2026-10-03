@@ -120,7 +120,7 @@ Propozycja bezpiecznej implementacji: model zwraca enumy; Kotlin buduje wyjaśni
 
 [NotificationListenerService](https://developer.android.com/reference/android/service/notification/NotificationListenerService) wymaga zgody użytkownika w ustawieniach systemowych. Aplikacja nie widzi wiadomości, które nie wygenerowały dostępnego powiadomienia; ukryte treści, polityki urządzenia i zachowanie komunikatora ograniczają pokrycie. Odbiór powiadomień i długotrwała analiza w tle wymagają sprawdzenia na docelowych wersjach Androida oraz przy ograniczeniach baterii.
 
-iOS nie ma analogicznego dostępu aplikacji do powiadomień innych aplikacji. UI można współdzielić, lecz funkcji ochrony nie należy obiecywać na iOS. Własny silnik Android wymaga native build. Model nie jest obecnie dołączony, a fundament nie analizuje prawdziwych wiadomości.
+iOS nie ma analogicznego dostępu aplikacji do powiadomień innych aplikacji. UI można współdzielić, lecz funkcji ochrony nie należy obiecywać na iOS. Własny silnik Android wymaga native build. Model nie jest dołączony do repo ani APK. Analiza powiadomień wymaga instalacji zweryfikowanego artefaktu, gotowego silnika i świadomie udzielonego dostępu.
 
 ## Prywatność
 
@@ -138,6 +138,6 @@ MVP gotowe dopiero, gdy: rzeczywiste powiadomienia tworzą poprawny kontekst bez
 
 ## Stan fundamentów i następny krok
 
-Aktualna implementacja zawiera onboarding, nawigację, konfigurację, kontrakt wyników, lokalny moduł Kotlin, listener, bufor RAM, historię i ostrzeżenia. Adapter LiteRT-LM i korpus benchmarku są przygotowane, lecz integrację Gemmy i pomiary odkładamy zgodnie z decyzją użytkownika. Bez zaimportowanego i zweryfikowanego modelu nie deklarujemy działającej ochrony. Stan testów i ograniczenia opisuje [ARCHITECTURE.md](ARCHITECTURE.md).
+Aktualna implementacja zawiera onboarding, nawigację, konfigurację, kontrakt wyników, lokalny moduł Kotlin, listener, bufor RAM, historię i ostrzeżenia. Adapter LiteRT-LM i korpus benchmarku są przygotowane. Gemma 3 1B IT INT4 ma przypięty artefakt, weryfikację importu, skrypt pozyskania modelu oraz test na urządzeniu; instrukcja w [GEMMA.md](GEMMA.md). Odbiór jakości i pipeline wymaga pomiarów na fizycznym telefonie. Bez zaimportowanego i zweryfikowanego modelu nie deklarujemy działającej ochrony. Stan testów i ograniczenia opisuje [ARCHITECTURE.md](ARCHITECTURE.md).
 
 Kolejność implementacji i kryteria odbioru są w [TASKS.md](TASKS.md). Pierwszym ryzykownym zadaniem jest benchmark modelu na fizycznym telefonie, równolegle z technicznym spike listenera.

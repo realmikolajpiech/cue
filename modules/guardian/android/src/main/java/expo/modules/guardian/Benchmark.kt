@@ -46,7 +46,7 @@ object Benchmark {
       .put("device", "${Build.MANUFACTURER} ${Build.MODEL}").put("androidSdk", Build.VERSION.SDK_INT)
       .put("runtimeVersion", "0.15.0").put("promptVersion", runtime.inference.promptVersion)
       .put("modelSha256", runtime.status()["modelSha256"]).put("backend", runtime.inference.backend)
-      .put("sampler", JSONObject().put("topK", 1).put("topP", 0.9).put("temperature", 0.0))
+      .put("sampler", JSONObject().put("topK", 1).put("topP", 0.9).put("temperature", 1.0))
       .put("maxOutputToken", 256).put("initializationMs", runtime.inference.initializationMs)
       .put("peakObservedPssKb", peakPssKb).put("metrics", metrics(rows)).put("cases", JSONArray(rows))
     java.io.File(runtime.context.noBackupFilesDir, "guardian-benchmark.json").writeText(report.toString(2))

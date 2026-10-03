@@ -23,3 +23,7 @@ Skrypt `node scripts/check-benchmark.mjs benchmarks/report.local.json` sprawdza 
 Precision / recall / false positive rate dotyczą wykryć high. `uncertain` dla scamu liczy się do FN, a nie do sukcesu. Przy braku przewidzianych high precision jest null. `jsonValidity` mierzy odsetek odpowiedzi przyjętych przez walidator; błąd modelu lub timeout daje uncertain i valid=false. p50/p95 są mierzone zegarem monotonicznym. `peakObservedPssKb` to najwyższa próbka PSS po przypadku, nie gwarantowany peak całej inferencji. Wartość należy uzupełnić profilingiem Androida.
 
 Powtórz test po restarcie aplikacji i w trybie samolotowym. Zanotuj model SHA-256, backend, wersję runtime i promptu. Testy GPU/CPU i inne modele wykonuj oddzielnie. Wyniki nie powstaną, jeśli model nie został zaimportowany — brak danych nie jest wynikiem zerowym.
+
+## Zapisany pomiar
+
+[Gemma 3 1B INT4 na Galaxy S22](gemma3-1b-s22.json), 3 października 2026: rzeczywista inferencja CPU w pakiecie testowym bez INTERNET, 40/40 poprawnych JSON, recall 95%, precision 57,6%, false positive rate 70%, p50 11,6 s i p95 13,2 s. Model działa, ale ta konfiguracja nie spełnia docelowej jakości ani szybkości ostrzegania. [Szczegóły weryfikacji](../docs/GEMMA.md).

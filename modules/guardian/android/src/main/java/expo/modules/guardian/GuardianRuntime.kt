@@ -12,7 +12,8 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.BufferOverflow
 import org.json.JSONObject
 import java.io.File
-import java.security.MessageDigest
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.CopyOnWriteArraySet
 import java.util.concurrent.atomic.AtomicLong
 
@@ -24,6 +25,8 @@ class GuardianRuntime private constructor(val context: Context) {
       instance ?: GuardianRuntime(context.applicationContext).also { instance = it }
     }
   }
+  private val modelLifecycle = Mutex()
+  private val model by lazy { GemmaModel.load(context) }
   val inference = GuardianInference()
   val store = ResultStore(context)
   private val preferences = context.getSharedPreferences("guardian", Context.MODE_PRIVATE)
@@ -46,6 +49,7 @@ class GuardianRuntime private constructor(val context: Context) {
   private val alertTimes = mutableMapOf<String, Long>()
   private val sourceTimes = mutableMapOf<String, Long>()
   init {
+    scope.launch { initializeModel(); notifyChanged() }
     scope.launch {
       while (isActive) {
         delay(30_000)
@@ -89,17 +93,34 @@ class GuardianRuntime private constructor(val context: Context) {
   }
   fun connect() {
     connected = true; notifyChanged()
-    if (enabled) scope.launch { inference.initialize(modelFile); notifyChanged() }
+    if (enabled) scope.launch { initializeModel(); notifyChanged() }
   }
-  fun disconnect() { connected = false; stopPending(); notifyChanged(); scope.launch { inference.close(); notifyChanged() } }
+  fun disconnect() { connected = false; stopPending(); notifyChanged(); scope.launch { modelLifecycle.withLock { inference.close() }; notifyChanged() } }
   private fun stopPending() {
     synchronized(gate) { generation.incrementAndGet(); buffer.clear(); removals.clear(); while (queue.tryReceive().isSuccess) {} }
     currentJob?.cancel(); benchmarkJob?.cancel(); inference.cancel()
   }
-  suspend fun setEnabled(value: Boolean) {
+  private suspend fun initializeModel() = modelLifecycle.withLock { initializeVerifiedModel() }
+  private suspend fun initializeVerifiedModel() {
+    if (!modelFile.exists()) return
+    if (inference.state == "ready") return
+    if (!model.verify(modelFile)) {
+      lastError = "model_checksum_mismatch"
+      return
+    }
+    inference.initialize(modelFile)
+    if (inference.state == "ready") {
+      check(preferences.edit().putString("modelSha256", model.sha256).putString("modelId", model.id).commit())
+      lastError = null
+    }
+  }
+  suspend fun setEnabled(value: Boolean) = modelLifecycle.withLock {
+    if (value) {
+      initializeVerifiedModel()
+      check(inference.state == "ready") { "model_not_ready" }
+    }
     synchronized(gate) { check(preferences.edit().putBoolean("monitoring", value).commit()) }
     if (!value) { stopPending(); inference.close() }
-    else inference.initialize(modelFile)
     notifyChanged()
   }
   fun accept(input: NotificationNormalizer.Input) {
@@ -123,38 +144,38 @@ class GuardianRuntime private constructor(val context: Context) {
     notifyChanged()
   }
   suspend fun importModel(uri: String): String = withContext(Dispatchers.IO) {
-    require(Uri.parse(uri).scheme in setOf("content", "file"))
-    setEnabled(false)
-    val temp = File(context.noBackupFilesDir, "guardian-model.part")
-    try {
-      val sha = MessageDigest.getInstance("SHA-256")
-      var count = 0L
-      context.contentResolver.openInputStream(Uri.parse(uri)).use { input ->
-        requireNotNull(input)
-        temp.outputStream().use { output ->
-          val chunk = ByteArray(1024 * 1024)
-          while (true) {
-            ensureActive()
-            val n = input.read(chunk)
-            if (n < 0) break
-            count += n; require(count <= 4L * 1024 * 1024 * 1024)
-            sha.update(chunk, 0, n); output.write(chunk, 0, n)
-          }
-          output.fd.sync()
+    modelLifecycle.withLock {
+      require(Uri.parse(uri).scheme in setOf("content", "file"))
+      check(preferences.edit().putBoolean("monitoring", false).commit())
+      stopPending(); inference.close(); notifyChanged()
+      val temp = File(context.noBackupFilesDir, "guardian-model.part")
+      try {
+        check(context.noBackupFilesDir.usableSpace >= model.sizeBytes + 64L * 1024 * 1024) { "model_insufficient_space" }
+        context.contentResolver.openInputStream(Uri.parse(uri)).use { input ->
+          requireNotNull(input) { "model_file_unreadable" }
+          model.copyVerified(input, temp) { ensureActive() }
         }
+        // The previous installed file survives invalid, incomplete and cancelled imports.
+        check(temp.renameTo(modelFile)) { "model_install_failed" }
+        check(preferences.edit().putString("modelSha256", model.sha256).putString("modelId", model.id).commit())
+        inference.initialize(modelFile)
+        check(inference.state == "ready") { "model_initialization_failed" }
+        lastError = null; notifyChanged()
+        model.sha256
+      } catch (e: CancellationException) {
+        temp.delete(); notifyChanged(); throw e
+      } catch (e: Exception) {
+        temp.delete()
+        lastError = e.message?.takeIf { it in setOf("model_insufficient_space", "model_file_unreadable", "model_size_mismatch", "model_checksum_mismatch", "model_install_failed", "model_initialization_failed") } ?: "model_import_failed"
+        notifyChanged()
+        throw IllegalStateException(lastError)
       }
-      require(count > 1024 * 1024) { "invalid_model_file" }
-      check(temp.renameTo(modelFile))
-      val digest = sha.digest().joinToString("") { "%02x".format(it) }
-      check(preferences.edit().putString("modelSha256", digest).commit())
-      inference.initialize(modelFile); notifyChanged()
-      digest
-    } catch (_: Exception) { temp.delete(); lastError = "model_import_failed"; notifyChanged(); throw IllegalStateException("model_import_failed") }
+    }
   }
   suspend fun benchmark(): String = withContext(Dispatchers.IO) {
     check(benchmarkJob == null) { "benchmark_already_running" }
     setEnabled(false)
-    inference.initialize(modelFile)
+    initializeModel()
     check(inference.state == "ready") { "model_not_ready" }
     benchmarkJob = coroutineContext[Job]
     benchmarkProgress = 0
@@ -168,6 +189,7 @@ class GuardianRuntime private constructor(val context: Context) {
     "monitoringEnabled" to enabled, "modelState" to inference.state, "backend" to inference.backend,
     "processing" to processing, "error" to (lastError ?: inference.error),
     "active" to (enabled && connected && permissionGranted() && inference.state == "ready"),
+    "modelInstalled" to (modelFile.isFile && preferences.getString("modelSha256", null) == model.sha256),
     "modelSha256" to preferences.getString("modelSha256", null), "initializationMs" to inference.initializationMs,
     "promptVersion" to inference.promptVersion, "runtimeVersion" to "0.15.0",
     "notificationPermission" to NotificationManagerCompat.from(context).areNotificationsEnabled(),

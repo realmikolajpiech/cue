@@ -14,7 +14,7 @@ declare class GuardianModule extends NativeModule<{ onChanged: () => void }> {
   requestWarningPermission(): void;
 }
 const native = process.env.EXPO_OS === 'android' ? requireOptionalNativeModule<GuardianModule>('Guardian') : null;
-const unavailable: GuardianStatus = { benchmarkRunning: false, benchmarkProgress: 0, available: false, notificationAccess: false, listenerConnected: false, monitoringEnabled: false, modelState: 'missing', backend: 'none', processing: false, error: null, active: false, modelSha256: null, initializationMs: 0, promptVersion: 'guardian-pl-v1', runtimeVersion: '0.15.0', notificationPermission: false };
+const unavailable: GuardianStatus = { benchmarkRunning: false, benchmarkProgress: 0, available: false, notificationAccess: false, listenerConnected: false, monitoringEnabled: false, modelState: 'missing', backend: 'none', processing: false, error: null, active: false, modelInstalled: false, modelSha256: null, initializationMs: 0, promptVersion: 'guardian-pl-v2', runtimeVersion: '0.15.0', notificationPermission: false };
 function requireGuardian() {
   if (!native) throw new Error('Funkcja wymaga własnego buildu Guardian na Androidzie.');
   return native;

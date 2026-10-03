@@ -3,7 +3,7 @@ package expo.modules.guardian
 import android.app.Notification
 import android.content.Context
 import android.content.ContextWrapper
-import android.os.UserHandle
+import android.os.Process
 import android.service.notification.StatusBarNotification
 import androidx.core.app.NotificationCompat
 import androidx.core.app.Person
@@ -26,7 +26,7 @@ class NativePipelineTest {
     val n = NotificationCompat.Builder(context, "synthetic")
       .setSmallIcon(android.R.drawable.ic_dialog_info).setShortcutId(key).setStyle(style)
       .setGroup("group").setGroupSummary(summary).build()
-    return StatusBarNotification("com.whatsapp", "com.whatsapp", 1, key, 0, 0, n, UserHandle.of(0), System.currentTimeMillis())
+    return StatusBarNotification("com.whatsapp", "com.whatsapp", 1, key, 0, 0, 0, n, Process.myUserHandle(), System.currentTimeMillis())
   }
   @Test fun normalizesMessagingStyleWithoutExportingIdentity() {
     val input = NotificationNormalizer.normalize(notification("Syntetyczna wiadomość"))!!

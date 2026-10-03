@@ -1,6 +1,6 @@
 # Guardian — pozostałe taski dla dwóch osób
 
-Aktualizacja: 3 października 2026. Lista zawiera tylko pracę pozostałą do wykonania lub odbioru. Ukończone elementy opisują [architektura](ARCHITECTURE.md) i historia Git. Priorytet na teraz: aplikacja uruchomiona jako własny build na podłączonym Androidzie. Dokończenie Gemmy i benchmark są odłożone zgodnie z decyzją zespołu.
+Aktualizacja: 3 października 2026. Lista zawiera tylko pracę pozostałą do wykonania lub odbioru. Ukończone elementy opisują [architektura](ARCHITECTURE.md) i historia Git. Priorytet na teraz: aplikacja uruchomiona jako własny build na podłączonym Androidzie. Gemma działa lokalnie na S22, a benchmark ujawnił zbyt wiele fałszywych ostrzeżeń i medianę 11,6 s; pozyskanie i weryfikację artefaktu opisuje [GEMMA.md](GEMMA.md).
 
 ## Podział odpowiedzialności
 
@@ -13,10 +13,10 @@ Wspólny kontrakt znajduje się w `src/types/guardian.ts`, a adapter w `src/serv
 
 ## Osoba 1 — Android i AI
 
-### P0 odłożone do czasu powrotu do Gemmy
+### P0 Gemma i benchmark
 
-- [ ] A01 Dokończyć i zweryfikować Gemma 3 1B na fizycznym telefonie. Kod adaptera LiteRT-LM jest przygotowany, ale nie ma odebranego modelu ani pomiaru. Uzyskać licencjonowany `.litertlm`, potwierdzić SHA-256, wersję artefaktu, działanie GPU/CPU, czas startu i RAM. Odbiór: rzeczywista analiza offline po restarcie. Jeśli jakość za niska, zbadać inny mały model. Dawne R02/N04.
-- [ ] A02 Uruchomić benchmark istniejących 40 przypadków testowych. Raport ma zawierać precision, recall, false positives, uncertain, JSON validity, p50/p95 i próbki PSS; instrukcja w `benchmarks/README.md`. Nie dostrajać promptu na tym zbiorze. Odbiór: rzeczywisty raport z modelu i telefonu, nie symulacja. Zależność: A01. Dawne R03.
+- [ ] A01 Poprawić jakość i czas analizy Gemma 3 1B. Model jest uzyskany, SHA-256 zweryfikowany, CPU działa offline w testowym procesie bez INTERNET i przechodzi ponowną inicjalizację. GPU nie przeszedł walidacji wyjścia. Na S22: start 12,7 s, p50 11,6 s, p95 13,2 s, PSS około 1,20 GiB. Benchmark: 19/20 scamów, ale 14/20 fałszywych ostrzeżeń. Zbadać inny model lub prompt na oddzielnych danych rozwojowych; pełny odbiór po restarcie aplikacji pozostaje. Dawne R02/N04.
+- [x] A02 Uruchomiono rzeczywisty benchmark 40 przypadków na S22. [Raport](../benchmarks/gemma3-1b-s22.json) zawiera precision, recall, false positives, uncertain, JSON validity, p50/p95 i PSS. JSON validity 100%; wynik jakości nie spełnia odbioru ochrony. Nie dostrajać promptu na tym zbiorze. Dawne R03.
 
 ### P0 odbiór pipeline na fizycznym Androidzie
 
@@ -55,6 +55,6 @@ Wspólny kontrakt znajduje się w `src/types/guardian.ts`, a adapter w `src/serv
 
 ## Synchronizacja dwóch osób
 
-1. Teraz: osoba 1 przygotowuje A03/A04 bez prywatnych danych; osoba 2 robi B01–B03. A01/A02 czekają na powrót do Gemmy.
-2. Po powrocie do modelu: osoba 1 robi A01/A02; osoba 2 robi B04/B05/B07 na ustalonym kontrakcie.
+1. Teraz: osoba 1 przygotowuje A03/A04 bez prywatnych danych; osoba 2 robi B01–B03. A02 wykonane; A01 wymaga poprawy jakości i czasu.
+2. Dalsza praca z modelem: osoba 1 poprawia A01 i ponownie ocenia jakość; osoba 2 robi B04/B05/B07 na ustalonym kontrakcie.
 3. Po gotowym pipeline: wspólnie odebrać A04/A05 i B06/B08. Zespół potrzebuje działającego lokalnego modelu do demonstracji ochrony.

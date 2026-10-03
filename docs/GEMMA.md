@@ -1,0 +1,39 @@
+# Gemma on Android
+
+Guardian uses the portable **Gemma 3 1B IT INT4 LiteRT-LM** artifact. The source revision, exact byte size and SHA-256 are pinned in `models/catalog/gemma3-1b.json`; that same manifest is bundled as an Android asset. Weights are ignored by Git and excluded from APK assets.
+
+## Obtain the model
+
+1. Sign in at [the model repository](https://huggingface.co/litert-community/Gemma3-1B-IT) and personally review and accept the Gemma conditions. Access is gated; accepting in a browser does not authenticate the CLI.
+2. Download `gemma3-1b-it-int4.litertlm` (584,417,280 bytes). `Gemma3-1B-IT_multi-prefill-seq_q4_ekv4096.litertlm` contains the same bytes and is also accepted. Do not choose `.task` or a chipset-specific NPU artifact.
+3. Alternatively, configure a read-only `HF_TOKEN` locally or use an existing Hugging Face CLI login, then run:
+
+```sh
+npm run model:download
+npm run model:download -- --push
+```
+
+The script verifies the size and SHA-256 before replacing a local file. `--push` copies it to Downloads on an authorized Android device. `ANDROID_SERIAL` selects a device. Credentials stay on the development computer; never paste tokens into chat or commit them. For a browser download, place the verified file at `models/gemma3-1b-it-int4.litertlm` to reuse the push command without a token.
+
+## Install and run
+
+Use an Android development build, not Expo Go. For local Gradle builds, use Java 21 (Java 25 caused a CMake build-tool error in this environment). In Ochrona, choose **Importuj model .litertlm** and select the downloaded file. Allow roughly 650 MB of free internal space for the private copy, in addition to the downloaded file and any existing installed model. Import pauses monitoring, verifies exact bytes, atomically replaces the file and initializes the CPU backend and checks a harmless assessment before declaring readiness. An invalid or interrupted import preserves the previous model. Initialization errors reject the import instead of reporting success. Inference remains entirely native; private messages never enter JS.
+
+The engine validates and reloads the installed model when the app process starts. Pausing and loss of listener access close the engine. Enable notification access and warning permission yourself, then enable monitoring. Import and benchmark leave monitoring off.
+
+Run the 40-case synthetic benchmark from Ustawienia. See [benchmark instructions](../benchmarks/README.md). Quality on Polish conversations and behavior in real messaging apps require actual measurements; installation alone is not acceptance of the protection pipeline.
+
+## Native verification
+
+```sh
+cd android
+./gradlew :guardian:testDebugUnitTest :guardian:connectedDebugAndroidTest
+```
+
+`GemmaInferenceTest` is opt-in: supply `gemmaModelPath` as an instrumentation runner argument pointing to a readable licensed artifact on the test device. It imports and verifies the actual model, runs a Polish smoke case and all 40 benchmark cases, then checks closing and reinitializing the engine. It does not grant notification-listener access or analyze private notifications.
+
+## Measured baseline — 3 October 2026
+
+The [saved report](../benchmarks/gemma3-1b-s22.json) was produced by the actual model on a Samsung Galaxy S22 (SM-S901B), Android SDK 36, CPU backend. The instrumentation test package has no INTERNET permission. All 40 outputs passed the JSON contract; 19/20 scams and 14/20 benign cases were classified high (recall 95%, precision 57.6%, false-positive rate 70%). Median latency was 11.6 s, p95 13.2 s, initialization 12.7 s, and peak observed PSS about 1.20 GiB. These results establish working offline inference, but fail the intended fast, reliable warning behavior. Do not tune against this evaluation corpus; use separate development examples and evaluate any revised model or prompt independently.
+
+Native verification passed 13 JVM unit tests and 5 device instrumentation tests, including real model import, inference, the benchmark and closing/reinitializing the engine. Lint and TypeScript checks passed. Real notification delivery and the full permission/lifecycle flow still need acceptance on the device.

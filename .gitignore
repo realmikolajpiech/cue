@@ -54,3 +54,10 @@ web-build/
 
 # Local benchmark output
 benchmarks/*.local.json
+
+# Downloaded model weights
+models/*.litertlm
+models/*.part
+
+# Native module build output
+modules/guardian/android/build/

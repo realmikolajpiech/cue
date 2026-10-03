@@ -1,0 +1,12 @@
+{
+  "id": "gemma3-1b-it-int4",
+  "name": "Gemma 3 1B IT · INT4",
+  "repository": "litert-community/Gemma3-1B-IT",
+  "revision": "a6306a4e292016480083b73b8dc6f3f939ae04c3",
+  "filename": "gemma3-1b-it-int4.litertlm",
+  "sizeBytes": 584417280,
+  "sha256": "1325ae366d31950f137c9c357b9fa89448b176d76998180c08ceaca78bba98be",
+  "maxNumTokens": 4096,
+  "licenseUrl": "https://ai.google.dev/gemma/terms",
+  "accessUrl": "https://huggingface.co/litert-community/Gemma3-1B-IT"
+}

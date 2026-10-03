@@ -40,7 +40,8 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
-    "doctor": "npx expo-doctor"
+    "doctor": "npx expo-doctor",
+    "model:download": "node scripts/download-model.mjs"
   },
   "private": true
 }

@@ -1,13 +1,15 @@
 # Guardian
 
 Aplikacja Expo na Androida do lokalnej analizy oznak manipulacji w powiadomieniach.
-Obecnie rozwijamy onboarding, konfigurację, status native i historię. Integracja
-Gemmy jest przygotowana w Kotlinie, ale jej uruchomienie i benchmark odłożone.
-Bez modelu aplikacja działa z nieaktywną ochroną.
+Onboarding, konfiguracja, status native i historia są zaimplementowane. Gemma 3 1B
+INT4 działa w Kotlinie z lokalnym LiteRT-LM, weryfikacją pliku i ograniczeniem
+odpowiedzi do JSON Schema. Bez modelu aplikacja działa z nieaktywną ochroną.
+Instalację opisuje [GEMMA.md](docs/GEMMA.md); pełny odbiór ochrony wymaga testów
+rzeczywistych powiadomień na telefonie.
 
 ## Uruchomienie na podłączonym Androidzie
 
-Wymagany Node.js 22.13+, Android SDK i JDK 17. Telefon musi mieć włączone debugowanie USB.
+Wymagany Node.js 22.13+, Android SDK i JDK 21 (sprawdzony w lokalnym buildzie). Telefon musi mieć włączone debugowanie USB.
 Polecenia wykonuj w głównym katalogu repo.
 
 ```sh
@@ -52,7 +54,7 @@ ANDROID_SERIAL=<serial telefonu> ./android/gradlew -p android :guardian:connecte
 - `src/components` — współdzielone komponenty light/dark.
 - `src/features` — preferencje; `src/services` — most native i odczyty Query.
 - `src/types` — walidacja kontraktu Zod.
-- `modules/guardian` — Android listener, RAM buffer, lokalne wyniki i przygotowana integracja inference.
+- `modules/guardian` — Android listener, RAM buffer, lokalne wyniki i integracja Gemma/LiteRT-LM.
 - `benchmarks` — 40 syntetycznych przypadków i instrukcja pomiarów.
 - [Produkt](docs/PRODUCT.md), [architektura](docs/ARCHITECTURE.md), [pozostałe taski dla dwóch osób](docs/TASKS.md).
 - [Zgodność z challenge](docs/CHALLENGE.md), [zasoby i licencje](docs/RESOURCES.md).
