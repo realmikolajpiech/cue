@@ -9,6 +9,7 @@ declare class SubtextModule extends NativeModule<{ onChanged: () => void }> {
   status(): Promise<string>;
   loadDemo(): Promise<string>;
   conversationWritingStyle(id: string): Promise<string>;
+  conversationMemory(id: string): Promise<string>;
   previewConversationWritingStyle(id: string): Promise<string>;
   writingStyle(): Promise<string>;
   previewWritingStyle(): Promise<string>;
@@ -31,6 +32,8 @@ const unavailable = {
   messenger: { phase: 'NOT_CONFIGURED', detail: '' }, whatsapp: { phase: 'NOT_CONFIGURED', detail: '', pairingCode: null },
 };
 export const subtext = {
+  conversationMemory: async (id: string) => z.object({ conversationId: z.string(), storedMemory: z.record(z.string(), z.unknown()), aiMemory: z.record(z.string(), z.unknown()) })
+    .parse(JSON.parse(await requireSubtext().conversationMemory(id))),
   conversationWritingStyle: async (id: string) => writingStyleSchema.parse(JSON.parse(await requireSubtext().conversationWritingStyle(id))),
   previewConversationWritingStyle: async (id: string) => writingStyleSchema.parse(JSON.parse(await requireSubtext().previewConversationWritingStyle(id))),
   previewWritingStyle: async () => writingStyleSchema.parse(JSON.parse(await requireSubtext().previewWritingStyle())),
@@ -62,6 +65,7 @@ export function SubtextProvider({ children }: { children: ReactNode }) {
         void subtextCache.invalidateQueries({ queryKey: ['subtext', 'rooms'] });
         void subtextCache.invalidateQueries({ queryKey: ['subtext', 'room'] });
         void subtextCache.invalidateQueries({ queryKey: ['subtext', 'writing-style'] });
+        void subtextCache.invalidateQueries({ queryKey: ['subtext', 'memory'] });
       }, 500);
     };
     const subscription = native?.addListener('onChanged', invalidate);

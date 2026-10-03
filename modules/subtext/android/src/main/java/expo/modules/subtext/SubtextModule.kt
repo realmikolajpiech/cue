@@ -25,6 +25,12 @@ class SubtextModule : Module() {
     AsyncFunction("status") { subtextRuntime.status() }
     AsyncFunction("loadDemo") { subtextRuntime.loadDemo() }
     AsyncFunction("conversationWritingStyle") { id: String -> subtextRuntime.writingStyle(id) }
+    AsyncFunction("conversationMemory") { id: String ->
+      requireNotNull(subtextRuntime.store.room(id)) { "Nie znaleziono rozmowy." }
+      val memory = subtextRuntime.store.memory(id)
+      org.json.JSONObject().put("conversationId", id).put("storedMemory", memory)
+        .put("aiMemory", PersonMemory.input(memory)).toString()
+    }
     AsyncFunction("previewConversationWritingStyle") Coroutine { id: String -> subtextRuntime.previewWritingStyle(id) }
     AsyncFunction("writingStyle") { subtextRuntime.writingStyle() }
     AsyncFunction("previewWritingStyle") Coroutine { -> subtextRuntime.previewWritingStyle() }

@@ -2,12 +2,15 @@ import { Alert, Switch, View } from 'react-native';
 import { router } from 'expo-router';
 import { Copy, Row } from '@/components/ui';
 import { useDemo } from '@/features/demo/store';
+import { usePreferences } from '@/features/preferences';
 import { subtext, subtextCache, useSubtextStatus, useSubtextAction } from '@/services/subtext';
 import { Page, Button, Disclosure, ErrorText, ui } from './components';
 
 export default function Settings() {
   const { data: status } = useSubtextStatus(); const action = useSubtextAction();
   const dark = useDemo(s => s.dark); const toggleTheme = useDemo(s => s.toggleTheme);
+  const developerMode = usePreferences(state => state.developerMode);
+  const toggleDeveloperMode = usePreferences(state => state.toggleDeveloperMode);
   return <Page>
     <Button label="Połączone konta" secondary onPress={() => router.push('/connections')} />
     <Disclosure label="Klawiatura">
@@ -23,6 +26,7 @@ export default function Settings() {
       }} /></Row>
     <Copy style={ui.small}>Klucz AI jest przechowywany bezpiecznie na serwerze. Nie musisz wpisywać go na telefonie.</Copy>
     <Row style={{ justifyContent: 'space-between' }}><Copy style={ui.body}>Ciemny motyw</Copy><Switch accessibilityLabel="Ciemny motyw" value={dark} onValueChange={toggleTheme} /></Row>
+    <Row style={{ justifyContent: 'space-between' }}><Copy style={ui.body}>Tryb deweloperski</Copy><Switch accessibilityLabel="Tryb deweloperski" value={developerMode} onValueChange={toggleDeveloperMode} /></Row>
     <Disclosure label="Dane i prywatność">
       <Copy style={ui.small}>Analiza przesyła przez Supabase do DeepSeek ostatnie 80 wiadomości, pamięć czatu i Twój szkic. Po włączeniu AI kontekst prywatnych rozmów uzupełnia się też automatycznie w partiach. Styl aktualizuje się lokalnie po synchronizacji. Cue nie wysyła odpowiedzi za Ciebie.</Copy>
       <Button label="Wyczyść dane Cue" secondary disabled={!status?.available || action.isPending} onPress={() => Alert.alert('Wyczyścić dane?', 'Usuniesz lokalne wiadomości i profile. Synchronizacja może pobrać wiadomości ponownie.', [

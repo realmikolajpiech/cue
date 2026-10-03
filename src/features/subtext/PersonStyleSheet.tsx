@@ -3,10 +3,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Copy } from '@/components/ui';
 import { useTheme } from '@/theme/useTheme';
 import WritingStyle from './WritingStyle';
+import ConversationMemory from './ConversationMemory';
+import { usePreferences } from '@/features/preferences';
 
-export default function PersonStyleSheet({ id, name, visible, onClose }: {
-  id: string; name: string; visible: boolean; onClose: () => void;
+export default function PersonStyleSheet({ id, name, visible, onClose, memory = false }: {
+  id: string; name: string; visible: boolean; onClose: () => void; memory?: boolean;
 }) {
+  const developerMode = usePreferences(state => state.developerMode);
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   return <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
@@ -22,7 +25,7 @@ export default function PersonStyleSheet({ id, name, visible, onClose }: {
           style={{ alignSelf: 'flex-end', minHeight: 44, justifyContent: 'center', paddingHorizontal: 24 }}>
           <Copy>Zamknij</Copy>
         </Pressable>
-        {visible && <WritingStyle roomId={id} personName={name} />}
+        {visible && (memory && developerMode ? <ConversationMemory id={id} name={name} /> : <WritingStyle roomId={id} personName={name} />)}
       </View>
     </View>
   </Modal>;
