@@ -18,7 +18,7 @@ export function IconButton({ name, label, onPress }: { name: IconName; label: st
     <Icon name={name} size={30} />
   </Pressable>;
 }
-export function Screen({ children, title, header = true, back = false }: { children: ReactNode; title?: string; header?: boolean; back?: boolean }) {
+export function Screen({ children, title, header = true, back = false, centered = false }: { children: ReactNode; title?: string; header?: boolean; back?: boolean; centered?: boolean }) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   return <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -29,7 +29,7 @@ export function Screen({ children, title, header = true, back = false }: { child
         </Pressable> : <Row style={{ gap: 8 }}><Icon name="shield" size={28} /><Text style={{ color: colors.text, fontSize: 27, fontFamily: 'ManropeBold', letterSpacing: -1 }}>guardian.</Text></Row>}
         {!back && <IconButton name="settings" label="Otwórz ustawienia" onPress={() => router.push('/settings')} />}
       </Row>}
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 20, paddingTop: header || back ? 12 : 24, gap: 24, paddingBottom: insets.bottom + 32 }}>
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 20, paddingTop: centered ? 20 : header || back ? 12 : 24, gap: 24, paddingBottom: centered ? 20 : insets.bottom + 32, ...(centered ? { flexGrow: 1, justifyContent: 'center' as const } : {}) }}>
         {title && <Copy title accessibilityRole="header">{title}</Copy>}{children}
       </ScrollView>
     </View>
