@@ -51,6 +51,26 @@ class ConversationRemindersTest {
     assertTrue(runCatching { ConversationReminders.dueAt("2026-10-05T18:00:00") }.isFailure)
   }
 
+  @Test fun undatedDebtsInBothDirectionsStayOpenAndSeparateUntilSettled() {
+    val memory = JSONObject()
+    add(memory, change(kind = "commitment", date = "", text = "Masz oddać rozmówcy 20 zł").put("owner", "me"))
+    add(memory, change(kind = "commitment", date = "", text = "Rozmówca ma oddać Ci 50 zł").put("owner", "other"))
+    val reopened = JSONObject(memory.toString())
+    val entries = ConversationReminders.overview(reopened, Instant.parse("2036-10-03T12:00:00Z").toEpochMilli())
+    assertEquals(2, entries.length())
+    val own = (0 until entries.length()).map { entries.getJSONObject(it) }.first { it.getString("owner") == "me" }
+    val other = (0 until entries.length()).map { entries.getJSONObject(it) }.first { it.getString("owner") == "other" }
+    assertEquals("open", own.getString("effectiveStatus"))
+    assertEquals("open", other.getString("effectiveStatus"))
+    add(reopened, change(kind = "commitment", date = "", text = "Masz oddać rozmówcy jeszcze 10 zł", replace = own.getString("id")).put("owner", "me"))
+    assertEquals(2, reopened.getJSONArray("reminders").length())
+    add(reopened, change(kind = "commitment", date = "", text = "Dług 20 zł spłacony", status = "done", replace = own.getString("id")).put("owner", "me"))
+    val remaining = ConversationReminders.overview(reopened, Long.MAX_VALUE)
+    assertEquals("other", remaining.getJSONObject(0).getString("owner"))
+    assertEquals("open", remaining.getJSONObject(0).getString("effectiveStatus"))
+    assertEquals("done", remaining.getJSONObject(1).getString("effectiveStatus"))
+  }
+
   @Test fun rejectsUnsupportedEvidenceAndMalformedDatesAndOwners() {
     val memory = JSONObject()
     add(memory, change().put("evidenceIds", JSONArray().put("invented")))

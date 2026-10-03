@@ -1,4 +1,4 @@
-import { PROMPT, MEMORY_PROMPT, NO_REPLY_PROMPT, REMINDERS_PROMPT } from './prompt.ts';
+import { PROMPT, MEMORY_PROMPT, NO_REPLY_PROMPT, REMINDERS_PROMPT, CURRENT_THREAD_PROMPT } from './prompt.ts';
 import { messageTime } from './message-time.ts';
 
 const cors = {
@@ -79,7 +79,7 @@ Deno.serve(async (req: Request) => {
       method: 'POST', headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
       signal: AbortSignal.timeout(55000),
       body: JSON.stringify({ model, thinking: { type: 'disabled' }, response_format: { type: 'json_object' }, max_tokens: 4500,
-        messages: [{ role: 'system', content: PROMPT + MEMORY_PROMPT + NO_REPLY_PROMPT + REMINDERS_PROMPT }, { role: 'user', content: JSON.stringify({ messages, draft: input.draft,
+        messages: [{ role: 'system', content: PROMPT + MEMORY_PROMPT + NO_REPLY_PROMPT + REMINDERS_PROMPT + CURRENT_THREAD_PROMPT }, { role: 'user', content: JSON.stringify({ messages, draft: input.draft,
           personMemory, styleInput, memoryOnly: input.memoryOnly === true }) }] }),
     });
     if (!response.ok) return reply([402, 429].includes(response.status) ? response.status : 502, { error: 'upstream_unavailable' });

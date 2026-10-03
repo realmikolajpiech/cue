@@ -56,7 +56,7 @@ export default function ConversationReminders({ id, ready, busy, demo, hasMessag
       style={({ pressed }) => ({ paddingVertical: 10, gap: 4, opacity: pressed ? .6 : 1 })}>
       <Row style={{ alignItems: 'flex-start', gap: 10 }}><Icon name={item.effectiveStatus === 'done' ? 'check' : 'history'} size={18} color={colors.accent} />
         <View style={{ flex: 1, gap: 4 }}><Copy selectable style={[ui.body, { color: colors.text }]}>{item.text}</Copy>
-          <Copy style={ui.small}>{item.owner === 'me' ? 'Ty' : item.owner === 'other' ? 'Rozmówca' : 'Obie osoby'} · {labels[item.effectiveStatus]}{item.dueDate ? ` · ${dateLabel(item.dueDate)}` : ''}</Copy>
+          <Copy style={ui.small}>{item.owner === 'me' ? 'Po Twojej stronie' : item.owner === 'other' ? 'Po stronie rozmówcy' : 'Wspólna sprawa'} · {labels[item.effectiveStatus]}{item.dueDate ? ` · ${dateLabel(item.dueDate)}` : ''}</Copy>
         </View><Icon name="chevron" size={16} color={colors.secondaryText} /></Row>
     </Pressable>;
   }

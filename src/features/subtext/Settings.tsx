@@ -34,7 +34,7 @@ export default function Settings() {
     <Row style={{ justifyContent: 'space-between' }}><Copy style={ui.body}>Analiza AI</Copy><Switch accessibilityLabel="Analiza AI" thumbColor={colors.surface} trackColor={{ false: colors.border, true: colors.accent }} value={status?.cloudEnabled ?? false} disabled={!status?.available || action.isPending}
       onValueChange={enabled => {
         if (!enabled) { action.mutate(() => subtext.cloud(false)); return; }
-        Alert.alert('Włączyć analizę AI?', 'Supabase przekaże do DeepSeek do 80 ostatnich wiadomości, nazwy nadawców, szkic i pamięć wybranego czatu. Pamięć kontekstu prywatnych rozmów będzie też automatycznie uzupełniana w partiach po synchronizacji. Cechy stylu i częste zwroty liczymy na telefonie.', [
+        Alert.alert('Włączyć analizę AI?', 'Supabase przekaże do DeepSeek do 80 ostatnich wiadomości, nazwy nadawców, szkic i pamięć wybranego czatu. Pamięć i lista „Warto pamiętać” będą automatycznie aktualizowane po nowych wiadomościach wysłanych i odebranych. Wiadomości wysłane jedna po drugiej analizujemy razem. Cechy stylu i częste zwroty liczymy na telefonie.', [
           { text: 'Anuluj', style: 'cancel' }, { text: 'Włącz', onPress: () => action.mutate(() => subtext.cloud(true)) },
         ]);
       }} /></Row>
@@ -42,7 +42,7 @@ export default function Settings() {
     <Row style={{ justifyContent: 'space-between' }}><Copy style={ui.body}>Ciemny motyw</Copy><Switch accessibilityLabel="Ciemny motyw" thumbColor={colors.surface} trackColor={{ false: colors.border, true: colors.accent }} value={dark} onValueChange={toggleTheme} /></Row>
     <Row style={{ justifyContent: 'space-between' }}><Copy style={ui.body}>Tryb deweloperski</Copy><Switch accessibilityLabel="Tryb deweloperski" thumbColor={colors.surface} trackColor={{ false: colors.border, true: colors.accent }} value={developerMode} onValueChange={toggleDeveloperMode} /></Row>
     <Disclosure label="Dane i prywatność">
-      <Copy style={ui.small}>Analiza przesyła przez Supabase do DeepSeek ostatnie 80 wiadomości, pamięć czatu i Twój szkic. Po włączeniu AI kontekst prywatnych rozmów uzupełnia się też automatycznie w partiach. Styl aktualizuje się lokalnie po synchronizacji. Cue nie wysyła odpowiedzi za Ciebie.</Copy>
+      <Copy style={ui.small}>Analiza przesyła przez Supabase do DeepSeek ostatnie 80 wiadomości, pamięć czatu i Twój szkic. Po włączeniu AI pamięć i lista „Warto pamiętać” aktualizują się automatycznie po nowych wiadomościach wysłanych i odebranych, po krótkiej przerwie w pisaniu. Styl aktualizuje się lokalnie po synchronizacji. Cue nie wysyła odpowiedzi za Ciebie.</Copy>
       <Button label="Wyczyść dane Cue" secondary disabled={!status?.available || action.isPending} onPress={() => Alert.alert('Wyczyścić dane?', 'Usuniesz lokalne wiadomości i profile. Synchronizacja może pobrać wiadomości ponownie.', [
         { text: 'Anuluj', style: 'cancel' }, { text: 'Wyczyść', style: 'destructive', onPress: () => action.mutate(async () => { await subtext.clear(); subtextCache.removeQueries({ queryKey: ['subtext', 'room'] }); }) },
       ])} />

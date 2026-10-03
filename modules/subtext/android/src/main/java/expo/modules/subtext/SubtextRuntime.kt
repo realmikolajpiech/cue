@@ -7,7 +7,9 @@ import expo.modules.subtext.device.ConversationKind
 import expo.modules.subtext.messenger.MessengerRepository
 import expo.modules.subtext.whatsapp.WhatsAppRepository
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.json.JSONArray
@@ -27,6 +29,7 @@ class SubtextRuntime private constructor(private val context: Context) {
   val observers = CopyOnWriteArraySet<() -> Unit>()
   private val analysisMutex = Mutex()
   private val generation = AtomicLong()
+  private val memoryRequests = Channel<Unit>(Channel.CONFLATED)
   @Volatile var analyzing: String? = null
     private set
   init {
@@ -50,7 +53,7 @@ class SubtextRuntime private constructor(private val context: Context) {
         store.merge("messenger", id, room.name, room.kind.name, messages.map {
           message(it.id, it.senderName, it.text, it.timestamp, it.isMe)
         })
-      }; store.flush(); changed()
+      }; store.flush(); changed(); memoryRequests.trySend(Unit)
     } }
     scope.launch { whatsapp.messages.debounce(500).collect { chats ->
       chats.forEach { (id, messages) ->
@@ -59,8 +62,14 @@ class SubtextRuntime private constructor(private val context: Context) {
         store.merge("whatsapp", id, room.name, room.kind.name, messages.map {
           message(it.id, it.senderName, it.text, it.timestamp, it.isMe)
         })
-      }; store.flush(); changed()
+      }; store.flush(); changed(); memoryRequests.trySend(Unit)
     } }
+    scope.launch {
+      memoryRequests.receiveAsFlow().debounce(MemoryAutoUpdate.QUIET_MS).collect {
+        if (prefs.getBoolean("cloud", false)) updatePendingMemory()
+      }
+    }
+    memoryRequests.trySend(Unit)
     scope.launch {
       while (isActive) {
         delay(30_000)
@@ -100,6 +109,7 @@ class SubtextRuntime private constructor(private val context: Context) {
       else whatsapp.readMessages(remote, 100).map { message(it.id, it.senderName, it.text, it.timestamp, it.isMe) }
     store.merge(network, remote, room.getString("name"), room.getString("kind"), messages)
     store.flush()
+    memoryRequests.trySend(Unit)
     val result = requireNotNull(store.room(id))
     if (result.getJSONArray("messages").length() == 0) {
       result.put("historyNotice", if (network == "messenger" && messenger.isEncrypted(remote))
@@ -130,7 +140,10 @@ class SubtextRuntime private constructor(private val context: Context) {
       profile.toString()
     } finally { analyzing = null; changed() }
   }
-  fun cloud(enabled: Boolean) { generation.incrementAndGet(); prefs.edit().putBoolean("cloud", enabled).apply(); changed() }
+  fun cloud(enabled: Boolean) {
+    generation.incrementAndGet(); prefs.edit().putBoolean("cloud", enabled).apply(); changed()
+    if (enabled) memoryRequests.trySend(Unit)
+  }
   suspend fun refreshReminders(id: String): String = analysisMutex.withLock {
     check(prefs.getBoolean("cloud", false)) { "Włącz analizę AI w ustawieniach, aby uzupełnić listę." }
     val token = generation.get()
@@ -150,42 +163,31 @@ class SubtextRuntime private constructor(private val context: Context) {
     } finally { analyzing = null; changed() }
   }
   private suspend fun updatePendingMemory() {
-    val now = System.currentTimeMillis()
-    val day = now / 86_400_000
-    val used = if (prefs.getLong("memoryDay", -1) == day) prefs.getInt("memoryCalls", 0) else 0
-    if (used >= 6) return
-    val eligible = store.rooms().filterNot { it.optBoolean("demo") }.firstOrNull { room ->
-      val memory = store.memory(room.getString("id"))
-      val pending = memory.optLong("revision") - memory.optLong("analyzedRevision")
-      val bootstrap = memory.optInt("reminderVersion") < 1 && memory.optLong("revision") >= 8
-      (bootstrap || pending >= (if (memory.optLong("contextUpdatedAt") == 0L) 8 else 20)) &&
-        now - maxOf(memory.optLong("contextUpdatedAt"), memory.optLong("attemptedAt")) >= 900_000
-    }
-    if (eligible == null) return
-    analysisMutex.withLock {
-      if (!prefs.getBoolean("cloud", false)) return@withLock
+    // Server quota still applies. A daily-limit error pauses retries until the next UTC day.
+    val rooms = store.rooms().filterNot { it.optBoolean("demo") }
+    for (candidate in rooms) analysisMutex.withLock {
+      val now = System.currentTimeMillis()
+      if (!prefs.getBoolean("cloud", false) || now < prefs.getLong("memoryQuotaRetryAt", 0)) return@withLock
       val token = generation.get()
-      val id = eligible.getString("id")
+      val id = candidate.getString("id")
       val room = store.room(id) ?: return@withLock
       val memory = store.memory(id)
-      val pending = memory.optLong("revision") - memory.optLong("analyzedRevision")
-      val bootstrap = memory.optInt("reminderVersion") < 1 && memory.optLong("revision") >= 8
-      if (!bootstrap && pending < (if (memory.optLong("contextUpdatedAt") == 0L) 8 else 20)) return@withLock
+      if (!MemoryAutoUpdate.eligible(memory, now)) return@withLock
       val all = room.getJSONArray("messages")
       val recent = JSONArray((maxOf(0, all.length() - 80) until all.length()).map { all.getJSONObject(it) })
       if (recent.length() == 0) return@withLock
       analyzing = id; changed()
-      prefs.edit().putLong("memoryDay", day).putInt("memoryCalls", used + 1).apply()
       try {
         val profile = DeepSeek.analyze(gateway, recent, "", memory, memoryOnly = true)
         if (token == generation.get() && prefs.getBoolean("cloud", false)) {
           store.updateContext(id, profile.getJSONArray("memoryUpdates"), recent, memory.optLong("revision"),
-        profile.getJSONArray("reminderUpdates"), memory.optJSONArray("reminders") ?: JSONArray())
+            profile.getJSONArray("reminderUpdates"), memory.optJSONArray("reminders") ?: JSONArray())
         }
       } catch (error: CancellationException) { throw error }
       catch (error: Exception) {
         if (token == generation.get()) store.contextFailed(id, error.message ?: "Nie udało się uzupełnić kontekstu. Spróbujemy ponownie.")
-        if (error.message?.contains("limit analiz") == true) prefs.edit().putLong("memoryDay", day).putInt("memoryCalls", 6).apply()
+        if (token == generation.get() && error.message?.contains("limit analiz") == true)
+          prefs.edit().putLong("memoryQuotaRetryAt", (now / 86_400_000 + 1) * 86_400_000).apply()
       } finally { analyzing = null; changed() }
     }
   }
