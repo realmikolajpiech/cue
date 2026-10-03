@@ -91,7 +91,7 @@ Proponowany bufor: do 5 wiadomości, TTL 15 minut, tylko RAM; ograniczona liczba
 
 Expo używa TypeScript i Expo Router. Propozycja dla dalszej implementacji: Zustand do małych preferencji i TanStack Query do asynchronicznego statusu mostu, jeśli skala funkcji je uzasadni. Te biblioteki nie są częścią obecnego szkieletu. Historia rzeczywistych wyników wymaga lokalnego magazynu i polityki retencji.
 
-Planowany lokalny moduł Expo powinien powstać w `expo-app/modules/guardian`; obecny szkielet jeszcze go nie zawiera. Wygenerowane katalogi `android/` i `ios/` są produktami CNG, a nie źródłem implementacji. Własny kod native znajduje się w module. Expo Go pozwala obejrzeć UI, ale własny moduł wymaga development build.
+Planowany lokalny moduł Expo powinien powstać w `modules/guardian`; obecny szkielet jeszcze go nie zawiera. Wygenerowane katalogi `android/` i `ios/` są produktami CNG, a nie źródłem implementacji. Własny kod native znajduje się w module. Expo Go pozwala obejrzeć UI, ale własny moduł wymaga development build.
 
 ## Model i wynik
 

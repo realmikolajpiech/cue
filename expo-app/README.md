@@ -6,10 +6,9 @@ light/dark i jeden ekran startowy. Funkcje produktu nie są jeszcze zaimplemento
 
 ## Uruchomienie
 
-Wymagany Node.js 22.13 lub nowszy.
+Wymagany Node.js 22.13 lub nowszy. Polecenia wykonuj w katalogu `expo-app`.
 
 ```sh
-cd expo-app
 npm ci
 npm start
 ```
@@ -28,12 +27,12 @@ npm run doctor
 
 ## Struktura
 
-- `expo-app/src/app` — routing i ekrany.
-- `expo-app/src/components` — współdzielone komponenty.
-- `expo-app/src/features` — przyszłe funkcje produktu.
-- `expo-app/src/services` — przyszłe integracje.
-- `expo-app/src/theme` — kolory i odstępy.
-- `expo-app/src/types` — przyszłe wspólne typy.
+- `src/app` — routing i ekrany.
+- `src/components` — współdzielone komponenty.
+- `src/features` — przyszłe funkcje produktu.
+- `src/services` — przyszłe integracje.
+- `src/theme` — kolory i odstępy.
+- `src/types` — przyszłe wspólne typy.
 - [Dokument produktu](docs/PRODUCT.md) — założenia, zakres, architektura i ograniczenia.
 - [Taski](docs/TASKS.md) — priorytety, zależności i kryteria odbioru.
 
