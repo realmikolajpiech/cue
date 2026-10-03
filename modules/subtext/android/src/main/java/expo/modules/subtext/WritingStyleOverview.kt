@@ -2,12 +2,24 @@ package expo.modules.subtext
 
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.Locale
 
 /** Local, authentic examples. Never substitute invented replies for the user's voice. */
 internal fun writingStyleOverview(rooms: List<JSONObject>): JSONObject {
   val real = rooms.filterNot { it.optBoolean("demo") }
   val samples = DeepSeek.generalWritingHistory(real)
   val texts = (0 until samples.length()).map { samples.getJSONObject(it).getString("text") }
+  val phraseCounts = mutableMapOf<String, Int>()
+  texts.forEach { text ->
+    val words = Regex("[\\p{L}]+(?:['’][\\p{L}]+)?").findAll(text.lowercase(Locale.ROOT)).map { it.value }.toList()
+    val terms = mutableSetOf<String>()
+    if (text.length <= 80) terms.add(text.trim().lowercase(Locale.ROOT))
+    for (size in 2..3) words.windowed(size).forEach { terms.add(it.joinToString(" ")) }
+    terms.filter { it.length in 3..80 }.forEach { phraseCounts[it] = (phraseCounts[it] ?: 0) + 1 }
+  }
+  val phrases = phraseCounts.entries.filter { it.value >= 3 }
+    .sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key }).take(10)
+    .map { JSONObject().put("text", it.key).put("count", it.value) }
   val habits = mutableListOf<String>()
   if (texts.size >= 5) {
     if (texts.count { it.length <= 60 } * 2 >= texts.size) habits.add("Krótkie wiadomości")
@@ -41,5 +53,5 @@ internal fun writingStyleOverview(rooms: List<JSONObject>): JSONObject {
       val history = room.optJSONArray("messages") ?: JSONArray()
       (0 until history.length()).any { history.getJSONObject(it).optBoolean("isMe") }
     }).put("summary", profile?.getJSONObject("writingStyle")?.optString("general") ?: "")
-    .put("habits", JSONArray(habits)).put("examples", JSONArray(examples))
+    .put("phrases", JSONArray(phrases)).put("habits", JSONArray(habits)).put("examples", JSONArray(examples))
 }

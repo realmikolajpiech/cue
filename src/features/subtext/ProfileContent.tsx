@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Keyboard, Pressable, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { useMutation } from '@tanstack/react-query';
@@ -28,11 +28,18 @@ export default function ProfileContent({ id }: { id: string }) {
   const query = useRoom(id); const room = query.data;
   const { data: status } = useSubtextStatus(); const { colors } = useTheme();
   const phase = room ? status?.[room.network].phase : undefined;
-  const sync = useSyncRoom(id, phase === 'CONNECTED' && !room?.demo);
-  const draft = useRef(''); const [tab, setTab] = useState<'context' | 'reply'>('context');
-  const [initialDraft, setInitialDraft] = useState('');
+  const sync = useSyncRoom(id, phase === 'CONNECTED' && !room?.demo && !!room?.messages && room.messages.length === 0);
+  const draft = useRef(room?.profile?.replyDraft ?? ''); const [tab, setTab] = useState<'context' | 'reply'>('context');
+  const [initialDraft, setInitialDraft] = useState(room?.profile?.replyDraft ?? '');
   function changeTab(value: 'context' | 'reply') { Keyboard.dismiss(); if (value === 'reply') setInitialDraft(draft.current); setTab(value); }
-  const [replies, setReplies] = useState<Profile | null>(null);
+  const [replies, setReplies] = useState<Profile | null>(room?.profile ?? null);
+  const edited = useRef(false);
+  useEffect(() => {
+    if (edited.current || !room?.profile) return;
+    draft.current = room.profile.replyDraft ?? '';
+    setInitialDraft(room.profile.replyDraft ?? '');
+    setReplies(room.profile);
+  }, [room?.profile]);
   const [copied, setCopied] = useState<number | null>(null); const [copyError, setCopyError] = useState<unknown>();
   const analysis = useMutation({
     mutationFn: ({ draft: text }: { kind: 'context' | 'reply'; draft: string }) => subtext.analyze(id, text),
@@ -116,8 +123,8 @@ export default function ProfileContent({ id }: { id: string }) {
       <View style={{ gap: 8 }}>
         <Row style={{ gap: 10 }}><CueMascot size={48} /><View style={{ flex: 1, gap: 2 }}><Copy style={[ui.small, { color: colors.accent }]}>Znajdźmy Twoje słowa</Copy><Copy title style={ui.title}>Co chcesz przekazać?</Copy></View></Row>
         <Copy style={ui.body}>Napisz krótko, jaki jest Twój cel. Cue zaproponuje odpowiedzi w Twoim stylu.</Copy>
-        <Field accessibilityLabel="Cel odpowiedzi" placeholder="Np. potwierdź spotkanie i zapytaj o godzinę" multiline defaultValue={initialDraft}
-          style={{ minHeight: 112, textAlignVertical: 'top' }} onChangeText={text => { draft.current = text; setReplies(null); setCopied(null); }} />
+        <Field key={initialDraft} accessibilityLabel="Cel odpowiedzi" placeholder="Np. potwierdź spotkanie i zapytaj o godzinę" multiline defaultValue={initialDraft}
+          style={{ minHeight: 112, textAlignVertical: 'top' }} onChangeText={text => { edited.current = true; draft.current = text; setReplies(null); setCopied(null); }} />
       </View>
       <Button label={analysis.isPending && analysis.variables.kind === 'reply' ? 'Przygotowuję odpowiedzi…' : replies ? 'Zaproponuj inne odpowiedzi' : 'Zaproponuj odpowiedzi'}
         disabled={!ready || busy || !hasMessages} onPress={() => { Keyboard.dismiss(); setCopyError(undefined); analysis.mutate({ kind: 'reply', draft: draft.current }); }} />

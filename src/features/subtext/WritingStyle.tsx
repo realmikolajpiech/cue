@@ -57,9 +57,16 @@ export default function WritingStyle({ roomId, personName, isExample = false }: 
           <Copy style={[ui.small, { color: colors.text }]}>{habit}</Copy>
         </View>)}</View> : <Copy style={ui.small}>{isExample ? 'Twój styl poznam z Twoich prawdziwych rozmów.' : style.sampleCount ? 'Potrzebuję jeszcze kilku Twoich wiadomości.' : roomId ? 'Zsynchronizuj rozmowę, żeby poznać swój styl.' : 'Połącz konto, żeby poznać swój styl.'}</Copy>}
         {!!style.sampleCount && <Copy style={ui.small}>{style.sampleCount} Twoich wiadomości{!roomId && ` · ${style.conversationCount} rozmów`}</Copy>}
-        {!!style.phrases?.length && <Disclosure label="Częste zwroty" small><View style={styles.tags}>{style.phrases.map(phrase =>
-          <View key={phrase.text} style={[styles.tag, { backgroundColor: colors.secondary }]}><Copy selectable style={ui.small}>{phrase.text} · {phrase.count}×</Copy></View>)}</View></Disclosure>}
         {!roomId && !style.sampleCount && <Button label="Połącz konto" onPress={() => router.push('/connections')} />}
+      </Card>
+
+      <Card style={styles.card}>
+        <Copy style={[styles.title, { color: colors.text }]}>Najczęstsze zwroty</Copy>
+        <Copy style={ui.small}>Z prawdziwych wiadomości · liczba wiadomości zawierających zwrot.</Copy>
+        {style.phrases?.length ? <View style={styles.tags}>{style.phrases.map(phrase =>
+          <View key={phrase.text} style={[styles.tag, { backgroundColor: colors.secondary }]}>
+            <Copy selectable style={[ui.small, { color: colors.text }]}>{phrase.text} · {phrase.count}×</Copy>
+          </View>)}</View> : <Copy style={ui.small}>Zwroty pojawią się, gdy powtórzą się w co najmniej 3 wiadomościach.</Copy>}
       </Card>
 
       {roomId && !isExample && <Card style={styles.card}>
@@ -72,17 +79,19 @@ export default function WritingStyle({ roomId, personName, isExample = false }: 
         {!!style.contextError && <Copy accessibilityRole="alert" style={[ui.small, { color: colors.warning }]}>Aktualizacja się nie udała. Spróbujemy ponownie.</Copy>}
       </Card>}
 
-      {!!examples.length && <Card style={styles.card}>
-        <Copy style={[styles.title, { color: colors.text }]}>{style.generated ? 'Przykłady AI' : 'Twoje wiadomości'}</Copy>
-        <Exchanges examples={examples.slice(0, 2)} />
-        {examples.length > 2 && <Disclosure label={`Więcej przykładów (${examples.length - 2})`} small><Exchanges examples={examples.slice(2)} /></Disclosure>}
-      </Card>}
+      <Card style={styles.card}>
+        <Copy style={[styles.title, { color: colors.text }]}>Przykładowe odpowiedzi</Copy>
+        <Copy style={ui.small}>Te same 6 wiadomości dla każdego stylu, żeby łatwo porównać odpowiedzi.</Copy>
+        {style.previewExamples?.length ? <>
+          <Copy style={[ui.small, { color: colors.accent }]}>Wygenerowane w tym stylu</Copy>
+          <Exchanges examples={style.previewExamples.slice(0, 3)} />
+          {style.previewExamples.length > 3 && <Disclosure label="Zobacz więcej" small><Exchanges examples={style.previewExamples.slice(3)} /></Disclosure>}
+        </> : <Copy style={ui.small}>Wygeneruj odpowiedzi na przywitanie, zaproszenie, dobrą wiadomość, ciężki dzień, spóźnienie i plany na weekend.</Copy>}
+      </Card>
 
-      {!!style.previewExamples?.length && <Card style={styles.card}>
-        <Copy style={[styles.title, { color: colors.text }]}>Przykłady AI</Copy>
-        <Exchanges examples={style.previewExamples.slice(0, 2)} />
-        {style.previewExamples.length > 2 && <Disclosure label="Więcej przykładów" small><Exchanges examples={style.previewExamples.slice(2)} /></Disclosure>}
-      </Card>}
+      {!!examples.length && <Disclosure label="Wiadomości z rozmów" small>
+        <Exchanges examples={examples} />
+      </Disclosure>}
 
       {style.sampleCount >= 5 && <>
         {status?.cloudEnabled ? <Button label={preview.isPending ? 'Przygotowuję przykłady…' : style.generated || style.previewExamples?.length ? 'Odśwież przykłady AI' : 'Zobacz przykłady AI'}

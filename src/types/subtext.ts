@@ -5,6 +5,7 @@ export type Network = z.infer<typeof networkSchema>;
 export const messageSchema = z.object({ id: z.string(), sender: z.string(), text: z.string(), timestamp: z.number(), isMe: z.boolean() });
 const evidenceSchema = z.object({ text: z.string(), evidenceIds: z.array(z.string()) });
 export const profileSchema = z.object({
+  replyDraft: z.string().optional(),
   summary: z.string(), beforeReply: z.string(), observations: z.array(evidenceSchema), commitments: z.array(evidenceSchema),
   suggestions: z.array(z.object({ tone: z.string(), text: z.string() })), createdAt: z.number(), model: z.string(), messageCount: z.number(),
 });

@@ -49,7 +49,7 @@ są szyfrowane przez Android Keystore. Sesje nie służą do zapisu rozmów.
 Backend: `supabase/functions/deepseek-analyze`. Weryfikuje sesję, ogranicza
 rozmiar żądania i wywołuje DeepSeek. Rozmowy i odpowiedzi nie są zapisywane
 w bazie ani logowane przez funkcję. Prywatna tabela przechowuje wyłącznie
-liczniki: 20 prób analizy dziennie na sesję i 200 dla projektu; liczniki
+liczniki: 500 prób analizy dziennie na sesję i 1000 dla projektu; liczniki
 starsze niż 7 dni są czyszczone przy kolejnych wywołaniach. Limity obejmują
 również nieudane wywołania dostawcy. Globalny limit zabezpiecza koszt także
 przy tworzeniu kolejnych anonimowych sesji; nie zastępuje ochrony przed DoS.

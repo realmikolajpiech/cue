@@ -81,7 +81,7 @@ export function useSubtextStatus() { return useQuery({ queryKey: ['subtext', 'st
 export function useRooms() { return useQuery({ queryKey: ['subtext', 'rooms'], queryFn: subtext.rooms }); }
 export function useRoom(id: string) { return useQuery({ queryKey: ['subtext', 'room', id], queryFn: () => subtext.room(id), enabled: !!id, staleTime: 0, retry: false }); }
 export function useSyncRoom(id: string, enabled: boolean) {
-  return useQuery({ queryKey: ['subtext', 'sync', id], enabled: !!id && enabled, retry: false, staleTime: 30000, refetchOnWindowFocus: false,
+  return useQuery({ queryKey: ['subtext', 'sync', id], enabled: !!id && enabled, retry: false, staleTime: Infinity, gcTime: Infinity, refetchOnWindowFocus: false, refetchOnReconnect: false,
     queryFn: async () => {
       const room = await subtext.syncRoom(id);
       subtextCache.setQueryData(['subtext', 'room', id], room);

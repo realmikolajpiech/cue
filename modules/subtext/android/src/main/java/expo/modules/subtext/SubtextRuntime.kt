@@ -123,6 +123,7 @@ class SubtextRuntime private constructor(private val context: Context) {
       val memory = store.memory(id)
       val profile = DeepSeek.analyze(gateway, recent, draft, memory)
       check(token == generation.get() && prefs.getBoolean("cloud", false)) { "Analiza anulowana po zmianie ustawień." }
+      profile.put("replyDraft", draft)
       store.profile(id, profile)
       if (!room.optBoolean("demo")) store.updateContext(id, profile.getJSONArray("memoryUpdates"), recent, memory.optLong("revision"))
       profile.toString()
@@ -168,17 +169,16 @@ class SubtextRuntime private constructor(private val context: Context) {
   }
   private fun styleRooms(id: String?): List<JSONObject> = if (id == null) store.rooms()
     else listOf(requireNotNull(store.room(id)) { "Nie znaleziono rozmowy." })
-  private fun styleCacheKey(id: String?) = "writing-style-preview:" + (id ?: "general")
+  private fun styleCacheKey(id: String?) = "writing-style-preview:v2:" + (id ?: "general")
   private fun styleSamples(id: String?): JSONArray = if (id == null) DeepSeek.generalWritingHistory(styleRooms(null))
     else PersonMemory.writingSamples(store.memory(id))
   fun writingStyle(id: String? = null): String {
     val result = if (id == null) writingStyleOverview(styleRooms(id)) else PersonMemory.overview(store.memory(id))
     val samples = styleSamples(id)
     val saved = runCatching { JSONObject(prefs.getString(styleCacheKey(id), "") ?: "") }.getOrNull()
-    if (id == null && saved?.optInt("sampleHash") == samples.toString().hashCode()) {
-      result.put("examples", saved.getJSONArray("examples")).put("generated", true)
+    if (saved?.optInt("sampleHash") == samples.toString().hashCode()) {
+      result.put("previewExamples", saved.getJSONArray("examples"))
     }
-    if (id != null && saved?.optInt("sampleHash") == samples.toString().hashCode()) result.put("previewExamples", saved.getJSONArray("examples"))
     return result.toString()
   }
   suspend fun previewWritingStyle(id: String? = null): String = analysisMutex.withLock {
@@ -187,11 +187,12 @@ class SubtextRuntime private constructor(private val context: Context) {
     check(samples.length() >= 5) { "Potrzebujemy przynajmniej 5 Twoich wiadomości. Zsynchronizuj rozmowy." }
     val token = generation.get()
     val scenarios = listOf(
-      "Hej, co tam?" to "W tej przykładowej sytuacji odpowiedz, że wszystko ok, i zapytaj co u rozmówcy.",
-      "Widzimy się jutro o 18?" to "W tej przykładowej sytuacji krótko potwierdź spotkanie.",
-      "Podeślę Ci to za chwilę." to "W tej przykładowej sytuacji potwierdź, że to w porządku.",
-      "Dzięki za pomoc!" to "W tej przykładowej sytuacji odpowiedz na podziękowanie.",
-      "Masz chwilę, żeby pogadać?" to "W tej przykładowej sytuacji grzecznie odmów i zaproponuj rozmowę później."
+      "Hej, co u Ciebie?" to "Odpowiedz na luźne przywitanie bez wymyślania wydarzeń ze swojego życia.",
+      "Masz ochotę spotkać się jutro?" to "Wyraź chęć spotkania i zapytaj o godzinę, bez wymyślania swoich planów.",
+      "Udało się! Dostałem tę pracę!" to "Pogratuluj rozmówcy dobrej wiadomości.",
+      "Mam dziś ciężki dzień." to "Okaż wsparcie i zachęć rozmówcę do opowiedzenia, co się stało.",
+      "Sorry, będę 20 minut później." to "Zaakceptuj drobne spóźnienie.",
+      "Co robimy na weekend?" to "Zaproponuj wspólny spacer jako hipotetyczny pomysł, bez wymyślania preferencji ani planów."
     )
     val examples = JSONArray()
     analyzing = "writing-style"; changed()
@@ -205,7 +206,7 @@ class SubtextRuntime private constructor(private val context: Context) {
         messages.put(message("preview-$index", "Rozmówca", scenario.first, 1000L, false))
         val intent = "Podgląd mojego ogólnego stylu pisania. Wcześniejsze wiadomości isMe=true to tylko próbki formy wypowiedzi z rozmów, a nie kontekst ani fakty. " +
           "Naśladuj ich długość, skróty, wielkość liter, interpunkcję i emoji. Nie przenoś nazw, faktów ani tematów z próbek. " + scenario.second
-        val profile = DeepSeek.analyze(gateway, messages, intent, if (id == null) JSONObject() else store.memory(id))
+        val profile = DeepSeek.analyze(gateway, messages, intent, JSONObject())
         examples.put(JSONObject().put("id", "preview-$index").put("incoming", scenario.first)
           .put("reply", profile.getJSONArray("suggestions").getJSONObject(0).getString("text"))
           .put("timestamp", System.currentTimeMillis()))
