@@ -40,7 +40,6 @@ export default function WritingStyleContent({ roomId, isExample = false }: Writi
     onSuccess: result => { client.setQueryData(queryKey, result); },
   });
   const style = query.data;
-  const examples = style?.examples ?? [];
   const previews = style?.previewExamples ?? [];
 
   return <View style={{ gap: 4 }}>
@@ -71,16 +70,12 @@ export default function WritingStyleContent({ roomId, isExample = false }: Writi
     {style && <View style={[styles.examplesSection, { borderColor: colors.border }]}>
       <Disclosure label="Przykładowe odpowiedzi">
         <ErrorText error={preview.error} />
-        {previews.length ? <>
-          <Exchanges examples={previews.slice(0, 3)} />
-          {previews.length > 3 && <Disclosure label="Pozostałe przykłady" small><Exchanges examples={previews.slice(3)} /></Disclosure>}
-        </> : <Copy style={styles.body}>Zobacz, jak mogłaby brzmieć odpowiedź napisana w Twoim stylu.</Copy>}
+        {previews.length ? <Exchanges examples={previews} /> : <Copy style={styles.body}>Zobacz, jak mogłaby brzmieć odpowiedź napisana w Twoim stylu.</Copy>}
         {style.sampleCount >= 5 ? status?.cloudEnabled ?
           <Button label={preview.isPending ? 'Przygotowuję przykłady…' : previews.length ? 'Odśwież przykłady' : 'Pokaż przykłady'}
             secondary disabled={!!status.analyzing || preview.isPending} onPress={() => preview.mutate()} /> :
           <Button label="Włącz analizę AI" secondary onPress={() => router.push('/settings')} /> :
           <Copy style={styles.caption}>Przykłady będą dostępne po kilku Twoich wiadomościach.</Copy>}
-        {!!examples.length && <Disclosure label="Twoje wiadomości" small><Exchanges examples={examples} /></Disclosure>}
       </Disclosure>
     </View>}
   </View>;
