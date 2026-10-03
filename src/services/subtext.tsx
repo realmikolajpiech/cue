@@ -35,7 +35,7 @@ export const subtext = {
   previewConversationWritingStyle: async (id: string) => writingStyleSchema.parse(JSON.parse(await requireSubtext().previewConversationWritingStyle(id))),
   previewWritingStyle: async () => writingStyleSchema.parse(JSON.parse(await requireSubtext().previewWritingStyle())),
   writingStyle: async () => native ? writingStyleSchema.parse(JSON.parse(await native.writingStyle())) :
-    { sampleCount: 0, conversationCount: 0, summary: '', habits: [], examples: [] },
+    writingStyleSchema.parse({ sampleCount: 0, conversationCount: 0, summary: '', habits: [], examples: [] }),
   demo: () => requireSubtext().loadDemo(),
   status: async () => native ? subtextStatusSchema.parse(JSON.parse(await native.status())) : unavailable,
   rooms: async () => native ? z.array(roomSchema).parse(JSON.parse(await native.conversations())) : [],

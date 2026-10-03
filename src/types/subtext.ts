@@ -23,6 +23,11 @@ export type Profile = z.infer<typeof profileSchema>;
 
 export const writingStyleSchema = z.object({
   generated: z.boolean().optional(),
+  updatedAt: z.number().optional(), contextUpdatedAt: z.number().optional(), pendingMessages: z.number().optional(), contextError: z.string().optional(),
+  traits: z.array(z.object({ text: z.string(), matches: z.number(), sampleSize: z.number() })).optional(),
+  phrases: z.array(z.object({ text: z.string(), count: z.number() })).optional(),
+  relationship: z.array(z.object({ id: z.string(), text: z.string(), updatedAt: z.number(), evidenceIds: z.array(z.string()) })).optional(),
+  previewExamples: z.array(z.object({ id: z.string(), incoming: z.string(), reply: z.string(), timestamp: z.number() })).optional(),
   sampleCount: z.number(), conversationCount: z.number(), summary: z.string(), habits: z.array(z.string()),
   examples: z.array(z.object({ id: z.string(), incoming: z.string(), reply: z.string(), timestamp: z.number() })),
 });

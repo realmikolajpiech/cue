@@ -1,7 +1,6 @@
 package expo.modules.subtext
 
 import android.content.Context
-import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
@@ -43,8 +42,7 @@ class SupabaseGateway(context: Context) {
       .put("expires_at", session.getLong("expires_at")).toString())
     return token
   }
-  fun analyze(messages: JSONArray, draft: String): JSONObject {
-    val body = JSONObject().put("messages", messages).put("draft", draft)
+  fun analyze(body: JSONObject): JSONObject {
     var result = request("/functions/v1/deepseek-analyze", body, accessToken())
     if (result.first == 401) result = request("/functions/v1/deepseek-analyze", body, accessToken(true))
     check(result.first in 200..299) { when (result.first) {

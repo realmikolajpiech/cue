@@ -36,7 +36,7 @@ export default function ProfileContent({ id }: { id: string }) {
     <ErrorText error={query.error ?? analysis.error ?? copyError} />
     {query.isPending && <Copy style={ui.body}>Pobieram wiadomości…</Copy>}
     {room && <>
-      <Button label="Twój styl w tej rozmowie" secondary onPress={() => setStyleOpen(true)} />
+      <Button label="Pamięć i styl tej rozmowy" secondary onPress={() => setStyleOpen(true)} />
       <PersonStyleSheet id={id} name={room.name} visible={styleOpen} onClose={() => setStyleOpen(false)} />
       <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderColor: colors.border }}>
         {(['profile', 'replies'] as const).map(value => <Pressable key={value} accessibilityRole="tab" accessibilityState={{ selected: tab === value }}

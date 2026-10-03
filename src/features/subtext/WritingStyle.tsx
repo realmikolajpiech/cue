@@ -22,8 +22,8 @@ export default function WritingStyle({ roomId, personName }: { roomId?: string; 
   return <Page>
     <View style={{ gap: 10 }}>
       <Copy style={ui.eyebrow}>Tak piszesz Ty</Copy>
-      <Copy title style={ui.heading}>{roomId ? 'Twój styl w rozmowie' : 'Twój styl.'}</Copy>
-      <Copy style={ui.body}>{roomId ? `Tak piszesz do: ${personName}. Podgląd opiera się wyłącznie na tej rozmowie.` : 'Twój sposób pisania, zebrany z różnych rozmów. Zobacz, jak brzmi na co dzień.'}</Copy>
+      <Copy title style={ui.heading}>{roomId ? 'Pamięć rozmowy' : 'Twój styl.'}</Copy>
+      <Copy style={ui.body}>{roomId ? `Tak piszesz do: ${personName}. Pamięć uzupełnia się po synchronizacji nowych wiadomości i pozostaje osobna dla tego czatu.` : 'Twój sposób pisania, zebrany z różnych rozmów. Zobacz, jak brzmi na co dzień.'}</Copy>
     </View>
     <ErrorText error={query.error ?? preview.error} />
     {query.isPending ? <Row style={{ paddingVertical: 24 }}><ActivityIndicator color={colors.text} /><Copy style={ui.body}>Poznaję Twój styl…</Copy></Row> : style && <>
@@ -40,9 +40,12 @@ export default function WritingStyle({ roomId, personName }: { roomId?: string; 
           : 'Każda wiadomość dodaje trochę Twojego stylu. W podglądzie znajdziesz swoje autentyczne odpowiedzi.')}</Copy>
         {!!style.habits.length && <View style={styles.tags}>{style.habits.map(habit =>
           <View key={habit} style={[styles.tag, { backgroundColor: colors.secondary }]}><Copy style={[ui.small, { color: colors.text }]}>{habit}</Copy></View>)}</View>}
+        {roomId && !!style.traits?.length && <View style={{ gap: 6 }}>{style.traits.map(trait =>
+          <Copy key={trait.text} style={ui.small}>{trait.text} · {trait.matches} z {trait.sampleSize} ostatnich próbek</Copy>)}</View>}
         <Copy style={ui.small}>{style.sampleCount} próbek Twoich wiadomości · {style.conversationCount} {style.conversationCount === 1 ? 'rozmowa' : 'rozmowy'}</Copy>
+        {roomId && <Copy style={ui.small}>{style.sampleCount < 5 ? 'Za mało próbek, aby pewnie określić styl.' : 'Cechy opierają się na maksymalnie 60 ostatnich próbkach. Nowe wiadomości stopniowo zmieniają pamięć.'}{!!style.updatedAt && ` Ostatnia aktualizacja: ${new Date(style.updatedAt).toLocaleString('pl-PL')}.`}</Copy>}
         {status?.cloudEnabled ? <>
-          <Button label={preview.isPending ? 'Przygotowuję 5 rozmów…' : style.generated ? 'Odśwież przykłady' : 'Zobacz 5 przykładowych rozmów'}
+          <Button label={preview.isPending ? 'Przygotowuję 5 rozmów…' : style.generated || style.previewExamples?.length ? 'Odśwież przykłady AI' : 'Zobacz 5 przykładowych rozmów'}
             disabled={style.sampleCount < 5 || !!status.analyzing || preview.isPending} onPress={() => preview.mutate()} />
           <Copy style={ui.small}>{style.sampleCount < 5 ? 'Potrzebujemy przynajmniej 5 Twoich wiadomości.' : roomId ? 'AI użyje tylko Twoich wiadomości z tą osobą.' : 'AI użyje Twoich wiadomości z różnych rozmów. Próbki stylu trafią przez Supabase do DeepSeek.'}</Copy>
         </> : <Button label="Włącz analizę AI" secondary onPress={() => router.navigate('/alerts')} />}
@@ -53,9 +56,27 @@ export default function WritingStyle({ roomId, personName }: { roomId?: string; 
         <Button label="Połącz konto" onPress={() => router.push('/connections')} />
       </Card>}
 
+      {roomId && <>
+        <Card style={styles.summary}>
+          <Copy title style={ui.title}>Częste zwroty i odpowiedzi</Copy>
+          {style.phrases?.length ? style.phrases.map(phrase => <Row key={phrase.text} style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <Copy selectable style={[ui.body, { flex: 1 }]}>{phrase.text}</Copy><Copy style={ui.small}>{phrase.count}×</Copy>
+          </Row>) : <Copy style={ui.small}>Zwroty pojawią się po co najmniej trzech użyciach w różnych Twoich wiadomościach.</Copy>}
+        </Card>
+        <Card style={styles.summary}>
+          <Copy title style={ui.title}>Co pamiętamy o tej rozmowie</Copy>
+          {style.relationship?.length ? style.relationship.map(item => <View key={item.id} style={{ gap: 4 }}>
+            <Copy selectable style={ui.body}>{item.text}</Copy>
+            <Copy style={ui.small}>Aktualizacja: {new Date(item.updatedAt).toLocaleDateString('pl-PL')} · {item.evidenceIds.length} {item.evidenceIds.length === 1 ? 'wiadomość jako dowód' : 'wiadomości jako dowód'}</Copy>
+          </View>) : <Copy style={ui.small}>Tutaj pojawią się potwierdzone preferencje, tematy i ustalenia. Pamięć AI uzupełnia się w partiach po włączeniu analizy AI oraz przy analizowaniu rozmowy.</Copy>}
+          <Copy style={ui.small}>{status?.analyzing === roomId ? 'Uzupełniam kontekst…' : !status?.cloudEnabled ? 'Aktualizacja kontekstu AI jest wyłączona. Styl nadal uzupełnia się na telefonie.' : style.pendingMessages ? `${style.pendingMessages} nowych wiadomości od ostatniej aktualizacji kontekstu. AI aktualizuje pamięć w partiach, a przy odpowiedzi czyta ostatnie 80 wiadomości.` : style.contextUpdatedAt ? `Kontekst zaktualizowany: ${new Date(style.contextUpdatedAt).toLocaleString('pl-PL')}. Przy odpowiedzi AI czyta też ostatnie 80 wiadomości.` : 'Czekamy na wystarczającą liczbę wiadomości.'}</Copy>
+          {!!style.contextError && <Copy style={ui.small}>{style.contextError} Zapisana pamięć pozostaje dostępna; aktualizację ponowimy.</Copy>}
+        </Card>
+      </>}
+
       <View style={{ gap: 6 }}>
         <Copy title style={ui.title}>Tak brzmi to w rozmowie</Copy>
-        <Copy style={ui.small}>{style.generated ? 'Pięć codziennych sytuacji. Odpowiedzi AI w Twoim stylu — to przykłady, które możesz przeczytać jak czat.' : examples.length ? 'Autentyczne wymiany z Twoich rozmów. Utwórz przykłady, aby zobaczyć codzienne sytuacje w swoim stylu.' : 'Tutaj pojawi się do pięciu krótkich wymian w Twoim stylu.'}</Copy>
+        <Copy style={ui.small}>{style.generated ? 'Pięć codziennych sytuacji. Odpowiedzi AI w Twoim stylu.' : examples.length ? 'Twoje autentyczne odpowiedzi. Zachowujemy też dłuższe przykłady, jeśli są w historii.' : 'Tutaj pojawi się do pięciu Twoich autentycznych odpowiedzi.'}</Copy>
       </View>
       <View style={[styles.chat, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <Row style={[styles.chatHeader, { borderBottomColor: colors.border }]}>
@@ -65,9 +86,9 @@ export default function WritingStyle({ roomId, personName }: { roomId?: string; 
         <View style={styles.chatBody}>
           {examples.length ? examples.map((example, index) => <View key={example.id} style={styles.exchange}>
             <Copy style={[ui.small, styles.divider]}>ROZMOWA {index + 1}</Copy>
-            <View style={[styles.bubble, styles.incoming, { backgroundColor: colors.secondary }]}>
+            {!!example.incoming && <View style={[styles.bubble, styles.incoming, { backgroundColor: colors.secondary }]}>
               <Copy selectable style={[styles.message, { color: colors.text }]}>{example.incoming}</Copy>
-            </View>
+            </View>}
             <View style={[styles.bubble, styles.outgoing, { backgroundColor: colors.text }]}>
               <Copy selectable style={[styles.message, { color: colors.surface }]}>{example.reply}</Copy>
             </View>
@@ -79,7 +100,14 @@ export default function WritingStyle({ roomId, personName }: { roomId?: string; 
           </View>}
         </View>
       </View>
-      {hasMessages && <Copy style={ui.small}>Podgląd korzysta z wiadomości zapisanych na telefonie. Po kolejnej synchronizacji możesz odświeżyć go przyciskiem w karcie stylu.</Copy>}
+      {!!style.previewExamples?.length && <Card style={styles.summary}>
+        <Copy title style={ui.title}>Przykładowe odpowiedzi AI</Copy>
+        <Copy style={ui.small}>Wygenerowane sytuacje służą do podglądu. Nie uczymy na nich Twojej pamięci.</Copy>
+        {style.previewExamples.map(example => <View key={example.id} style={{ gap: 6 }}>
+          <Copy style={ui.small}>{example.incoming}</Copy><Copy selectable style={ui.body}>{example.reply}</Copy>
+        </View>)}
+      </Card>}
+      {hasMessages && <Copy style={ui.small}>{roomId ? 'Pamięć zostaje na telefonie również po skróceniu historii. Usunięcie historii lub odłączenie konta usuwa też jego pamięć.' : 'Podgląd korzysta z wiadomości zapisanych na telefonie.'}</Copy>}
     </>}
   </Page>;
 }

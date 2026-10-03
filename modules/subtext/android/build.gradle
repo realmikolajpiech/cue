@@ -8,8 +8,10 @@ android {
   namespace 'expo.modules.subtext'
   defaultConfig { minSdkVersion 26; versionCode 1; versionName '1.0.0'; testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner' }
   testOptions { unitTests.returnDefaultValues = true }
+  compileOptions { coreLibraryDesugaringEnabled true }
 }
 dependencies {
+  coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
   implementation project(':cue-heliboard')
   compileOnly files('libs/messagebridges.aar')
   implementation 'androidx.core:core-ktx:1.17.0'
@@ -18,4 +20,5 @@ dependencies {
   testImplementation 'org.json:json:20250517'
   androidTestImplementation 'androidx.test:runner:1.6.2'
   androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+  androidTestImplementation files('libs/messagebridges.aar')
 }

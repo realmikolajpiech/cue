@@ -7,8 +7,10 @@ import org.json.JSONObject
 
 object DeepSeek {
   const val MODEL = "deepseek-flash"
-  suspend fun analyze(gateway: SupabaseGateway, messages: JSONArray, draft: String): JSONObject = withContext(Dispatchers.IO) {
-    validate(gateway.analyze(messages, draft.take(4000)), messages)
+  suspend fun analyze(gateway: SupabaseGateway, messages: JSONArray, draft: String,
+    memory: JSONObject = JSONObject(), memoryOnly: Boolean = false): JSONObject = withContext(Dispatchers.IO) {
+    validate(gateway.analyze(userContent(messages, draft, generalHistory = JSONArray())
+      .put("personMemory", PersonMemory.input(memory)).put("memoryOnly", memoryOnly)), messages, memoryOnly)
   }
 
   // Balance the general sample so one prolific conversation cannot dominate it.
@@ -37,10 +39,20 @@ object DeepSeek {
       .put("styleInput", JSONObject().put("conversationExamples", JSONArray(local))
         .put("generalExamples", JSONArray(general)).put("activeSource", source))
   }
-  fun validate(raw: JSONObject, messages: JSONArray): JSONObject {
+  fun validate(raw: JSONObject, messages: JSONArray, memoryOnly: Boolean = false): JSONObject {
     val ids = (0 until messages.length()).map { messages.getJSONObject(it).getString("id") }.toSet()
     val clean = JSONObject().put("summary", raw.getString("summary").take(1200))
       .put("beforeReply", raw.getString("beforeReply").take(1200))
+    val updates = raw.optJSONArray("memoryUpdates") ?: JSONArray()
+    val cleanUpdates = JSONArray()
+    for (i in 0 until minOf(updates.length(), 8)) {
+      val update = updates.optJSONObject(i) ?: continue
+      val evidence = update.optJSONArray("evidenceIds") ?: continue
+      val valid = (0 until evidence.length()).map { evidence.optString(it) }.distinct().filter { it in ids }.take(8)
+      if (valid.isNotEmpty()) cleanUpdates.put(JSONObject().put("replaceId", update.optString("replaceId").take(64))
+        .put("text", update.optString("text").take(600)).put("evidenceIds", JSONArray(valid)))
+    }
+    clean.put("memoryUpdates", cleanUpdates)
     raw.optJSONObject("writingStyle")?.let { style ->
       val habits = style.optJSONArray("habits") ?: JSONArray()
       clean.put("writingStyle", JSONObject()
@@ -64,7 +76,7 @@ object DeepSeek {
       require(item.getString("text").isNotBlank()) { "Pusta sugestia AI." }
       output.put(JSONObject().put("tone", item.getString("tone").take(60)).put("text", item.getString("text").take(2000)))
     }
-    require(output.length() > 0) { "AI nie zwróciło podpowiedzi." }
+    require(memoryOnly || output.length() > 0) { "AI nie zwróciło podpowiedzi." }
     return clean.put("suggestions", output).put("createdAt", System.currentTimeMillis()).put("model", MODEL).put("messageCount", messages.length())
   }
 }

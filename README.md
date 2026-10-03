@@ -83,8 +83,23 @@ do płatnych analiz. Nie dodawaj sekretów do repozytorium ani APK.
   i ostatni profil. Magazyn jest w prywatnym `noBackupFilesDir`; bez dodatkowej
   warstwy szyfrowania treści. Messenger szyfruje cookies w Keystore; WhatsApp
   i stan E2EE używają prywatnych baz mostów.
-- Analiza jest jawna i wykonywana na żądanie, nie automatyczna dla wszystkich
-  kontaktów. Do DeepSeek trafia do 80 ostatnich zapisanych wiadomości i szkic.
+- Każdy prywatny czat ma trwałą pamięć w `subtext-person-memory.json`, osobną
+  dla Messengera i WhatsAppa. Przeżywa restart, skrócenie historii do 200 wiadomości
+  i usunięcie nieaktywnego czatu z cache 150 rozmów. Odłączenie konta lub
+  wyczyszczenie historii usuwa też pamięć. Rozmowy demo nie uczą pamięci.
+- Synchronizacja dopisuje tylko nowe ID wiadomości: liczy własne próbki,
+  częste zwroty (co najmniej 3 użycia), cechy stylu z ostatnich 60 próbek
+  i zachowuje autentyczne przykłady, w tym dłuższe odpowiedzi. Okno deduplikacji
+  obejmuje do 4096 skrótów ID; po jego skróceniu starsze wiadomości są pomijane
+  według progu czasu, aby ponowna synchronizacja nie zawyżała statystyk.
+- Po włączeniu analizy AI kontekst pamięci uzupełnia się automatycznie po
+  8 wiadomościach na start, następnie po 20 nowych, nie częściej niż co 15 minut
+  dla czatu. Worker sprawdza kolejkę co 30 sekund podczas działania procesu,
+  wykonuje maks. 6 prób dziennie na urządzeniu, aby pozostawić część limitu
+  na sugestie. Błędy zachowują poprzednią pamięć; ponowienie podlega tym limitom.
+- Analiza odpowiedzi jest na żądanie. Do DeepSeek trafia do 80 ostatnich
+  zapisanych wiadomości, szkic i pamięć wyłącznie tego czatu. Zmiany kontekstu
+  są przyrostowe, z ID dowodów; brak zmian nie usuwa poprzednich wpisów.
   Model: `deepseek-flash`, JSON output, wyłączony tryb thinking.
 - Profile: podsumowanie, obserwacje i ustalenia z ID źródłowych wiadomości,
   przypomnienie przed odpowiedzią, trzy warianty odpowiedzi. Nie są diagnozą
