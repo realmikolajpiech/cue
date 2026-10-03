@@ -6,9 +6,9 @@ import type { Threat } from '@/features/demo/store';
 import { isWarning } from './presentation';
 import { useTheme } from '@/theme/useTheme';
 
-type Props = { threat: Threat; busy: boolean; error: string | null; onReview: () => void; demo?: boolean };
+type Props = { threat: Threat; busy: boolean; error: string | null; onReview: () => void; demo?: boolean; showReviewAction?: boolean };
 
-export function ThreatDetail({ threat, busy, error, onReview, demo = false }: Props) {
+export function ThreatDetail({ threat, busy, error, onReview, demo = false, showReviewAction = true }: Props) {
   useLanguage();
   const { colors } = useTheme();
   const [expanded, setExpanded] = useState(false);
@@ -50,7 +50,7 @@ export function ThreatDetail({ threat, busy, error, onReview, demo = false }: Pr
       <Copy selectable style={[styles.body, { color: colors.text }]}>{t(threat.advice)}</Copy>
     </Card>}
     <InlineError message={error} />
-    <Action label={threat.reviewed ? 'Przeczytane' : busy ? 'Zapisuję…' : 'Oznacz jako przeczytane'} icon="check" secondary={threat.reviewed} disabled={busy || threat.reviewed} onPress={onReview} />
+    {showReviewAction && <Action label={t(threat.reviewed ? 'Przeczytane' : busy ? 'Zapisuję…' : 'Oznacz jako przeczytane')} icon="check" secondary={threat.reviewed} disabled={busy || threat.reviewed} onPress={onReview} />}
   </>;
 }
 

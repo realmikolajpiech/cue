@@ -2,7 +2,9 @@ import { usePreferences } from '@/features/preferences';
 import { t, useLanguage } from '@/i18n';
 import { Providers } from '@/services/queries';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { router, Stack } from 'expo-router';
+import { Pressable } from 'react-native';
+import { Copy } from '@/components/ui';
 import { StatusBar } from 'expo-status-bar';
 import { useTheme } from '@/theme/useTheme';
 
@@ -27,7 +29,16 @@ export default function RootLayout() {
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
       <Stack.Protected guard={onboarded}>
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="alert/[id]" options={{ presentation: 'modal', title: t('Szczegóły ostrzeżenia') }} />
+        <Stack.Screen name="alert/[id]" options={{
+          presentation: 'modal', headerShown: true, title: t('Alerty'),
+          headerStyle: { backgroundColor: colors.background }, headerTintColor: colors.text,
+          headerShadowVisible: false, headerBackVisible: false,
+          headerRight: () => <Pressable accessibilityRole="button" accessibilityLabel={t('Zamknij')}
+            onPress={() => router.canGoBack() ? router.back() : router.replace('/alerts')}
+            style={({ pressed }) => ({ minHeight: 48, minWidth: 80, justifyContent: 'center', alignItems: 'center', opacity: pressed ? 0.6 : 1 })}>
+            <Copy style={{ color: colors.text, fontSize: 18, fontFamily: 'DMSansMedium' }}>{t('Zamknij')}</Copy>
+          </Pressable>,
+        }} />
         <Stack.Screen name="model-setup" options={{ headerShown: true, title: t('Model i dostęp') }} />
         <Stack.Screen name="model-settings" options={{ headerShown: true, title: t('Silnik Gemma') }} />
         <Stack.Screen name="analyses" options={{ headerShown: true, title: t('Analizy na urządzeniu') }} />

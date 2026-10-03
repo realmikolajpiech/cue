@@ -35,7 +35,7 @@ export function Screen({ children, title, header = true, back = false, centered 
       <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 20, paddingTop: centered ? 20 : header || back ? 12 : 24, gap: 24, paddingBottom: footer ? 20 : centered ? 20 : insets.bottom + 32, ...(centered ? { flexGrow: 1, justifyContent: 'center' as const } : {}) }}>
         {title && <Copy title accessibilityRole="header">{title}</Copy>}{children}
       </ScrollView>
-      {footer && <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16, backgroundColor: colors.background }}>{footer}</View>}
+      {footer && <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: Math.max(insets.bottom, 16), gap: 12, backgroundColor: colors.background }}>{footer}</View>}
       </KeyboardAvoidingView>
     </View>
   </View>;
