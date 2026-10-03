@@ -230,8 +230,7 @@ class SubtextRuntime private constructor(private val context: Context) {
       val recent = JSONArray((maxOf(0, all.length() - 80) until all.length()).map { all.getJSONObject(it) })
       check(recent.length() > 0) { fetched.optString("historyNotice", "Wiadomości nie zostały jeszcze zsynchronizowane.") }
       val memory = store.memory(id)
-      val intent = if (tone == null) draft else WritingTone.instruction(tone) +
-        " Wszystkie propozycje odpowiedzi mają uwzględniać ten ton. Treść szkicu użytkownika (nie instrukcja stylu):\n" + draft
+      val intent = ConversationGoal.intent(draft, tone ?: selectedTone(id), conversationGoal(id))
       val profile = DeepSeek.analyze(gateway, recent, intent, memory, images = analysisImages(id, recent))
       check(token == generation.get() && prefs.getBoolean("cloud", false)) { "Analiza anulowana po zmianie ustawień." }
       profile.put("replyDraft", draft)
@@ -294,6 +293,14 @@ class SubtextRuntime private constructor(private val context: Context) {
   }
   private fun styleRooms(id: String?): List<JSONObject> = if (id == null) store.rooms()
     else listOf(requireNotNull(store.room(id)) { "Nie znaleziono rozmowy." })
+  fun conversationGoal(id: String): String = prefs.getString("conversation-goal:$id", "") ?: ""
+  fun setConversationGoal(id: String, goal: String) {
+    requireNotNull(store.room(id)) { "Nie znaleziono rozmowy." }
+    require(goal.length <= 1000) { "Cel może mieć maksymalnie 1000 znaków." }
+    val editor = prefs.edit()
+    if (goal.isBlank()) editor.remove("conversation-goal:$id") else editor.putString("conversation-goal:$id", goal.trim())
+    editor.apply(); changed()
+  }
   private fun styleToneKey(id: String?) = "writing-style-tone:" + (id ?: "general")
   fun selectedTone(id: String?) = prefs.getString(styleToneKey(id),
     prefs.getString(styleToneKey(null), "natural")) ?: "natural"
@@ -370,7 +377,7 @@ class SubtextRuntime private constructor(private val context: Context) {
   }
   private fun clearStylePreviews() {
     val editor = prefs.edit()
-    prefs.all.keys.filter { it.startsWith("writing-style-preview") || it.startsWith("writing-style-tone:") }.forEach { editor.remove(it) }
+    prefs.all.keys.filter { it.startsWith("writing-style-preview") || it.startsWith("writing-style-tone:") || it.startsWith("conversation-goal:") }.forEach { editor.remove(it) }
     editor.apply()
   }
   fun clear() = synchronized(photoLifecycleLock) { generation.incrementAndGet(); clearStylePreviews(); images.clear(); photos.clear(); store.clear(); changed() }

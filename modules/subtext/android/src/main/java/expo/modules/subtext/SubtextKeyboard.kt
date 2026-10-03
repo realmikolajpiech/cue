@@ -36,7 +36,7 @@ import kotlinx.coroutines.*
 import org.json.JSONObject
 
 class SubtextKeyboard : LatinIME() {
-  private enum class Mode { TYPING, PEOPLE, STYLES, SEARCH, LOADING, REPLIES, ERROR }
+  private enum class Mode { TYPING, PEOPLE, STYLES, SEARCH, GOAL, LOADING, REPLIES, ERROR }
   private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
   private var job: Job? = null
   private var revision = 0
@@ -68,6 +68,7 @@ class SubtextKeyboard : LatinIME() {
   private var strip: View? = null
   private var stripVisibility = View.VISIBLE
   private var generateAfterChoice = false
+  private var goalAfterChoice = false
   private val consumedHardwareKeys = mutableSetOf<Int>()
   private val runtime get() = SubtextRuntime.get(this)
   private val surface get() = Settings.getValues()?.mColors?.get(ColorType.MAIN_BACKGROUND) ?: getColor(R.color.cue_login_background)
@@ -90,7 +91,7 @@ class SubtextKeyboard : LatinIME() {
     pickerMotion?.cancel(); toolbarMotion?.cancel(); panelMotion.cancel()
     // A new editor is a new recipient decision, even inside the same messaging app.
     revision++; job?.cancel()
-    if (!restarting) { selected = null; undo = null }
+    if (!restarting) { selected = null; undo = null; goalAfterChoice = false }
     endSearch(); restoreKeys()
     mode = Mode.TYPING
     available = attribute != null && KeyboardReplySession.available(attribute.packageName.orEmpty(), attribute.inputType, attribute.imeOptions)
@@ -138,6 +139,7 @@ class SubtextKeyboard : LatinIME() {
     hiddenKeys.clear()
   }
 
+  private fun isEditing() = mode == Mode.SEARCH || mode == Mode.GOAL
   private fun isPicker(value: Mode) = value == Mode.PEOPLE || value == Mode.STYLES
 
   private fun open(next: Mode) {
@@ -162,12 +164,12 @@ class SubtextKeyboard : LatinIME() {
           if (child !== panel) { hiddenKeys[child] = child.visibility; child.visibility = View.GONE }
         } }
       }
-    } else if (next == Mode.SEARCH) {
+    } else if (next == Mode.SEARCH || next == Mode.GOAL) {
       restoreKeys()
       strip?.visibility = View.GONE
     }
     bodyHeight = dp(148)
-    mode = next; render(animate = !isPicker(next) && next != Mode.SEARCH && !returningKeys)
+    mode = next; render(animate = !isPicker(next) && next != Mode.SEARCH && next != Mode.GOAL && !returningKeys)
     toolbarMotion?.change(toolbarBefore, panel.getChildAt(0))
     if (isPicker(next)) pickerMotion?.disappear(snapshot, panel.getChildAt(1))
     else if (returningKeys) pickerMotion?.appear()
@@ -177,7 +179,7 @@ class SubtextKeyboard : LatinIME() {
     val returningKeys = isPicker(mode)
     pickerMotion?.cancel(); toolbarMotion?.cancel(); panelMotion.cancel()
     val toolbarBefore = toolbarMotion?.capture(panel.getChildAt(0))
-    revision++; job?.cancel(); endSearch(); restoreKeys(); mode = Mode.TYPING; render(animate = !returningKeys)
+    revision++; job?.cancel(); goalAfterChoice = false; endSearch(); restoreKeys(); mode = Mode.TYPING; render(animate = !returningKeys)
     toolbarMotion?.change(toolbarBefore, panel.getChildAt(0))
     if (returningKeys) pickerMotion?.appear()
   }
@@ -194,9 +196,10 @@ class SubtextKeyboard : LatinIME() {
     panel.removeAllViews(); panel.setBackgroundColor(surface)
     panel.visibility = if (available) View.VISIBLE else View.GONE
     if (!available) return
-    strip?.visibility = if (isPicker(mode) || mode == Mode.SEARCH) View.GONE else stripVisibility
+    strip?.visibility = if (isPicker(mode) || isEditing()) View.GONE else stripVisibility
     if (mode == Mode.PEOPLE) { renderPicker(); return }
     if (mode == Mode.SEARCH) { renderPeople(); return }
+    if (mode == Mode.GOAL) { renderGoal(); return }
     val toolbar = brandToolbar()
     if (mode == Mode.TYPING || mode == Mode.REPLIES || mode == Mode.LOADING || mode == Mode.STYLES) {
       val room = person()
@@ -237,7 +240,7 @@ class SubtextKeyboard : LatinIME() {
     val body = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(12), 0, dp(12), dp(8)) }
     panel.addView(body, LinearLayout.LayoutParams(-1, bodyHeight))
     when (mode) {
-      Mode.PEOPLE, Mode.STYLES, Mode.SEARCH -> Unit
+      Mode.PEOPLE, Mode.STYLES, Mode.SEARCH, Mode.GOAL -> Unit
       Mode.LOADING -> Unit
       Mode.ERROR -> {
         val center = center(body)
@@ -254,12 +257,12 @@ class SubtextKeyboard : LatinIME() {
   override fun getCurrentInputConnection(): InputConnection? {
     val host = super.getCurrentInputConnection() ?: return null
     val target = inputTarget?.takeIf { it.host === host } ?: KeyboardInputTarget(host).also { inputTarget = it }
-    if (mode == Mode.SEARCH) searchConnection?.let(target::search) else target.composer()
+    if (isEditing()) searchConnection?.let(target::search) else target.composer()
     return target
   }
 
   private fun endSearch() {
-    val wasSearching = mode == Mode.SEARCH
+    val wasSearching = isEditing()
     inputTarget?.composer()
     searchConnection = null; searchEditor = null; peopleAdapter = null; noResults = null
     strip?.visibility = stripVisibility
@@ -387,6 +390,52 @@ class SubtextKeyboard : LatinIME() {
     panel.announceForAccessibility("Wyszukaj osobę. Klawiatura wpisuje teraz imię, nie wiadomość.")
   }
 
+  private fun renderGoal() {
+    val id = selected ?: return typing()
+    val toolbar = brandToolbar()
+    toolbar.addView(label("Cel · ${person()?.optString("name") ?: "rozmowa"}", 14f, true).apply {
+      gravity = Gravity.CENTER_VERTICAL; maxLines = 1; ellipsize = TextUtils.TruncateAt.END
+    }, LinearLayout.LayoutParams(0, dp(44), 1f))
+    toolbar.addView(button("Zapisz", true) { saveGoal() }, LinearLayout.LayoutParams(dp(96), dp(44)))
+    finishToolbar(toolbar); panel.addView(toolbar, LinearLayout.LayoutParams(-1, dp(56)))
+    val editor = EditText(this).apply {
+      textSize = 14f; setTextColor(ink); setHintTextColor(muted)
+      hint = "Co chcesz osiągnąć w tej rozmowie?"; contentDescription = "Cel rozmowy"
+      inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+      filters = arrayOf(android.text.InputFilter.LengthFilter(1000))
+      isFocusable = true; isFocusableInTouchMode = true
+      isCursorVisible = true; showSoftInputOnFocus = false
+      gravity = Gravity.TOP or Gravity.START; background = rounded(card, 12)
+      setPadding(dp(12), dp(10), dp(12), dp(10)); minLines = 2; maxLines = 3
+      setText(runtime.conversationGoal(id)); setSelection(text.length)
+    }
+    searchEditor = editor
+    val body = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(12), 0, dp(12), dp(4)) }
+    body.addView(editor, LinearLayout.LayoutParams(-1, dp(76)))
+    val actions = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
+    actions.addView(button("Wróć", false) { endSearch(); open(Mode.STYLES) }, LinearLayout.LayoutParams(0, dp(44), 1f))
+    actions.addView(button("Usuń cel", false) { runtime.setConversationGoal(id, ""); typing() }, LinearLayout.LayoutParams(0, dp(44), 1f))
+    body.addView(actions); panel.addView(body)
+    searchConnection = object : BaseInputConnection(editor, true) {
+      override fun getEditable(): Editable = editor.editableText
+      override fun getExtractedText(request: ExtractedTextRequest?, flags: Int) = ExtractedText().apply {
+        text = editor.text.toString(); startOffset = 0; partialStartOffset = -1; partialEndOffset = -1
+        selectionStart = Selection.getSelectionStart(editor.text); selectionEnd = Selection.getSelectionEnd(editor.text)
+      }
+      override fun performEditorAction(actionCode: Int): Boolean { saveGoal(); return true }
+    }
+    currentInputConnection
+    editor.post { if (mode == Mode.GOAL && searchEditor === editor) editor.requestFocus() }
+    panel.announceForAccessibility("Wpisz cel rozmowy. Klawiatura edytuje cel, nie wiadomość.")
+  }
+
+  private fun saveGoal() {
+    val id = selected ?: return
+    runtime.setConversationGoal(id, searchEditor?.text?.toString().orEmpty())
+    replies = emptyList(); typing()
+    panel.announceForAccessibility("Zapisano cel rozmowy")
+  }
+
   private fun bindPlatform(icon: ImageView, room: JSONObject) {
     val platform = when (room.optString("network")) {
       "messenger" -> R.drawable.cue_network_messenger to "Messenger"
@@ -401,16 +450,18 @@ class SubtextKeyboard : LatinIME() {
   private fun choosePerson(room: JSONObject) {
     selected = room.optString("id"); undo = null
     val shouldGenerate = generateAfterChoice
+    val editGoal = goalAfterChoice; goalAfterChoice = false
     typing()
-    if (shouldGenerate) generate()
+    if (editGoal) open(Mode.GOAL) else if (shouldGenerate) generate()
   }
+  private fun submitEditor() { if (mode == Mode.GOAL) saveGoal() else chooseOnlyResult() }
   private fun chooseOnlyResult() { if (searchResults.size == 1) choosePerson(searchResults.single()) }
 
   override fun onEvent(event: Event) {
-    if (mode != Mode.SEARCH) { super.onEvent(event); return }
+    if (!isEditing()) { super.onEvent(event); return }
     when {
       event.keyCode == KeyCode.DELETE -> searchConnection?.deleteSurroundingText(1, 0)
-      event.codePoint == 10 || event.keyCode == KeyCode.SHIFT_ENTER -> chooseOnlyResult()
+      event.codePoint == 10 || event.keyCode == KeyCode.SHIFT_ENTER -> submitEditor()
       event.codePoint >= 32 -> searchConnection?.commitText(String(Character.toChars(event.codePoint)), 1)
       !event.text.isNullOrEmpty() -> searchConnection?.commitText(event.text, 1)
       event.keyCode in setOf(KeyCode.SHIFT, KeyCode.CAPS_LOCK, KeyCode.SYMBOL_ALPHA, KeyCode.ALPHA, KeyCode.SYMBOL) -> super.onEvent(event)
@@ -418,7 +469,7 @@ class SubtextKeyboard : LatinIME() {
     }
   }
   override fun onTextInput(rawText: String?) {
-    if (mode == Mode.SEARCH) searchConnection?.commitText(rawText.orEmpty(), 1) else super.onTextInput(rawText)
+    if (isEditing()) searchConnection?.commitText(rawText.orEmpty(), 1) else super.onTextInput(rawText)
   }
 
   private fun readDraft(): String? = currentInputConnection?.let(KeyboardDraftEditor::read)
@@ -469,6 +520,12 @@ class SubtextKeyboard : LatinIME() {
       content.background = rounded(card, 12)
       content.setPadding(dp(12), dp(10), dp(12), dp(10))
       content.addView(label(suggestion.getString("text"), 15f).apply { setLineSpacing(dp(2).toFloat(), 1f) })
+      content.addView(label("Dlaczego ta odpowiedź", 12f, true).apply {
+        setTextColor(accent); setPadding(0, dp(10), 0, dp(4))
+      })
+      content.addView(label(suggestion.optString("reason").ifBlank { "AI nie podało uzasadnienia tej propozycji." }, 13f).apply {
+        setTextColor(muted); setLineSpacing(dp(2).toFloat(), 1f)
+      })
     }
     scroll.addView(content)
     body.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
@@ -550,7 +607,7 @@ class SubtextKeyboard : LatinIME() {
     }.apply {
       textSize = 12f; maxLines = 1; ellipsize = TextUtils.TruncateAt.END
       setTextColor(accent); setPadding(dp(6), 0, dp(6), 0)
-      background = RippleDrawable(ColorStateList.valueOf(0x225F78B8), rounded(card, 12), null)
+      background = RippleDrawable(ColorStateList.valueOf(0x225F78B8), rounded(Color.TRANSPARENT, 12), null)
       val arrow = android.graphics.drawable.RotateDrawable().apply {
         drawable = getDrawable(R.drawable.cue_chevron_down)?.mutate()?.apply { setTint(accent) }
         fromDegrees = 0f; toDegrees = 180f
@@ -570,11 +627,20 @@ class SubtextKeyboard : LatinIME() {
       setPadding(dp(12), 0, dp(12), navigation + dp(8)); clipToPadding = false
     }
     list.adapter = object : BaseAdapter() {
-      override fun getCount() = options.size
-      override fun getItem(position: Int) = options[position]
+      override fun getCount() = options.size + 1
+      override fun getItem(position: Int): Any = if (position == 0) "goal" else options[position - 1]
       override fun getItemId(position: Int) = position.toLong()
       override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
-        val option = options[position]
+        if (position == 0) return LinearLayout(this@SubtextKeyboard).apply {
+          orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_VERTICAL
+          setPadding(dp(16), dp(8), dp(16), dp(8))
+          addView(label("Cel rozmowy…", 16f, true).apply { setTextColor(accent) })
+          addView(label(selected?.let(runtime::conversationGoal)?.ifBlank { null } ?: "Co chcesz osiągnąć?", 12f).apply {
+            setTextColor(muted); maxLines = 2; ellipsize = TextUtils.TruncateAt.END; setPadding(0, dp(4), 0, 0)
+          })
+          layoutParams = AbsListView.LayoutParams(-1, dp(76))
+        }
+        val option = options[position - 1]
         return label(option.value + if (option.key == current) "   ✓" else "", 16f, option.key == current).apply {
           gravity = Gravity.CENTER_VERTICAL; setPadding(dp(16), 0, dp(16), 0)
           setTextColor(if (option.key == current) accent else ink)
@@ -585,9 +651,14 @@ class SubtextKeyboard : LatinIME() {
       }
     }
     list.setOnItemClickListener { _, _, position, _ ->
-      runtime.setWritingTone(selected, options[position].key)
+      if (position == 0) {
+        generateAfterChoice = false
+        if (selected == null) { goalAfterChoice = true; open(Mode.PEOPLE) } else open(Mode.GOAL)
+        return@setOnItemClickListener
+      }
+      runtime.setWritingTone(selected, options[position - 1].key)
       replies = emptyList(); typing()
-      panel.announceForAccessibility("Styl odpowiedzi: ${options[position].value}")
+      panel.announceForAccessibility("Styl odpowiedzi: ${options[position - 1].value}")
     }
     panel.addView(list, LinearLayout.LayoutParams(-1, pickerHeight))
   }
@@ -648,19 +719,19 @@ class SubtextKeyboard : LatinIME() {
   private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
 
   override fun onUpdateSelection(oldSelStart: Int, oldSelEnd: Int, newSelStart: Int, newSelEnd: Int, candidatesStart: Int, candidatesEnd: Int) {
-    if (mode == Mode.SEARCH) return
+    if (isEditing()) return
     super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesStart, candidatesEnd)
     if ((mode == Mode.LOADING || mode == Mode.REPLIES) && readDraft()?.let { it != draft } == true) typing()
     if (undo != null && readDraft()?.let { it != undo?.first } == true) { undo = null; render() }
   }
 
   override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-    if (keyCode == KeyEvent.KEYCODE_BACK && mode != Mode.TYPING) { backHandled = true; if (mode == Mode.SEARCH) open(Mode.PEOPLE) else typing(); return true }
-    if (mode == Mode.SEARCH) {
+    if (keyCode == KeyEvent.KEYCODE_BACK && mode != Mode.TYPING) { backHandled = true; if (mode == Mode.SEARCH) open(Mode.PEOPLE) else if (mode == Mode.GOAL) { endSearch(); open(Mode.STYLES) } else typing(); return true }
+    if (isEditing()) {
       consumedHardwareKeys.add(keyCode)
       when (keyCode) {
         KeyEvent.KEYCODE_DEL -> searchConnection?.deleteSurroundingText(1, 0)
-        KeyEvent.KEYCODE_ENTER -> chooseOnlyResult()
+        KeyEvent.KEYCODE_ENTER -> submitEditor()
         else -> if (event.unicodeChar >= 32) searchConnection?.commitText(String(Character.toChars(event.unicodeChar)), 1)
       }
       return true

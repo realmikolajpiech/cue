@@ -94,6 +94,7 @@ object DeepSeek {
       } else {
         require(item.getString("text").isNotBlank()) { "Pusta sugestia AI." }
         suggestion.put("tone", item.getString("tone").take(60)).put("text", item.getString("text").take(2000))
+        if (item.optString("reason").isNotBlank()) suggestion.put("reason", item.getString("reason").take(600))
       }
       output.put(suggestion)
     }

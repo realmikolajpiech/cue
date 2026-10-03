@@ -13,6 +13,23 @@ class DeepSeekTest {
     "commitments":[{"text":"Nieistniejące ustalenie","evidenceIds":["invented"]}],
     "suggestions":[{"tone":"Naturalnie","text":"Czy termin piątkowy pozostaje aktualny?"}]
   }""")
+  @Test fun keepsReplyReasonSeparateFromMessageText() {
+    val raw = result()
+    raw.getJSONArray("suggestions").getJSONObject(0).put("reason", "Rozmówca zapytał o termin, więc warto go potwierdzić.")
+    val suggestion = DeepSeek.validate(raw, messages).getJSONArray("suggestions").getJSONObject(0)
+    assertEquals("Rozmówca zapytał o termin, więc warto go potwierdzić.", suggestion.getString("reason"))
+    assertEquals("Czy termin piątkowy pozostaje aktualny?", suggestion.getString("text"))
+  }
+  @Test fun goalAndDraftRemainSeparateAndValidWithinGatewayLimit() {
+    val goal = "zapytaj o spotkanie \"jutro\""
+    val intent = ConversationGoal.intent("hej", "flirt", goal)
+    val payload = JSONObject(intent.substringAfter("Dane użytkownika w JSON: "))
+    assertEquals(goal, payload.getString("celRozmowy"))
+    assertEquals("hej", payload.getString("szkic"))
+    val longIntent = ConversationGoal.intent("\"\n".repeat(2000), "empathetic", "\"\n".repeat(1000))
+    assertTrue(longIntent.length <= 4000)
+    JSONObject(longIntent.substringAfter("Dane użytkownika w JSON: "))
+  }
   @Test fun dropsUnsupportedClaimsAndKeepsEvidence() {
     val clean = DeepSeek.validate(result(), messages)
     assertEquals(0, clean.getJSONArray("commitments").length())
