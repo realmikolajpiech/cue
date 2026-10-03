@@ -3,6 +3,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-na
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Copy, Row, Icon, Action, type IconName } from '@/components/ui';
+import { AnalysisPending } from '@/features/check/AnalysisPending';
 import { LanguagePicker } from '@/components/LanguagePicker';
 import { t, useLanguage } from '@/i18n';
 import { useTheme } from '@/theme/useTheme';
@@ -49,6 +50,9 @@ export default function Settings() {
   const s = useProtection();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const developerMode = usePreferences(state => state.developerMode);
+  const toggleDeveloperMode = usePreferences(state => state.toggleDeveloperMode);
+  const [previewAnalysis, setPreviewAnalysis] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [advanced, setAdvanced] = useState(false);
   const restartOnboarding = usePreferences(s => s.restartOnboarding);
@@ -106,6 +110,10 @@ export default function Settings() {
             <SettingRow icon="history" label={t('Usuń ostrzeżenia')} destructive onPress={() => setConfirm(true)} />
           </Group>
         </>}
+        <Group title={t('Tryb deweloperski')}>
+          <SettingRow icon="settings" label={t('Tryb deweloperski')} value={developerMode} onChange={toggleDeveloperMode} />
+          {developerMode && <><Divider /><SettingRow icon="scan" label={t('Podgląd ekranu analizy')} onPress={() => setPreviewAnalysis(true)} /></>}
+        </Group>
         {s.error && <Copy accessibilityRole="alert" style={styles.note}>{s.error}</Copy>}
         <Row style={styles.privacy}>
           <Icon name={s.native ? 'lock' : 'help'} size={15} color={colors.secondaryText} />
@@ -113,6 +121,7 @@ export default function Settings() {
         </Row>
       </ScrollView>
     </View>
+    {previewAnalysis && <AnalysisPending preview onClose={() => setPreviewAnalysis(false)} />}
     <Modal visible={confirm} transparent animationType="slide" onRequestClose={() => setConfirm(false)}>
       <View style={styles.overlay}>
         <Pressable accessibilityRole="button" accessibilityLabel={t('Anuluj usuwanie')} onPress={() => setConfirm(false)} style={{ flex: 1 }} />

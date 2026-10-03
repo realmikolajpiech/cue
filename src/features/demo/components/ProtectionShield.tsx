@@ -69,7 +69,7 @@ export function ProtectionShield({ enabled }: { enabled: boolean }) {
 }
 
 const styles = StyleSheet.create({
-  scene: { width: 200, height: 190, alignItems: 'center', justifyContent: 'center' },
+  scene: { width: 200, height: 156, alignItems: 'center', justifyContent: 'center' },
   shield: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
   ripple: { position: 'absolute', width: 164, height: 164, borderRadius: 82, borderWidth: 3 },
   check: { position: 'absolute', top: 46 },

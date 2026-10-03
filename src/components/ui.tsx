@@ -16,7 +16,7 @@ export function IconButton({ name, label, onPress }: { name: IconName; label: st
   const { colors } = useTheme();
   return <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress}
     style={({ pressed }) => ({ width: 60, height: 60, alignItems: 'center', justifyContent: 'center', borderRadius: 16, backgroundColor: colors.secondary, opacity: pressed ? .6 : 1 })}>
-    <Icon name={name} size={30} />
+    <Icon name={name} size={28} />
   </Pressable>;
 }
 export function Screen({ children, title, header = true, back = false, centered = false, footer }: { children: ReactNode; title?: string; header?: boolean; back?: boolean; centered?: boolean; footer?: ReactNode }) {

@@ -7,7 +7,7 @@ export default function TabsLayout() { useLanguage();
     <Tabs tabBar={props => <AnimatedTabBar {...props} />} screenOptions={{ headerShown: false }}>
       <Tabs.Screen name="index" options={{ title: t("Start") }} />
       <Tabs.Screen name="check" options={{ title: t("Sprawdź"), tabBarAccessibilityLabel: t("Sprawdź wiadomość") }} />
-      <Tabs.Screen name="alerts" options={{ title: t("Ostrzeżenia") }} />
+      <Tabs.Screen name="alerts" options={{ title: t("Alerty") }} />
     </Tabs>
   );
 }

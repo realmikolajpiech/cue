@@ -13,8 +13,10 @@ export default function Protection() {
   const restartOnboarding = usePreferences(s => s.restartOnboarding);
   return <Screen centered>
     <View style={{ alignItems: 'center', gap: 16 }}>
-      <ProtectionShield enabled={enabled} />
-      <Copy accessibilityLiveRegion="polite" title style={{ fontSize: 28, lineHeight: 38, textAlign: 'center' }}>{enabled ? t('Ochrona jest włączona') : t('Ochrona jest wyłączona')}</Copy>
+      <View style={{ alignItems: 'center', gap: 8, alignSelf: 'stretch' }}>
+        <ProtectionShield enabled={enabled} />
+        <Copy accessibilityLiveRegion="polite" title style={{ fontSize: 28, lineHeight: 38, textAlign: 'center' }}>{enabled ? t('Ochrona włączona') : t('Ochrona wyłączona')}</Copy>
+      </View>
       <ProtectionToggle enabled={enabled} disabled={busy || status?.modelState === 'loading'} onToggle={toggleProtection} />
       {native && !enabled && <Copy style={{ textAlign: 'center' }}>{stateLabel}</Copy>}
       {error && <Copy accessibilityLiveRegion="polite">{error}</Copy>}

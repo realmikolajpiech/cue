@@ -18,7 +18,7 @@ function AlertRow({ threat }: { threat: Threat }) {
   const message = threat.notificationContext?.messages.at(-1);
   const sender = message?.sender || threat.notificationContext?.title;
   return <Pressable accessibilityRole="button"
-    accessibilityLabel={`${threat.reviewed ? 'Przeczytane' : 'Nowe'}. ${t(threat.title)}. ${t(threat.risk)}. ${threat.source}, ${sender ? `${sender}, ` : ''}${threat.time}`}
+    accessibilityLabel={`${t(threat.reviewed ? 'Przeczytane' : 'Nowe')}. ${t(threat.title)}. ${t(threat.risk)}. ${threat.source}, ${sender ? `${sender}, ` : ''}${threat.time}`}
     accessibilityHint={t("Otwiera powiadomienie i szczegóły ostrzeżenia.")}
     onPress={() => router.push(`/alert/${threat.id}`)}
     style={({ pressed }) => [styles.card, { backgroundColor: pressed ? colors.secondary : colors.surface, borderColor: colors.border }]}>
@@ -29,11 +29,9 @@ function AlertRow({ threat }: { threat: Threat }) {
     <Row style={{ alignItems: 'flex-start' }}>
       <Copy title style={styles.rowTitle}>{t(threat.title)}</Copy><Icon name="chevron" size={20} color={colors.secondaryText} />
     </Row>
-    {sender ? <Copy numberOfLines={1} style={[styles.preview, { color: colors.text, fontFamily: 'DMSansMedium' }]}>{sender}</Copy> : null}
-    {message && <Copy numberOfLines={2} style={styles.preview}>{message.text}</Copy>}
-    <Row style={[styles.cardFooter, { borderTopColor: colors.border }]}>
-      <Row style={{ gap: 6, flexShrink: 1 }}><Icon name="warning" size={16} color={colors.warning} /><Copy style={[styles.meta, { color: colors.warning }]}>{t(threat.risk)}</Copy></Row>
-      <Copy style={[styles.meta, { fontVariant: ['tabular-nums'], flexShrink: 1, textAlign: 'right' }]}>{threat.time}</Copy>
+    <Row style={{ gap: 6 }}>
+      <Icon name="warning" size={20} color={colors.warning} />
+      <Copy style={[styles.source, { color: colors.warning }]}>{t(threat.risk)}</Copy>
     </Row>
   </Pressable>;
 }
@@ -57,13 +55,12 @@ export default function Alerts() {
       <FlashList data={visible} keyExtractor={item => item.id} extraData={colors} contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 24 }}
         ListHeaderComponent={<View style={styles.heading}>
-          <Copy title accessibilityRole="header">{t("Ostrzeżenia")}</Copy>
-          <Copy style={styles.subtitle}>{unreadCount ? `Do przeczytania: ${unreadCount}` : t('Podejrzane powiadomienia w jednym miejscu.')}</Copy>
+          <Copy title accessibilityRole="header">{t("Alerty")}</Copy>
           <View style={[styles.filters, { backgroundColor: colors.secondary }]}>
             {filters.map(({ id, label }) => <Pressable key={id} accessibilityRole="button" accessibilityState={{ selected: filter === id }}
               accessibilityLabel={id === 'new' ? `${t(label)}, ${unreadCount}` : t(label)} onPress={() => setFilter(id)}
               style={({ pressed }) => [styles.filter, { backgroundColor: filter === id ? colors.surface : 'transparent', borderColor: filter === id ? colors.border : 'transparent', opacity: pressed ? 0.65 : 1 }]}>
-              <Copy style={[styles.filterLabel, { color: filter === id ? colors.text : colors.secondaryText }]}>{t(label)}</Copy>
+              <Copy style={[styles.filterLabel, { color: filter === id ? colors.text : colors.secondaryText }]}>{t(label)}{id === 'new' && unreadCount > 0 ? ` (${unreadCount})` : ''}</Copy>
             </Pressable>)}
           </View>
         </View>}
@@ -71,7 +68,7 @@ export default function Alerts() {
         ListEmptyComponent={<View style={[styles.empty, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={[styles.emptyIcon, { backgroundColor: colors.secondary }]}><Icon name={resultsError ? 'help' : filter === 'read' ? 'history' : 'shield'} size={32} /></View>
           <Copy title style={styles.emptyTitle}>{loadingResults ? t('Wczytuję ostrzeżenia…') : resultsError ? t('Nie można wczytać ostrzeżeń') : filter === 'new' && warnings.length ? t('Wszystko przeczytane') : filter === 'read' && warnings.length ? t('Brak przeczytanych ostrzeżeń') : t('Brak ostrzeżeń')}</Copy>
-          <Copy style={styles.emptyCopy}>{resultsError ? t('Spróbuj odświeżyć listę.') : loadingResults ? t('Za chwilę pojawią się zapisane wyniki.') : warnings.length ? t('Sprawdź pozostałe ostrzeżenia w zakładce „Wszystkie”.') : t('Tutaj pojawią się powiadomienia, w których wykryjemy podwyższone ryzyko.')}</Copy>
+          {resultsError && <Copy style={styles.emptyCopy}>{t('Spróbuj odświeżyć listę.')}</Copy>}
           {resultsError && <Action label={t("Spróbuj ponownie")} onPress={() => { void refreshResults(); }} />}
         </View>}
         ListFooterComponent={resultsError && visible.length ? <View style={{ paddingTop: 16, gap: 12 }}><Copy accessibilityRole="alert" style={styles.preview}>{t("Nie udało się odświeżyć ostrzeżeń.")}</Copy><Action secondary label={t("Spróbuj ponownie")} onPress={() => { void refreshResults(); }} /></View> : null}
@@ -82,15 +79,14 @@ export default function Alerts() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center' },
-  heading: { gap: 8, paddingTop: 12, paddingBottom: 20 }, subtitle: { fontSize: 17, lineHeight: 25 },
+  heading: { gap: 8, paddingTop: 12, paddingBottom: 20 },
   filters: { flexDirection: 'row', padding: 4, borderRadius: 16, borderCurve: 'continuous', marginTop: 12 },
   filter: { flex: 1, minHeight: 48, paddingHorizontal: 4, paddingVertical: 12, borderRadius: 12, borderCurve: 'continuous', borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  filterLabel: { fontSize: 15, lineHeight: 22, fontFamily: 'DMSansMedium', textAlign: 'center' },
+  filterLabel: { fontSize: 16, lineHeight: 24, fontFamily: 'DMSansMedium', textAlign: 'center' },
   card: { padding: 20, gap: 12, borderWidth: 1, borderRadius: 16, borderCurve: 'continuous' },
   source: { fontSize: 16, lineHeight: 24, fontFamily: 'DMSansMedium', flexShrink: 1 }, dot: { width: 6, height: 6, borderRadius: 3 },
   rowTitle: { flex: 1, fontSize: 22, lineHeight: 30, letterSpacing: -0.4, fontFamily: 'DMSansSemiBold' },
   preview: { fontSize: 17, lineHeight: 25 }, meta: { fontSize: 14, lineHeight: 22 },
-  cardFooter: { borderTopWidth: 1, paddingTop: 12, justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 },
   empty: { paddingHorizontal: 24, paddingVertical: 32, gap: 16, borderWidth: 1, borderRadius: 16, borderCurve: 'continuous', alignItems: 'center' },
   emptyIcon: { width: 64, height: 64, borderRadius: 16, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
   emptyTitle: { fontSize: 24, lineHeight: 32, textAlign: 'center' }, emptyCopy: { fontSize: 17, lineHeight: 25, textAlign: 'center' },

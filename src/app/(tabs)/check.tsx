@@ -1,6 +1,6 @@
 import { t, useLanguage } from '@/i18n';
 import { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, ActivityIndicator, Animated, Easing, Keyboard, LayoutAnimation, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { AccessibilityInfo, Animated, Easing, Keyboard, LayoutAnimation, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { clipboard } from '@/features/check/clipboard';
 import { router } from 'expo-router';
 import { Screen, Copy, Card, Row, Action, InlineError, Risk, Icon, type IconName } from '@/components/ui';
@@ -9,6 +9,7 @@ import { guardian } from '@/services/guardian';
 import { useGuardianStatus } from '@/services/queries';
 import { riskLabels, type ManualResult, type GuardianNotification } from '@/types/guardian';
 import { analysisTitle } from '@/features/protection/presentation';
+import { AnalysisPending } from '@/features/check/AnalysisPending';
 import { NotificationPicker } from '@/features/check/NotificationPicker';
 import { normalizeWebsiteLink } from '@/features/check/link';
 
@@ -120,12 +121,12 @@ export default function CheckMessage() {
       <Copy numberOfLines={5} style={{ color: colors.text }}>{selected.text}</Copy>
       <Action secondary label={t('Zmień powiadomienie')} onPress={() => setPicker(true)} disabled={busy} />
     </Card>}
-    {busy && <Row><ActivityIndicator color={colors.text} /><Copy accessibilityLiveRegion="polite" style={{ flex: 1 }}>{t('Analizuję wiadomość na telefonie…')}</Copy></Row>}
     <InlineError message={error ? t(error) : null} />
     {mode && status && !status.available && <Copy style={styles.subtitle}>{t('Analiza wymaga buildu Guardian na Androidzie.')}</Copy>}
     {mode && status?.available && !status.modelInstalled && <Action secondary label={t('Skonfiguruj model')} onPress={() => router.push('/model-setup')} />}
     {result && <Card>{result.risk !== 'low' && <Risk label={t(riskLabels[result.risk])} />}<Copy title style={{ fontSize: 26, lineHeight: 36 }}>{t(analysisTitle(result))}</Copy>{result.risk !== 'low' && <><Copy>{result.explanation}</Copy><Copy title>{t('Co zrobić teraz?')}</Copy><Copy>{result.recommendedAction}</Copy></>}<Copy style={styles.subtitle}>{t('Analiza lokalna. AI może się pomylić.')}</Copy></Card>}
     </Animated.View>}
+    {busy && <AnalysisPending />}
     {picker && Platform.OS !== 'ios' && <NotificationPicker visible onClose={() => setPicker(false)} onSelect={item => { setSelected(item); resetResult(); }} />}
   </Screen>;
 }

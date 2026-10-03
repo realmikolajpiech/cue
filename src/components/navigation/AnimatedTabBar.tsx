@@ -70,8 +70,8 @@ const styles = StyleSheet.create({
   bar: {
     borderWidth: 1, borderRadius: 28, maxWidth: 520, width: '94%', alignSelf: 'center',
     marginTop: 8, paddingVertical: 8, paddingHorizontal: 6,
-    shadowColor: '#000000', shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.06, shadowRadius: 10, elevation: 3,
+    shadowColor: '#000000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03, shadowRadius: 6, elevation: 1,
   },
   tabs: { flexDirection: 'row', position: 'relative' },
   indicator: { position: 'absolute', top: 0, bottom: 0, left: 3, borderRadius: 21 },

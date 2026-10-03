@@ -47,7 +47,7 @@ export function ProtectionToggle({ enabled, onToggle, disabled = false }: { enab
       <Animated.View style={[StyleSheet.absoluteFill, styles.activeTrack, { backgroundColor: green, opacity: position }]} />
       <Animated.View style={[styles.thumb, { transform: [{ translateX: position.interpolate({ inputRange: [0, 1], outputRange: [0, 60] }) }] }]} />
     </Animated.View>
-    <View><Copy style={{ color: colors.text, fontFamily: 'DMSansMedium', textAlign: 'center' }}>{enabled ? t("Wyłącz ochronę") : t("Włącz ochronę")}</Copy></View>
+    <View><Copy style={{ color: colors.text, fontFamily: 'DMSansMedium', textAlign: 'center' }}>{t("Ochrona")}</Copy></View>
   </Pressable>;
 }
 
