@@ -8,9 +8,9 @@ import org.json.JSONObject
 object DeepSeek {
   const val MODEL = "deepseek-flash"
   suspend fun analyze(gateway: SupabaseGateway, messages: JSONArray, draft: String,
-    memory: JSONObject = JSONObject(), memoryOnly: Boolean = false): JSONObject = withContext(Dispatchers.IO) {
+    memory: JSONObject = JSONObject(), memoryOnly: Boolean = false, images: JSONArray = JSONArray()): JSONObject = withContext(Dispatchers.IO) {
     validate(gateway.analyze(userContent(messages, draft, generalHistory = JSONArray())
-      .put("personMemory", PersonMemory.input(memory)).put("memoryOnly", memoryOnly)), messages, memoryOnly)
+      .put("personMemory", PersonMemory.input(memory)).put("memoryOnly", memoryOnly).put("images", images)), messages, memoryOnly)
   }
 
   // Balance the general sample so one prolific conversation cannot dominate it.
@@ -23,7 +23,7 @@ object DeepSeek {
     return JSONArray(own)
   }
   private fun usableSample(text: String): Boolean = text.isNotBlank() && text.length <= 500 &&
-    text.any(Char::isLetter) && !Regex("https?://|sk-[A-Za-z0-9_-]{12,}", RegexOption.IGNORE_CASE).containsMatchIn(text)
+    !text.startsWith(MessageMedia.PHOTO) && text.any(Char::isLetter) && !Regex("https?://|sk-[A-Za-z0-9_-]{12,}", RegexOption.IGNORE_CASE).containsMatchIn(text)
 
   internal fun userContent(messages: JSONArray, draft: String, history: JSONArray = messages,
     generalHistory: JSONArray = history): JSONObject {

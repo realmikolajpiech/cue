@@ -17,7 +17,7 @@ internal object PersonMemory {
       }
     }
   }
-  private fun usable(text: String) = text.length in 1..2000 && text.any(Char::isLetter) &&
+  private fun usable(text: String) = text.length in 1..2000 && !text.startsWith(MessageMedia.PHOTO) && text.any(Char::isLetter) &&
     !Regex("https?://|sk-[A-Za-z0-9_-]{12,}", RegexOption.IGNORE_CASE).containsMatchIn(text)
 
   fun update(memory: JSONObject, history: List<JSONObject>, now: Long = System.currentTimeMillis()) {

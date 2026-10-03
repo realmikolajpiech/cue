@@ -19,6 +19,7 @@ declare class SubtextModule extends NativeModule<{ onChanged: () => void }> {
   previewWritingStyle(): Promise<string>;
   conversations(): Promise<string>;
   conversation(id: string): Promise<string>;
+  conversationImage(id: string, messageId: string): Promise<string>;
   syncConversation(id: string): Promise<string>;
   refresh(): Promise<void>;
   analyze(id: string, draft: string): Promise<string>;
@@ -52,6 +53,7 @@ export const subtext = {
   status: async () => native ? subtextStatusSchema.parse(JSON.parse(await native.status())) : unavailable,
   rooms: async () => native ? z.array(roomSchema).parse(JSON.parse(await native.conversations())) : [],
   room: async (id: string) => roomSchema.parse(JSON.parse(await withDeadline(requireSubtext().conversation(id), 5000, 'Nie udało się odczytać zapisanej rozmowy. Spróbuj ponownie.'))),
+  image: (id: string, messageId: string) => withDeadline(requireSubtext().conversationImage(id, messageId), 50000, 'Pobieranie zdjęcia trwa zbyt długo. Spróbuj ponownie.'),
   syncRoom: async (id: string) => roomSchema.parse(JSON.parse(await withDeadline(requireSubtext().syncConversation(id), 25000, 'Synchronizacja trwa zbyt długo. Zapisane wiadomości są nadal dostępne. Spróbuj ponownie.'))),
   refresh: () => withDeadline(requireSubtext().refresh(), 30000, 'Nie udało się odświeżyć rozmów. Sprawdź połączenie komunikatora i spróbuj ponownie.'),
   analyze: async (id: string, draft = '') => profileSchema.parse(JSON.parse(await requireSubtext().analyze(id, draft))),

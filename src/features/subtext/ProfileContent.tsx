@@ -1,3 +1,4 @@
+import { MessagePhoto } from './MessagePhoto';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Keyboard, Pressable, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
@@ -10,7 +11,7 @@ import { subtext, subtextCache, useRoom, useSubtextStatus, useSyncRoom } from '@
 import { useTheme } from '@/theme/useTheme';
 import { Button, Disclosure, ErrorText, Field, ui } from './components';
 import { ConversationAvatar } from './ConversationRow';
-import { conversationTime, networkName } from './conversationPresentation';
+import { messageText, conversationTime, networkName } from './conversationPresentation';
 import type { Profile, Room } from '@/types/subtext';
 import ConversationReminders from './ConversationReminders';
 
@@ -80,7 +81,8 @@ export default function ProfileContent({ id }: { id: string }) {
         <Copy style={[ui.small, { flex: 1, fontFamily: 'DMSansSemiBold' }]}>{latest ? latest.isMe ? 'Ostatnia wiadomość · Ty' : 'Ostatnia wiadomość · ' + (latest.sender || room.name) : 'Ostatnia wiadomość'}</Copy>
         <Copy style={ui.small}>{conversationTime(latest?.timestamp ?? room.updatedAt)}</Copy>
       </Row>
-      <Copy selectable numberOfLines={4} style={[ui.body, { color: colors.text }]}>{latest?.text ?? room.snippet}</Copy>
+      {latest?.text.startsWith('[Zdjęcie]') && <MessagePhoto roomId={id} messageId={latest.id} />}
+      <Copy selectable numberOfLines={4} style={[ui.body, { color: colors.text }]}>{messageText(latest?.text ?? room.snippet)}</Copy>
     </Card>}
 
     {sync.isError && <View style={{ gap: 4 }}><Copy accessibilityRole="alert" style={[ui.small, { color: colors.warning }]}>Nie udało się zsynchronizować. Zapisana rozmowa jest nadal dostępna.</Copy>

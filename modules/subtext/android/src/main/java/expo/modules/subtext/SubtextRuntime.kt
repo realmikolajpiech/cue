@@ -16,6 +16,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.util.concurrent.CopyOnWriteArraySet
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 
 @OptIn(FlowPreview::class)
@@ -28,6 +29,8 @@ class SubtextRuntime private constructor(private val context: Context) {
   val prefs = context.getSharedPreferences("subtext", Context.MODE_PRIVATE)
   val observers = CopyOnWriteArraySet<() -> Unit>()
   private val analysisMutex = Mutex()
+  private val imageLocks = ConcurrentHashMap<String, Mutex>()
+  private val images = ConversationImages(context)
   private val generation = AtomicLong()
   private val memoryRequests = Channel<Unit>(Channel.CONFLATED)
   @Volatile var analyzing: String? = null
@@ -51,7 +54,7 @@ class SubtextRuntime private constructor(private val context: Context) {
         val room = messenger.conversations.value.find { it.id == id }
         if (room?.kind != ConversationKind.PRIVATE) return@forEach
         store.merge("messenger", id, room.name, room.kind.name, messages.map {
-          message(it.id, it.senderName, it.text, it.timestamp, it.isMe)
+          message(it.id, it.senderName, it.text, it.timestamp, it.isMe, it.mediaId)
         })
       }; store.flush(); changed(); memoryRequests.trySend(Unit)
     } }
@@ -60,7 +63,7 @@ class SubtextRuntime private constructor(private val context: Context) {
         val room = whatsapp.conversations.value.find { it.id == id }
         if (room?.kind != ConversationKind.PRIVATE) return@forEach
         store.merge("whatsapp", id, room.name, room.kind.name, messages.map {
-          message(it.id, it.senderName, it.text, it.timestamp, it.isMe)
+          message(it.id, it.senderName, it.text, it.timestamp, it.isMe, it.mediaId)
         })
       }; store.flush(); changed(); memoryRequests.trySend(Unit)
     } }
@@ -105,8 +108,8 @@ class SubtextRuntime private constructor(private val context: Context) {
     check(room.optString("kind") == "PRIVATE") { "Obsługiwane są tylko rozmowy prywatne." }
     if (room.optBoolean("demo")) return@withTimeout room.toString()
     val remote = room.getString("remoteId"); val network = room.getString("network")
-    val messages = if (network == "messenger") messenger.readMessages(remote, 100).map { message(it.id, it.senderName, it.text, it.timestamp, it.isMe) }
-      else whatsapp.readMessages(remote, 100).map { message(it.id, it.senderName, it.text, it.timestamp, it.isMe) }
+    val messages = if (network == "messenger") messenger.readMessages(remote, 100).map { message(it.id, it.senderName, it.text, it.timestamp, it.isMe, it.mediaId) }
+      else whatsapp.readMessages(remote, 100).map { message(it.id, it.senderName, it.text, it.timestamp, it.isMe, it.mediaId) }
     store.merge(network, remote, room.getString("name"), room.getString("kind"), messages)
     store.flush()
     memoryRequests.trySend(Unit)
@@ -117,6 +120,67 @@ class SubtextRuntime private constructor(private val context: Context) {
       else "Komunikator nie udostępnił jeszcze wiadomości. Spróbuj odświeżyć po synchronizacji.")
     }
     result.toString()
+  }
+  suspend fun conversationImage(id: String, messageId: String): File = withTimeout(45_000) {
+    imageLocks.getOrPut("$id:$messageId") { Mutex() }.withLock {
+    android.util.Log.d("CueImage", "Photo request started")
+    val token = generation.get()
+    val room = requireNotNull(store.room(id)) { "Rozmowa nie istnieje." }
+    check(room.optString("kind") == "PRIVATE") { "Obsługiwane są tylko rozmowy prywatne." }
+    val messages = room.getJSONArray("messages")
+    val message = (0 until messages.length()).map { messages.getJSONObject(it) }.firstOrNull { it.optString("id") == messageId }
+      ?: error("Wiadomość nie istnieje.")
+    check(message.optString("text").startsWith(MessageMedia.PHOTO)) { "Ta wiadomość nie zawiera zdjęcia." }
+    val network = room.getString("network")
+    images.cached(network, id, messageId)?.let { return@withLock it }
+    val mediaId = message.optString("mediaId").ifBlank { messageId }
+    suspend fun download(): ByteArray {
+      android.util.Log.d("CueImage", "Downloading from $network")
+      return if (network == "messenger") messenger.downloadImage(mediaId) else whatsapp.downloadImage(mediaId)
+    }
+    val raw = try { download() }
+      catch (error: CancellationException) { throw error }
+      catch (error: Exception) {
+        // Plain Messenger CDN handles live only in the bridge session. Restore them
+        // from history after an app restart before declaring the photo unavailable.
+        if (network != "messenger" || error.message?.contains("image unavailable") != true) throw error
+        read(id)
+        // History attachments arrive through the socket after read() returns
+        // when the conversation already has cached messages.
+        var restored: ByteArray? = null
+        var lastFailure: Exception = error
+        for (attempt in 0 until 10) {
+          delay(500)
+          check(token == generation.get()) { "Pobieranie zdjęcia anulowane." }
+          try {
+            restored = download()
+            break
+          } catch (cancelled: CancellationException) { throw cancelled }
+          catch (failure: Exception) {
+            if (failure.message?.contains("image unavailable") != true) throw failure
+            lastFailure = failure
+          }
+        }
+        restored ?: throw lastFailure
+      }
+    check(token == generation.get() && store.room(id) != null) { "Pobieranie zdjęcia anulowane." }
+    android.util.Log.d("CueImage", "Photo bytes received")
+    images.save(network, id, messageId, raw).also { android.util.Log.d("CueImage", "Photo cached") }
+    }
+  }
+  private suspend fun analysisImages(id: String, messages: JSONArray): JSONArray {
+    val candidates = (maxOf(0, messages.length() - 12) until messages.length()).map { messages.getJSONObject(it) }
+      .filter { it.optString("text").startsWith(MessageMedia.PHOTO) }.takeLast(3)
+    val output = JSONArray()
+    for (message in candidates) {
+      try {
+        val file = conversationImage(id, message.getString("id"))
+        output.put(JSONObject().put("messageId", message.getString("id"))
+          .put("dataUrl", "data:image/jpeg;base64," + android.util.Base64.encodeToString(file.readBytes(), android.util.Base64.NO_WRAP)))
+      } catch (error: CancellationException) { throw error }
+      catch (_: Exception) { /* The model explicitly sees which photo bodies are unavailable. */ }
+    }
+    return output
   }
   suspend fun analyze(id: String, draft: String): String = analysisMutex.withLock {
     check(prefs.getBoolean("cloud", false)) { "Włącz analizę DeepSeek w ustawieniach. Wybrana rozmowa zostanie wysłana do API." }
@@ -131,7 +195,7 @@ class SubtextRuntime private constructor(private val context: Context) {
       val recent = JSONArray((maxOf(0, all.length() - 80) until all.length()).map { all.getJSONObject(it) })
       check(recent.length() > 0) { fetched.optString("historyNotice", "Wiadomości nie zostały jeszcze zsynchronizowane.") }
       val memory = store.memory(id)
-      val profile = DeepSeek.analyze(gateway, recent, draft, memory)
+      val profile = DeepSeek.analyze(gateway, recent, draft, memory, images = analysisImages(id, recent))
       check(token == generation.get() && prefs.getBoolean("cloud", false)) { "Analiza anulowana po zmianie ustawień." }
       profile.put("replyDraft", draft)
       store.profile(id, profile)
@@ -258,11 +322,12 @@ class SubtextRuntime private constructor(private val context: Context) {
     prefs.all.keys.filter { it.startsWith("writing-style-preview") }.forEach { editor.remove(it) }
     editor.apply()
   }
-  fun clear() { generation.incrementAndGet(); clearStylePreviews(); store.clear(); changed() }
+  fun clear() { generation.incrementAndGet(); clearStylePreviews(); images.clear(); store.clear(); changed() }
   fun disconnect(network: String) {
     generation.incrementAndGet()
     clearStylePreviews()
     if (network == "messenger") messenger.logout() else if (network == "whatsapp") whatsapp.logout() else error("Nieznany komunikator.")
+    images.clear(network)
     store.clear(network)
     if (!messenger.hasSession() && !whatsapp.hasSession()) {
       prefs.edit().putBoolean("background", false).apply()
@@ -275,7 +340,7 @@ class SubtextRuntime private constructor(private val context: Context) {
     fun get(context: Context): SubtextRuntime = instance ?: synchronized(this) {
       instance ?: SubtextRuntime(context.applicationContext).also { instance = it }
     }
-    private fun message(id: String, sender: String, text: String, timestamp: Long, me: Boolean) = JSONObject()
-      .put("id", id).put("sender", sender.take(160)).put("text", text.take(4000)).put("timestamp", timestamp).put("isMe", me)
+    private fun message(id: String, sender: String, text: String, timestamp: Long, me: Boolean, mediaId: String? = null) = JSONObject()
+      .put("id", id).put("sender", sender.take(160)).put("text", text.take(4000)).put("timestamp", timestamp).put("isMe", me).apply { if (!mediaId.isNullOrBlank()) put("mediaId", mediaId) }
   }
 }

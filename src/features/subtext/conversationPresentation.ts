@@ -23,3 +23,9 @@ export function conversationTime(timestamp: number, now = new Date()) {
   if (date.toDateString() === yesterday.toDateString()) return 'Wczoraj';
   return date.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', ...(date.getFullYear() !== now.getFullYear() ? { year: 'numeric' } : {}) });
 }
+
+export function messageText(text: string) {
+  if (!text.startsWith('[Zdjęcie]')) return text;
+  const caption = text.slice('[Zdjęcie]'.length).trim();
+  return caption ? `Wysłano zdjęcie · ${caption}` : 'Wysłano zdjęcie';
+}

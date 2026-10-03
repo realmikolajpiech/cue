@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Copy, Icon, Row } from '@/components/ui';
 import { useTheme } from '@/theme/useTheme';
 import type { Room } from '@/types/subtext';
-import { conversationTime, initials, networkName } from './conversationPresentation';
+import { messageText, conversationTime, initials, networkName } from './conversationPresentation';
 
 export function ConversationAvatar({ name, size = 48 }: { name: string; size?: number }) {
   const { colors } = useTheme();
@@ -22,7 +22,7 @@ export function ConversationRow({ room, onPress }: { room: Room; onPress: () => 
         <Copy numberOfLines={1} style={[styles.name, { color: colors.text }]}>{room.name}</Copy>
         <Copy style={styles.time}>{conversationTime(room.updatedAt)}</Copy>
       </Row>
-      <Copy numberOfLines={1} style={styles.preview}>{room.snippet || 'Otwórz, aby poznać kontekst rozmowy'}</Copy>
+      <Copy numberOfLines={1} style={styles.preview}>{messageText(room.snippet) || 'Otwórz, aby poznać kontekst rozmowy'}</Copy>
       <Row style={{ gap: 4 }}><Icon name="message" size={11} color={colors.secondaryText} /><Copy style={styles.network}>{network}</Copy></Row>
     </View>
     <Icon name="chevron" size={16} color={colors.secondaryText} />

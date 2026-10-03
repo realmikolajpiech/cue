@@ -58,7 +58,7 @@ class SubtextStore(context: Context) {
     val retained = all.values.sortedBy { it.optLong("timestamp") }.takeLast(200)
     room.put("messages", JSONArray(retained))
     room.put("updatedAt", maxOf(timestamp, room.optLong("updatedAt"), retained.lastOrNull()?.optLong("timestamp") ?: 0))
-    room.put("snippet", retained.lastOrNull()?.optString("text")?.take(160) ?: room.optString("snippet"))
+    room.put("snippet", retained.lastOrNull()?.let { MessageMedia.preview(it.optString("text"), it.optBoolean("isMe")) }?.take(160) ?: room.optString("snippet"))
     data.put(key, room)
     if (data.length() > 150) rooms().drop(150).forEach { data.remove(it.getString("id")) }
   }

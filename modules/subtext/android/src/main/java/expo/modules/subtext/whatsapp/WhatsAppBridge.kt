@@ -2,6 +2,7 @@
 package expo.modules.subtext.whatsapp
 
 import android.Manifest
+import expo.modules.subtext.MessageMedia
 import android.content.Context
 import android.content.pm.PackageManager
 import android.provider.ContactsContract
@@ -31,6 +32,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 import org.json.JSONArray
 import org.json.JSONObject
@@ -72,6 +74,7 @@ data class WhatsAppMessage(
     val text: String,
     val timestamp: Long,
     val isMe: Boolean,
+    val mediaId: String? = null,
 )
 
 class WhatsAppRepository(
@@ -223,6 +226,12 @@ class WhatsAppRepository(
             .onFailure { markOperationalFailure(it, "Message fetch failed") }
             .getOrThrow()
         mutableMessages.value[conversationId].orEmpty().takeLast(limit.coerceIn(1, 100))
+    }
+
+    suspend fun downloadImage(mediaId: String): ByteArray = withContext(Dispatchers.IO) {
+        restoreIfPossible()
+        withTimeout(CONNECTION_TIMEOUT_MS) { state.first { it.phase != WhatsAppPhase.CONNECTING } }
+        checkNotNull(bridge) { "WhatsApp nie jest połączony." }.downloadImageForCue(mediaId)
     }
 
     suspend fun sendMessage(
@@ -565,6 +574,10 @@ internal fun parseWhatsAppMessage(payload: String): WhatsAppMessage? = runCatchi
     val conversationId = json.optString("conversationID").ifBlank { return null }
     val sender = json.optJSONObject("senderParticipant") ?: JSONObject()
     val contents = json.optJSONArray("messageInfo") ?: JSONArray()
+    val photo = (0 until contents.length()).any { index ->
+        val media = contents.optJSONObject(index)?.optJSONObject("mediaContent")
+        media?.optString("mimeType")?.startsWith("image/") == true || media?.optString("format") == "IMAGE"
+    }
     val text = buildList {
         for (index in 0 until contents.length()) {
             contents.optJSONObject(index)?.optJSONObject("messageContent")?.optString("content")
@@ -576,7 +589,8 @@ internal fun parseWhatsAppMessage(payload: String): WhatsAppMessage? = runCatchi
         conversationId = conversationId,
         senderId = sender.optJSONObject("ID")?.optString("number").orEmpty(),
         senderName = sender.optString("fullName").ifBlank { sender.optString("firstName") },
-        text = text,
+        mediaId = if (photo) (0 until contents.length()).asSequence().mapNotNull { contents.optJSONObject(it)?.optJSONObject("mediaContent")?.optString("mediaID")?.takeIf(String::isNotBlank) }.firstOrNull() ?: json.optString("messageID") else null,
+        text = MessageMedia.text(text, photo),
         timestamp = microsToMillis(json.optString("timestamp")),
         isMe = json.optBoolean("isMe") || json.optBoolean("fromMe") || sender.optBoolean("isMe"),
     )

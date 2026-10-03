@@ -1,6 +1,7 @@
 // Adapted from realmikolajpiech/arie, commit ff217daadf321eca73e5245d6a85e96b059f8e8d.
 package expo.modules.subtext.messenger
 
+import expo.modules.subtext.MessageMedia
 import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
@@ -34,6 +35,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 import org.json.JSONArray
 import org.json.JSONObject
@@ -74,6 +76,7 @@ data class MessengerMessage(
     val text: String,
     val timestamp: Long,
     val isMe: Boolean,
+    val mediaId: String? = null,
 )
 
 enum class MetaBridgeService(
@@ -241,6 +244,12 @@ open class MessengerRepository(
             }
         }
         mutableMessages.value[conversationId].orEmpty().takeLast(limit.coerceIn(1, 100))
+    }
+
+    suspend fun downloadImage(mediaId: String): ByteArray = withContext(Dispatchers.IO) {
+        restoreIfPossible()
+        withTimeout(CONNECTION_TIMEOUT_MS) { state.first { it.phase != MessengerPhase.CONNECTING } }
+        checkNotNull(bridge) { "Messenger nie jest połączony." }.downloadImage(mediaId)
     }
 
     fun isEncrypted(conversationId: String): Boolean = e2eeByConversation.containsKey(conversationId)
@@ -596,12 +605,14 @@ private interface NativeMessagingBridge {
     fun exportSession(): String
     fun listConversations(cutoff: Long): String
     fun fetchMessages(threadId: String, count: Long, cursor: String): String
+    fun downloadImage(mediaId: String): ByteArray = error("Zdjęcie niedostępne w tym komunikatorze.")
     fun sendMessageIdempotent(threadId: String, text: String, transactionId: String): String
 }
 
 private class MessengerNativeBridge(private val delegate: fi.mirrormsg.fbmessagebridge.Bridge) : NativeMessagingBridge {
     override fun setCookies(raw: String) = delegate.setCookies(raw)
     override fun setE2EEStorePath(path: String) = delegate.setE2EEStorePath(path)
+    override fun downloadImage(mediaId: String): ByteArray = delegate.downloadImageForCue(mediaId)
     override fun connect() = delegate.connect()
     override fun disconnect() = delegate.disconnect()
     override fun exportSession(): String = delegate.exportSession()
@@ -655,7 +666,8 @@ internal fun parseMessengerMessage(payload: String): MessengerMessage? = runCatc
         conversationId = conversationId,
         senderId = json.opt("senderId")?.toString().orEmpty(),
         senderName = json.optString("senderName").takeUnless(::isNumericIdentifier).orEmpty(),
-        text = json.optString("text"),
+        mediaId = json.optString("messageId").takeIf { json.optString("imageMime").startsWith("image/") },
+        text = MessageMedia.text(json.optString("text"), json.optString("imageMime").startsWith("image/")),
         timestamp = json.optLong("timestamp"),
         isMe = json.optBoolean("isMe"),
     )

@@ -48,6 +48,9 @@ class SubtextModule : Module() {
       JSONArray(subtextRuntime.store.summaries()).toString()
     }
     AsyncFunction("refresh") Coroutine { -> subtextRuntime.startConnections(); subtextRuntime.refresh() }
+    AsyncFunction("conversationImage") Coroutine { id: String, messageId: String ->
+      android.net.Uri.fromFile(subtextRuntime.conversationImage(id, messageId)).toString()
+    }
     AsyncFunction("conversation") { id: String -> subtextRuntime.cachedConversation(id) }
     AsyncFunction("syncConversation") Coroutine { id: String -> subtextRuntime.read(id) }
     AsyncFunction("analyze") Coroutine { id: String, draft: String -> subtextRuntime.analyze(id, draft) }

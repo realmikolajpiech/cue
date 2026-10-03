@@ -1,4 +1,5 @@
-import { PROMPT, MEMORY_PROMPT, NO_REPLY_PROMPT, REMINDERS_PROMPT, CURRENT_THREAD_PROMPT } from './prompt.ts';
+import { PROMPT, MEMORY_PROMPT, NO_REPLY_PROMPT, REMINDERS_PROMPT, CURRENT_THREAD_PROMPT, MEDIA_PROMPT } from './prompt.ts';
+import { validateImages, visionContent } from './vision.ts';
 import { messageTime } from './message-time.ts';
 
 const cors = {
@@ -34,7 +35,7 @@ Deno.serve(async (req: Request) => {
       const { done, value } = await reader.read();
       if (done) break;
       size += value.length;
-      if (size > 1500000) { await reader.cancel(); return reply(413, { error: 'body_too_large' }); }
+      if (size > 2500000) { await reader.cancel(); return reply(413, { error: 'body_too_large' }); }
       chunks.push(value);
     }
     const bytes = new Uint8Array(size); let offset = 0;
@@ -61,6 +62,11 @@ Deno.serve(async (req: Request) => {
     if (styleInput !== undefined && (!styleInput || typeof styleInput !== 'object' || Array.isArray(styleInput) ||
         JSON.stringify(styleInput).length > 50000)) return reply(400, { error: 'invalid_style' });
     if (input.memoryOnly !== undefined && typeof input.memoryOnly !== 'boolean') return reply(400, { error: 'invalid_mode' });
+    let images;
+    try { images = validateImages(input.images, input.messages); }
+    catch { return reply(400, { error: 'invalid_images' }); }
+    if (input.memoryOnly === true && images.length) return reply(400, { error: 'invalid_images' });
+    const imageIds = new Set(images.map(image => image.messageId));
     const key = Deno.env.get('DEEPSEEK_API_KEY');
     if (!key) return reply(503, { error: 'ai_not_configured' });
     const quota = await fetch(`${base}/rest/v1/rpc/cue_consume_ai_quota`, {
@@ -73,14 +79,14 @@ Deno.serve(async (req: Request) => {
     try { new Intl.DateTimeFormat('en', { timeZone: timezone }).format(); } catch { timezone = 'UTC'; }
     const messages = input.messages.map((m: { id: string; sender: string; text: string; timestamp: number; isMe: boolean }) =>
       ({ id: m.id, sender: m.sender, text: m.text, timestamp: m.timestamp, isMe: m.isMe,
-        calendar: messageTime(m.timestamp, timezone, m.text) }));
-    const model = Deno.env.get('DEEPSEEK_MODEL') || 'deepseek-flash';
+        calendar: messageTime(m.timestamp, timezone, m.text), imageAvailable: imageIds.has(m.id) }));
+    const model = images.length ? 'deepseek-flash' : Deno.env.get('DEEPSEEK_MODEL') || 'deepseek-flash';
     const response = await fetch('https://api.deepseek.com/chat/completions', {
       method: 'POST', headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
       signal: AbortSignal.timeout(55000),
       body: JSON.stringify({ model, thinking: { type: 'disabled' }, response_format: { type: 'json_object' }, max_tokens: 4500,
-        messages: [{ role: 'system', content: PROMPT + MEMORY_PROMPT + NO_REPLY_PROMPT + REMINDERS_PROMPT + CURRENT_THREAD_PROMPT }, { role: 'user', content: JSON.stringify({ messages, draft: input.draft,
-          personMemory, styleInput, memoryOnly: input.memoryOnly === true }) }] }),
+        messages: [{ role: 'system', content: PROMPT + MEMORY_PROMPT + NO_REPLY_PROMPT + REMINDERS_PROMPT + CURRENT_THREAD_PROMPT + MEDIA_PROMPT }, { role: 'user', content: visionContent({ messages, draft: input.draft,
+          personMemory, styleInput, memoryOnly: input.memoryOnly === true }, images) }] }),
     });
     if (!response.ok) return reply([402, 429].includes(response.status) ? response.status : 502, { error: 'upstream_unavailable' });
     const completion = await response.json();

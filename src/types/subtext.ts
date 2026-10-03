@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const networkSchema = z.enum(['messenger', 'whatsapp']);
 export type Network = z.infer<typeof networkSchema>;
-export const messageSchema = z.object({ id: z.string(), sender: z.string(), text: z.string(), timestamp: z.number(), isMe: z.boolean() });
+export const messageSchema = z.object({ id: z.string(), sender: z.string(), text: z.string(), timestamp: z.number(), isMe: z.boolean(), mediaId: z.string().optional() });
 const evidenceSchema = z.object({ text: z.string(), evidenceIds: z.array(z.string()) });
 export const profileSchema = z.object({
   replyDraft: z.string().optional(),

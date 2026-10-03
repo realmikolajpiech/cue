@@ -44,6 +44,9 @@ if [[ -n "$telegram_api_id" && -n "$telegram_api_hash" ]]; then
 else
     echo "Telegram API credentials not supplied; bridge will build but Telegram login will report not configured." >&2
 fi
+cp "$repo_root/scripts/bridges/messenger-images.go" "$work_dir/mirrormsg/combined-go/fbmessagebridge/cue_images.go"
+cp "$repo_root/scripts/bridges/whatsapp-images.go" "$work_dir/mirrormsg/combined-go/whatsappbridge/cue_images.go"
+
 go install "golang.org/x/mobile/cmd/gomobile@$mobile_version"
 go install "golang.org/x/mobile/cmd/gobind@$mobile_version"
 

@@ -1,3 +1,4 @@
+import { MessagePhoto } from './MessagePhoto';
 import { useMemo } from 'react';
 import { View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
@@ -7,7 +8,7 @@ import { Copy } from '@/components/ui';
 import { useRoom, useSubtextStatus, useSyncRoom } from '@/services/subtext';
 import { useTheme } from '@/theme/useTheme';
 import { Button, ErrorText, ui } from './components';
-import { conversationTime } from './conversationPresentation';
+import { messageText, conversationTime } from './conversationPresentation';
 
 export default function Messages() {
   const { id } = useLocalSearchParams<{ id: string }>(); const query = useRoom(id); const { colors } = useTheme(); const insets = useSafeAreaInsets();
@@ -28,7 +29,8 @@ export default function Messages() {
       renderItem={({ item }) => <View style={{ gap: 6, marginBottom: 16, alignItems: item.isMe ? 'flex-end' : 'flex-start' }}>
         <Copy style={ui.small}>{item.isMe ? 'Ty' : item.sender || query.data?.name} · {conversationTime(item.timestamp)}</Copy>
         <View style={{ maxWidth: '90%', padding: 14, borderRadius: 16, borderCurve: 'continuous', backgroundColor: item.isMe ? colors.accent : colors.surface }}>
-          <Copy selectable style={[ui.body, { color: item.isMe ? colors.onAccent : colors.text }]}>{item.text}</Copy>
+          {item.text.startsWith('[Zdjęcie]') && <MessagePhoto roomId={id} messageId={item.id} />}
+          <Copy selectable style={[ui.body, { color: item.isMe ? colors.onAccent : colors.text }]}>{messageText(item.text)}</Copy>
         </View>
       </View>}
       ListEmptyComponent={<Copy style={ui.body}>{query.isPending ? 'Otwieram wiadomości…' : query.data?.historyNotice ?? 'Nie ma jeszcze zapisanych wiadomości.'}</Copy>} />
