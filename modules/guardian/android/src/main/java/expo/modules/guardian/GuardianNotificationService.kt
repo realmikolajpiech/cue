@@ -6,7 +6,14 @@ import android.content.ComponentName
 
 class GuardianNotificationService : NotificationListenerService() {
   private val runtime get() = GuardianRuntime.get(this)
-  override fun onListenerConnected() { runtime.connect() }
+  override fun onListenerConnected() {
+    runtime.connect {
+      // After process restart, don't lose a recent notification that is still visible.
+      // Fetch only after the engine is ready; the normal buffer deduplicates updates.
+      val cutoff = System.currentTimeMillis() - 15 * 60 * 1000L
+      activeNotifications?.filter { it.postTime > cutoff }?.forEach(::onNotificationPosted)
+    }
+  }
   override fun onListenerDisconnected() {
     runtime.disconnect()
     if (runtime.permissionGranted()) requestRebind(ComponentName(this, GuardianNotificationService::class.java))

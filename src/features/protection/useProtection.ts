@@ -29,7 +29,7 @@ export function useProtection() {
     enabled: native ? (s?.monitoringEnabled ?? false) : demo.enabled,
     active: native ? (s?.active ?? false) : demo.enabled,
     notifications: native ? (s?.notificationPermission ?? false) : demo.notifications,
-    apps: native ? { SMS: true, WhatsApp: true, Messenger: true } : demo.apps,
+    apps: native ? { SMS: true, WhatsApp: true, Messenger: true, Beeper: true } : demo.apps,
     toggleProtection: () => {
       if (!native) { demo.toggleProtection(); return; }
       void action.run(async () => {

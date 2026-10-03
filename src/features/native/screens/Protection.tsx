@@ -26,7 +26,7 @@ export default function Protection() {
       <Action label="Pobierz Gemma na Hugging Face" secondary disabled={action.busy} onPress={() => { void action.run(() => Linking.openURL('https://huggingface.co/litert-community/Gemma3-1B-IT/blob/a6306a4e292016480083b73b8dc6f3f939ae04c3/gemma3-1b-it-int4.litertlm')); }} />
       <Action label={action.busy ? 'Trwa operacja…' : 'Importuj model .litertlm'} disabled={!s?.available || action.busy} onPress={() => { void action.run(importModel); }} />
     </Card>
-    <Card><Copy title>2. Dostęp do powiadomień</Copy><Copy>Po włączeniu dostępu Android udostępni Guardian treść powiadomień. Analizowane są tylko WhatsApp, Messenger oraz SMS z Google i Samsung. Wiadomości są przetwarzane lokalnie, a kontekst znika z RAM po 15 minutach.</Copy>
+    <Card><Copy title>2. Dostęp do powiadomień</Copy><Copy>Po włączeniu dostępu Android udostępni Guardian treść powiadomień. Analizowane są tylko WhatsApp, Messenger, Beeper oraz SMS z Google i Samsung. Wiadomości są przetwarzane lokalnie, a kontekst znika z RAM po 15 minutach.</Copy>
       <Copy>{s?.notificationAccess ? s.listenerConnected ? 'Listener jest połączony.' : 'Zgoda udzielona. Oczekiwanie na połączenie…' : 'Dostęp nie jest włączony.'}</Copy>
       <Action label="Otwórz ustawienia dostępu" secondary disabled={!s?.available || action.busy} onPress={() => { void action.run(guardian.openSettings); }} />
     </Card>

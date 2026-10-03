@@ -5,7 +5,7 @@ export const categoryLabels = { family_impersonation: 'Podszywanie się pod blis
 export const signalLabels = { identity_change: 'Zmiana tożsamości lub numeru', urgency: 'Presja czasu', money_request: 'Prośba o pieniądze', credential_request: 'Prośba o hasło lub kod', suspicious_link: 'Podejrzany link', secrecy: 'Prośba o zachowanie tajemnicy', authority_claim: 'Powołanie się na autorytet', emotional_pressure: 'Presja emocjonalna' } as const;
 export const resultSchema = z.object({
   schemaVersion: z.literal(1), id: z.uuid(), createdAt: z.number().int().positive(),
-  sourceApp: z.enum(['WhatsApp', 'Messenger', 'SMS']),
+  sourceApp: z.enum(['WhatsApp', 'Messenger', 'SMS', 'Beeper']),
   risk: z.enum(['low', 'medium', 'high', 'uncertain']), category: z.enum(['family_impersonation', 'credential_theft', 'payment_fraud', 'suspicious_link', 'manipulation', 'unknown']),
   signals: z.array(z.enum(['identity_change', 'urgency', 'money_request', 'credential_request', 'suspicious_link', 'secrecy', 'authority_claim', 'emotional_pressure'])).max(8),
   explanation: z.string().min(1).max(300), recommendedAction: z.string().min(1).max(400),

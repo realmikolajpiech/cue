@@ -91,9 +91,12 @@ class GuardianRuntime private constructor(val context: Context) {
     return Settings.Secure.getString(context.contentResolver, "enabled_notification_listeners")
       ?.split(':')?.any { ComponentName.unflattenFromString(it) == expected } == true
   }
-  fun connect() {
+  fun connect(onReady: () -> Unit = {}) {
     connected = true; notifyChanged()
-    if (enabled) scope.launch { initializeModel(); notifyChanged() }
+    if (enabled) scope.launch {
+      initializeModel(); notifyChanged()
+      if (enabled && connected && permissionGranted() && inference.state == "ready") runCatching(onReady)
+    }
   }
   fun disconnect() { connected = false; stopPending(); notifyChanged(); scope.launch { modelLifecycle.withLock { inference.close() }; notifyChanged() } }
   private fun stopPending() {
