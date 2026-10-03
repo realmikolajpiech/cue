@@ -29,6 +29,6 @@ const summaries = report.rounds.map((round, roundIndex) => {
     initializationMs: round.initializationMs,
   };
 });
-console.log(`${report.device}; ${report.promptVersion}; unchanged validated outputs across all rounds`);
+console.log(`${report.device}; ${report.promptVersion}; unchanged assessments and validation failures across all rounds`);
 console.table(summaries);
-console.log('Compare each case and the two default rounds before selecting a setting. This four-case experiment does not establish production accuracy or battery consumption.');
+console.log('Valid counts schema/citation acceptance, not correct classification. Matching failures are not successful assessments. Compare each case and both default rounds before selecting a setting. This four-case experiment does not establish production accuracy or battery consumption.');

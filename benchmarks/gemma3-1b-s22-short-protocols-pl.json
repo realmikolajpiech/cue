@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "complete": false,
+  "createdAt": 1791038528326,
+  "device": "samsung SM-S901B",
+  "runtimeVersion": "0.15.0",
+  "backend": "cpu",
+  "rounds": [
+    {
+      "protocol": "v3-plain",
+      "cases": [
+        {
+          "case": 0,
+          "expectedHigh": false,
+          "latencyMs": 10950,
+          "firstChunkMs": 7253,
+          "conversationSetupMs": 5,
+          "totalTokenCount": 373,
+          "outputChars": 134,
+          "assessment": null,
+          "valid": false,
+          "failure": "JSONException",
+          "syntheticOutput": "```json\n{\n  \"risk\": \"High\",\n  \"category\": \"Social Engineering\",\n  \"signals\": [\n    \"Untrustworthy data\",\n    \"Money request\"\n  ]\n}\n```",
+          "observedPssKb": 1270948
+        },
+        {
+          "case": 1,
+          "expectedHigh": true,
+          "latencyMs": 10005,
+          "firstChunkMs": 5680,
+          "conversationSetupMs": 2,
+          "totalTokenCount": 411,
+          "outputChars": 120,
+          "assessment": null,
+          "valid": false,
+          "failure": "JSONException",
+          "syntheticOutput": "```json\n{\n  \"risk\": \"high\",\n  \"category\": \"social engineering\",\n  \"signals\": [\n    \"2500 zł\",\n    \"nie dzwoń\"\n  ]\n}\n```\n",
+          "observedPssKb": 1263776
+        },
+        {
+          "case": 2,
+          "expectedHigh": false,
+          "latencyMs": 9873,
+          "firstChunkMs": 6119,
+          "conversationSetupMs": 2,
+          "totalTokenCount": 379,
+          "outputChars": 134,
+          "assessment": null,
+          "valid": false,
+          "failure": "JSONException",
+          "syntheticOutput": "```json\n{\n  \"risk\": \"High\",\n  \"category\": \"Social Engineering\",\n  \"signals\": [\n    \"Untrustworthy data\",\n    \"Code request\"\n  ]\n}\n```\n",
+          "observedPssKb": 1264346
+        },
+        {
+          "case": 3,
+          "expectedHigh": true,
+          "latencyMs": 8863,
+          "firstChunkMs": 5480,
+          "conversationSetupMs": 2,
+          "totalTokenCount": 391,
+          "outputChars": 135,
+          "assessment": null,
+          "valid": false,
+          "failure": "JSONException",
+          "syntheticOutput": "```json\n{\n  \"risk\": \"High\",\n  \"category\": \"Social Engineering\",\n  \"signals\": [\n    \"Untrustworthy data\",\n    \"Money request\"\n  ]\n}\n```\n",
+          "observedPssKb": 1265075
+        },
+        {
+          "case": 4,
+          "expectedHigh": false,
+          "latencyMs": 11765,
+          "firstChunkMs": 5517,
+          "conversationSetupMs": 3,
+          "totalTokenCount": 422,
+          "outputChars": 259,
+          "assessment": null,
+          "valid": false,
+          "failure": "JSONException",
+          "syntheticOutput": "```json\n{\n  \"risk\": \"High\",\n  \"category\": \"Social Engineering\",\n  \"signals\": [\n    {\n      \"signal\": \"Untrustworthy data\",\n      \"evidence\": \"siema co tam\"\n    },\n    {\n      \"signal\": \"Untrustworthy data\",\n      \"evidence\": \"przelej mi $2000\"\n    }\n  ]\n}\n```",
+          "observedPssKb": 1264053
+        },
+        {
+          "case": 5,
+          "expectedHigh": true,
+          "latencyMs": 8313,
+          "firstChunkMs": 5445,
+          "conversationSetupMs": 2,
+          "totalTokenCount": 400,
+          "outputChars": 100,
+          "assessment": null,
+          "valid": false,
+          "failure": "JSONException",
+          "syntheticOutput": "```json\n{\n  \"risk\": \"high\",\n  \"category\": \"social engineering\",\n  \"signals\": [\n    \"2000\"\n  ]\n}\n```\n",
+          "observedPssKb": 1265021
+        }
+      ]
+    },
+    {
+      "protocol": "compact-plain",
+      "cases": [
+        {
+          "case": 0,
+          "expectedHigh": false,
+          "latencyMs": 16387,
+          "firstChunkMs": 2817,
+          "conversationSetupMs": 3,
+          "totalTokenCount": 401,
+          "outputChars": 756,
+          "assessment": null,
+          "valid": false,
+          "failure": "JSONException",
+          "syntheticOutput": "Okay. Let's analyze this message:\n\n**Assessment:** This message *appears* untrusted. However, there's an element of urgency (\"Dziękuję za pomoc\") which could be an attempt at deception. Let's break down what I see:\n\n*   **Untrustworthy:** The message contains an exclamation \"Dziękuję za pomoc.\" which can be used as an attempt at deception.\n*   **Unclear:** \"Do zobaczenia jutro\" translates roughly as \"See you later.\" This could be an attempt at deception as well.\n*   **Unlikely scam:** A simple request for help isn't inherently risky. However, an urgent request *with* an exclamation mark *could* be an attempt at deception.\n*   **Code:** \"c=F\" suggests an attempt at credential theft.\n*   **Unclear:** \"s contains at most two observations {\"k\":code,\"",
+          "observedPssKb": 1283713
+        }
+      ]
+    }
+  ],
+  "modelSha256": "1325ae366d31950f137c9c357b9fa89448b176d76998180c08ceaca78bba98be"
+}

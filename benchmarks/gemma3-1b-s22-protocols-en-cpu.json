@@ -1,0 +1,309 @@
+{
+  "schemaVersion": 1,
+  "complete": true,
+  "createdAt": 1791038852116,
+  "device": "samsung SM-S901B",
+  "language": "english",
+  "runtimeVersion": "0.15.0",
+  "backend": "cpu",
+  "rounds": [
+    {
+      "protocol": "v3-evidence",
+      "cases": [
+        {
+          "case": 0,
+          "expectedHigh": false,
+          "latencyMs": 15729,
+          "firstChunkMs": 12385,
+          "conversationSetupMs": 4661,
+          "totalTokenCount": 371,
+          "outputChars": 127,
+          "assessment": {
+            "risk": "high",
+            "category": "manipulation",
+            "signals": [
+              "money_request"
+            ]
+          },
+          "valid": true,
+          "failure": null,
+          "syntheticOutput": "{\"risk\":\n\"high\",\n\"category\":\n\"manipulation\",\n\"signals\":\n[\n{\"signal\":\n\"money_request\",\n\"evidence\":\n\"Thanks for your help.\"\n}\n]\n}",
+          "observedPssKb": 1358499
+        },
+        {
+          "case": 1,
+          "expectedHigh": true,
+          "latencyMs": 15209,
+          "firstChunkMs": 11635,
+          "conversationSetupMs": 5544,
+          "totalTokenCount": 399,
+          "outputChars": 127,
+          "assessment": null,
+          "valid": false,
+          "failure": "model_evidence_not_in_input",
+          "syntheticOutput": "{\"risk\":\n\"high\",\n\"category\":\n\"manipulation\",\n\"signals\":\n[\n{\"signal\":\n\"money_request\",\n\"evidence\":\n\"money transfer request\"}\n]\n}",
+          "observedPssKb": 1366160
+        },
+        {
+          "case": 2,
+          "expectedHigh": false,
+          "latencyMs": 14225,
+          "firstChunkMs": 10565,
+          "conversationSetupMs": 5201,
+          "totalTokenCount": 381,
+          "outputChars": 145,
+          "assessment": {
+            "risk": "high",
+            "category": "manipulation",
+            "signals": [
+              "money_request"
+            ]
+          },
+          "valid": true,
+          "failure": null,
+          "syntheticOutput": "{\"risk\":\n\"high\",\n\"category\":\n\"manipulation\",\n\"signals\":\n[\n{\"signal\":\n\"money_request\",\n\"evidence\":\n\"Never share your login code with anyone.\"\n}]\n}",
+          "observedPssKb": 1368055
+        },
+        {
+          "case": 3,
+          "expectedHigh": true,
+          "latencyMs": 13489,
+          "firstChunkMs": 9978,
+          "conversationSetupMs": 4193,
+          "totalTokenCount": 382,
+          "outputChars": 131,
+          "assessment": null,
+          "valid": false,
+          "failure": "model_evidence_not_in_input",
+          "syntheticOutput": "{\"risk\":\n\"high\",\n\"category\":\n\"manipulation\",\n\"signals\":\n[\n{\"signal\":\n\"money_request\",\n\"evidence\":\n\"You will be blocked today.\"\n}]\n}",
+          "observedPssKb": 1401303
+        },
+        {
+          "case": 4,
+          "expectedHigh": false,
+          "latencyMs": 13205,
+          "firstChunkMs": 9792,
+          "conversationSetupMs": 4388,
+          "totalTokenCount": 377,
+          "outputChars": 109,
+          "assessment": {
+            "risk": "high",
+            "category": "manipulation",
+            "signals": [
+              "money_request"
+            ]
+          },
+          "valid": true,
+          "failure": null,
+          "syntheticOutput": "{\"risk\":\n\"high\",\n\"category\":\n\"manipulation\",\n\"signals\":\n[\n{\"signal\":\n\"money_request\",\n\"evidence\":\n\"2000\"}\n]\n}",
+          "observedPssKb": 1353976
+        },
+        {
+          "case": 5,
+          "expectedHigh": true,
+          "latencyMs": 14283,
+          "firstChunkMs": 9534,
+          "conversationSetupMs": 4257,
+          "totalTokenCount": 408,
+          "outputChars": 176,
+          "assessment": null,
+          "valid": false,
+          "failure": "model_evidence_not_in_input",
+          "syntheticOutput": "{\"risk\":\n\"high\",\n\"category\":\n\"manipulation\",\n\"signals\":\n[\n{\"signal\":\n\"money_request\",\n\"evidence\":\n\"Pay $2.99 delivery fee within an hour or your parcel will be cancelled.\"\n}]\n}",
+          "observedPssKb": 1355171
+        }
+      ]
+    },
+    {
+      "protocol": "compact-evidence",
+      "cases": [
+        {
+          "case": 0,
+          "expectedHigh": false,
+          "latencyMs": 9980,
+          "firstChunkMs": 7081,
+          "conversationSetupMs": 4276,
+          "totalTokenCount": 249,
+          "outputChars": 79,
+          "assessment": null,
+          "valid": false,
+          "failure": "model_evidence_not_in_input",
+          "syntheticOutput": "{\n\"r\":\"L\",\n\"c\":\"F\",\n\"s\":[\n{\"k\":\"U\",\n\"e\":\"short exact quote from a message\"}\n]\n}",
+          "observedPssKb": 1376482
+        },
+        {
+          "case": 1,
+          "expectedHigh": true,
+          "latencyMs": 11314,
+          "firstChunkMs": 6853,
+          "conversationSetupMs": 4210,
+          "totalTokenCount": 294,
+          "outputChars": 112,
+          "assessment": null,
+          "valid": false,
+          "failure": "model_evidence_not_in_input",
+          "syntheticOutput": "{\n\"r\":\"L\",\n\"c\":\"F\",\n\"s\":[\n{\"k\":\"U\",\n\"e\":\"short exact quote from a message\"},\n{\"k\":\"S\",\n\"e\":\"secret secrecy\"}\n]\n}",
+          "observedPssKb": 1378470
+        },
+        {
+          "case": 2,
+          "expectedHigh": false,
+          "latencyMs": 10144,
+          "firstChunkMs": 6848,
+          "conversationSetupMs": 4139,
+          "totalTokenCount": 265,
+          "outputChars": 84,
+          "assessment": null,
+          "valid": false,
+          "failure": "model_evidence_not_in_input",
+          "syntheticOutput": "{\"r\":\"L\",\n\"c\":\"F\",\n\"s\":[\n{\"k\":\"U\",\n\"e\":\"urgent\"},\n{\"k\":\"M\",\n\"e\":\"money request\"}\n]\n}",
+          "observedPssKb": 1379063
+        },
+        {
+          "case": 3,
+          "expectedHigh": true,
+          "latencyMs": 9980,
+          "firstChunkMs": 6856,
+          "conversationSetupMs": 4150,
+          "totalTokenCount": 261,
+          "outputChars": 79,
+          "assessment": null,
+          "valid": false,
+          "failure": "model_evidence_not_in_input",
+          "syntheticOutput": "{\n\"r\":\"L\",\n\"c\":\"F\",\n\"s\":[\n{\"k\":\"U\",\n\"e\":\"short exact quote from a message\"}\n]\n}",
+          "observedPssKb": 1378863
+        },
+        {
+          "case": 4,
+          "expectedHigh": false,
+          "latencyMs": 10958,
+          "firstChunkMs": 6854,
+          "conversationSetupMs": 4145,
+          "totalTokenCount": 271,
+          "outputChars": 105,
+          "assessment": null,
+          "valid": false,
+          "failure": "model_evidence_not_in_input",
+          "syntheticOutput": "{\n\"r\":\"L\",\n\"c\":\"F\",\n\"s\":[\n{\"k\":\"I\",\n\"e\":\"short exact quote from a message\"},\n{\"k\":\"U\",\n\"e\":\"urgency\"}\n]\n}",
+          "observedPssKb": 1380651
+        },
+        {
+          "case": 5,
+          "expectedHigh": true,
+          "latencyMs": 11395,
+          "firstChunkMs": 6886,
+          "conversationSetupMs": 4156,
+          "totalTokenCount": 290,
+          "outputChars": 105,
+          "assessment": null,
+          "valid": false,
+          "failure": "model_evidence_not_in_input",
+          "syntheticOutput": "{\n\"r\":\"L\",\n\"c\":\"F\",\n\"s\":[\n{\"k\":\"U\",\n\"e\":\"short exact quote from a message\"},\n{\"k\":\"S\",\n\"e\":\"secrecy\"}\n]\n}",
+          "observedPssKb": 1381207
+        }
+      ]
+    },
+    {
+      "protocol": "short-plain",
+      "cases": [
+        {
+          "case": 0,
+          "expectedHigh": false,
+          "latencyMs": 1949,
+          "firstChunkMs": 1665,
+          "conversationSetupMs": 3,
+          "totalTokenCount": 91,
+          "outputChars": 2,
+          "assessment": {
+            "risk": "uncertain"
+          },
+          "valid": true,
+          "failure": null,
+          "syntheticOutput": "U\n",
+          "observedPssKb": 1310275
+        },
+        {
+          "case": 1,
+          "expectedHigh": true,
+          "latencyMs": 1813,
+          "firstChunkMs": 1558,
+          "conversationSetupMs": 3,
+          "totalTokenCount": 122,
+          "outputChars": 2,
+          "assessment": {
+            "risk": "uncertain"
+          },
+          "valid": true,
+          "failure": null,
+          "syntheticOutput": "U\n",
+          "observedPssKb": 1310351
+        },
+        {
+          "case": 2,
+          "expectedHigh": false,
+          "latencyMs": 1699,
+          "firstChunkMs": 1435,
+          "conversationSetupMs": 3,
+          "totalTokenCount": 100,
+          "outputChars": 2,
+          "assessment": {
+            "risk": "uncertain"
+          },
+          "valid": true,
+          "failure": null,
+          "syntheticOutput": "U\n",
+          "observedPssKb": 1310423
+        },
+        {
+          "case": 3,
+          "expectedHigh": true,
+          "latencyMs": 1835,
+          "firstChunkMs": 1573,
+          "conversationSetupMs": 2,
+          "totalTokenCount": 103,
+          "outputChars": 2,
+          "assessment": {
+            "risk": "uncertain"
+          },
+          "valid": true,
+          "failure": null,
+          "syntheticOutput": "U\n",
+          "observedPssKb": 1310499
+        },
+        {
+          "case": 4,
+          "expectedHigh": false,
+          "latencyMs": 1736,
+          "firstChunkMs": 1470,
+          "conversationSetupMs": 3,
+          "totalTokenCount": 99,
+          "outputChars": 2,
+          "assessment": {
+            "risk": "uncertain"
+          },
+          "valid": true,
+          "failure": null,
+          "syntheticOutput": "U\n",
+          "observedPssKb": 1310595
+        },
+        {
+          "case": 5,
+          "expectedHigh": true,
+          "latencyMs": 1840,
+          "firstChunkMs": 1563,
+          "conversationSetupMs": 3,
+          "totalTokenCount": 117,
+          "outputChars": 2,
+          "assessment": {
+            "risk": "uncertain"
+          },
+          "valid": true,
+          "failure": null,
+          "syntheticOutput": "U\n",
+          "observedPssKb": 1310687
+        }
+      ]
+    }
+  ],
+  "modelSha256": "1325ae366d31950f137c9c357b9fa89448b176d76998180c08ceaca78bba98be"
+}

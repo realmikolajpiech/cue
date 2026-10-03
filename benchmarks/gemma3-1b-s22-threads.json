@@ -1,0 +1,205 @@
+{
+  "schemaVersion": 1,
+  "complete": true,
+  "createdAt": 1791037318235,
+  "device": "samsung SM-S901B",
+  "androidSdk": 36,
+  "runtimeVersion": "0.15.0",
+  "promptVersion": "guardian-pl-v3-evidence",
+  "rounds": [
+    {
+      "cpuThreads": null,
+      "cases": [
+        {
+          "case": 0,
+          "latencyMs": 15151,
+          "assessment": {
+            "risk": "high",
+            "category": "manipulation",
+            "signals": [
+              "money_request"
+            ]
+          },
+          "valid": true,
+          "failure": null,
+          "matchesBaseline": true,
+          "observedPssKb": 1350380
+        },
+        {
+          "case": 1,
+          "latencyMs": 14171,
+          "assessment": null,
+          "valid": false,
+          "failure": "model_evidence_not_in_input",
+          "matchesBaseline": true,
+          "observedPssKb": 1351860
+        },
+        {
+          "case": 2,
+          "latencyMs": 14601,
+          "assessment": null,
+          "valid": false,
+          "failure": "model_evidence_not_in_input",
+          "matchesBaseline": true,
+          "observedPssKb": 1345961
+        },
+        {
+          "case": 3,
+          "latencyMs": 18900,
+          "assessment": null,
+          "valid": false,
+          "failure": "model_evidence_not_in_input",
+          "matchesBaseline": true,
+          "observedPssKb": 1267214
+        }
+      ],
+      "initializationMs": 21457
+    },
+    {
+      "cpuThreads": 2,
+      "cases": [
+        {
+          "case": 0,
+          "latencyMs": 17299,
+          "assessment": {
+            "risk": "high",
+            "category": "manipulation",
+            "signals": [
+              "money_request"
+            ]
+          },
+          "valid": true,
+          "failure": null,
+          "matchesBaseline": true,
+          "observedPssKb": 1205451
+        },
+        {
+          "case": 1,
+          "latencyMs": 17455,
+          "assessment": null,
+          "valid": false,
+          "failure": "model_evidence_not_in_input",
+          "matchesBaseline": true,
+          "observedPssKb": 1206368
+        },
+        {
+          "case": 2,
+          "latencyMs": 16655,
+          "assessment": null,
+          "valid": false,
+          "failure": "model_evidence_not_in_input",
+          "matchesBaseline": true,
+          "observedPssKb": 1174935
+        },
+        {
+          "case": 3,
+          "latencyMs": 16865,
+          "assessment": null,
+          "valid": false,
+          "failure": "model_evidence_not_in_input",
+          "matchesBaseline": true,
+          "observedPssKb": 1150389
+        }
+      ],
+      "initializationMs": 20651
+    },
+    {
+      "cpuThreads": 6,
+      "cases": [
+        {
+          "case": 0,
+          "latencyMs": 13828,
+          "assessment": {
+            "risk": "high",
+            "category": "manipulation",
+            "signals": [
+              "money_request"
+            ]
+          },
+          "valid": true,
+          "failure": null,
+          "matchesBaseline": true,
+          "observedPssKb": 1260597
+        },
+        {
+          "case": 1,
+          "latencyMs": 13929,
+          "assessment": null,
+          "valid": false,
+          "failure": "model_evidence_not_in_input",
+          "matchesBaseline": true,
+          "observedPssKb": 1261302
+        },
+        {
+          "case": 2,
+          "latencyMs": 13391,
+          "assessment": null,
+          "valid": false,
+          "failure": "model_evidence_not_in_input",
+          "matchesBaseline": true,
+          "observedPssKb": 1262564
+        },
+        {
+          "case": 3,
+          "latencyMs": 13048,
+          "assessment": null,
+          "valid": false,
+          "failure": "model_evidence_not_in_input",
+          "matchesBaseline": true,
+          "observedPssKb": 1258307
+        }
+      ],
+      "initializationMs": 15099
+    },
+    {
+      "cpuThreads": null,
+      "cases": [
+        {
+          "case": 0,
+          "latencyMs": 14030,
+          "assessment": {
+            "risk": "high",
+            "category": "manipulation",
+            "signals": [
+              "money_request"
+            ]
+          },
+          "valid": true,
+          "failure": null,
+          "matchesBaseline": true,
+          "observedPssKb": 1259886
+        },
+        {
+          "case": 1,
+          "latencyMs": 14206,
+          "assessment": null,
+          "valid": false,
+          "failure": "model_evidence_not_in_input",
+          "matchesBaseline": true,
+          "observedPssKb": 1262078
+        },
+        {
+          "case": 2,
+          "latencyMs": 13021,
+          "assessment": null,
+          "valid": false,
+          "failure": "model_evidence_not_in_input",
+          "matchesBaseline": true,
+          "observedPssKb": 1262800
+        },
+        {
+          "case": 3,
+          "latencyMs": 13078,
+          "assessment": null,
+          "valid": false,
+          "failure": "model_evidence_not_in_input",
+          "matchesBaseline": true,
+          "observedPssKb": 1263812
+        }
+      ],
+      "initializationMs": 14473
+    }
+  ],
+  "modelSha256": "1325ae366d31950f137c9c357b9fa89448b176d76998180c08ceaca78bba98be",
+  "outputsIdentical": true
+}

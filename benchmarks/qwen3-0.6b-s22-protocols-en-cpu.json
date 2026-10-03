@@ -1,0 +1,321 @@
+{
+  "schemaVersion": 1,
+  "complete": true,
+  "createdAt": 1791039480279,
+  "device": "samsung SM-S901B",
+  "language": "english",
+  "runtimeVersion": "0.15.0",
+  "backend": "cpu",
+  "rounds": [
+    {
+      "protocol": "compact-evidence",
+      "cases": [
+        {
+          "case": 0,
+          "expectedHigh": false,
+          "latencyMs": 8547,
+          "firstChunkMs": 7386,
+          "conversationSetupMs": 3603,
+          "totalTokenCount": 209,
+          "outputChars": 24,
+          "assessment": {
+            "risk": "low",
+            "category": "family_impersonation",
+            "signals": []
+          },
+          "valid": true,
+          "failure": null,
+          "syntheticOutput": "{\"r\":\"L\",\"c\":\"F\",\"s\":[]}",
+          "observedPssKb": 1104391
+        },
+        {
+          "case": 1,
+          "expectedHigh": true,
+          "latencyMs": 8602,
+          "firstChunkMs": 7042,
+          "conversationSetupMs": 3619,
+          "totalTokenCount": 237,
+          "outputChars": 24,
+          "assessment": {
+            "risk": "low",
+            "category": "family_impersonation",
+            "signals": []
+          },
+          "valid": true,
+          "failure": null,
+          "syntheticOutput": "{\"r\":\"L\",\"c\":\"F\",\"s\":[]}",
+          "observedPssKb": 1103218
+        },
+        {
+          "case": 2,
+          "expectedHigh": false,
+          "latencyMs": 8359,
+          "firstChunkMs": 6956,
+          "conversationSetupMs": 3795,
+          "totalTokenCount": 217,
+          "outputChars": 24,
+          "assessment": {
+            "risk": "low",
+            "category": "family_impersonation",
+            "signals": []
+          },
+          "valid": true,
+          "failure": null,
+          "syntheticOutput": "{\"r\":\"L\",\"c\":\"F\",\"s\":[]}",
+          "observedPssKb": 1102168
+        },
+        {
+          "case": 3,
+          "expectedHigh": true,
+          "latencyMs": 7264,
+          "firstChunkMs": 6143,
+          "conversationSetupMs": 3247,
+          "totalTokenCount": 221,
+          "outputChars": 24,
+          "assessment": {
+            "risk": "low",
+            "category": "family_impersonation",
+            "signals": []
+          },
+          "valid": true,
+          "failure": null,
+          "syntheticOutput": "{\"r\":\"L\",\"c\":\"F\",\"s\":[]}",
+          "observedPssKb": 1050665
+        },
+        {
+          "case": 4,
+          "expectedHigh": false,
+          "latencyMs": 8309,
+          "firstChunkMs": 6964,
+          "conversationSetupMs": 3098,
+          "totalTokenCount": 217,
+          "outputChars": 24,
+          "assessment": {
+            "risk": "low",
+            "category": "family_impersonation",
+            "signals": []
+          },
+          "valid": true,
+          "failure": null,
+          "syntheticOutput": "{\"r\":\"L\",\"c\":\"F\",\"s\":[]}",
+          "observedPssKb": 1052486
+        },
+        {
+          "case": 5,
+          "expectedHigh": true,
+          "latencyMs": 7620,
+          "firstChunkMs": 6519,
+          "conversationSetupMs": 3620,
+          "totalTokenCount": 233,
+          "outputChars": 24,
+          "assessment": {
+            "risk": "low",
+            "category": "family_impersonation",
+            "signals": []
+          },
+          "valid": true,
+          "failure": null,
+          "syntheticOutput": "{\"r\":\"L\",\"c\":\"F\",\"s\":[]}",
+          "observedPssKb": 1051528
+        }
+      ]
+    },
+    {
+      "protocol": "binary-plain",
+      "cases": [
+        {
+          "case": 0,
+          "expectedHigh": false,
+          "latencyMs": 3608,
+          "firstChunkMs": 3030,
+          "conversationSetupMs": 3,
+          "totalTokenCount": 172,
+          "outputChars": 22,
+          "assessment": null,
+          "valid": false,
+          "failure": "NoSuchElementException",
+          "syntheticOutput": "{\"messages\":[\"OTHER\"]}",
+          "observedPssKb": 1016792
+        },
+        {
+          "case": 1,
+          "expectedHigh": true,
+          "latencyMs": 3659,
+          "firstChunkMs": 3132,
+          "conversationSetupMs": 3,
+          "totalTokenCount": 201,
+          "outputChars": 27,
+          "assessment": null,
+          "valid": false,
+          "failure": "NoSuchElementException",
+          "syntheticOutput": "{\"messages\":[\"SCAM\", \"OTHER",
+          "observedPssKb": 1016026
+        },
+        {
+          "case": 2,
+          "expectedHigh": false,
+          "latencyMs": 3032,
+          "firstChunkMs": 2837,
+          "conversationSetupMs": 2,
+          "totalTokenCount": 176,
+          "outputChars": 4,
+          "assessment": {
+            "risk": "high"
+          },
+          "valid": true,
+          "failure": null,
+          "syntheticOutput": "SCAM",
+          "observedPssKb": 1016078
+        },
+        {
+          "case": 3,
+          "expectedHigh": true,
+          "latencyMs": 3212,
+          "firstChunkMs": 3028,
+          "conversationSetupMs": 2,
+          "totalTokenCount": 180,
+          "outputChars": 4,
+          "assessment": {
+            "risk": "high"
+          },
+          "valid": true,
+          "failure": null,
+          "syntheticOutput": "SCAM",
+          "observedPssKb": 1016145
+        },
+        {
+          "case": 4,
+          "expectedHigh": false,
+          "latencyMs": 3407,
+          "firstChunkMs": 2890,
+          "conversationSetupMs": 2,
+          "totalTokenCount": 181,
+          "outputChars": 30,
+          "assessment": null,
+          "valid": false,
+          "failure": "NoSuchElementException",
+          "syntheticOutput": "{\"messages\":[\"Hey, how are you",
+          "observedPssKb": 1016267
+        },
+        {
+          "case": 5,
+          "expectedHigh": true,
+          "latencyMs": 3368,
+          "firstChunkMs": 2900,
+          "conversationSetupMs": 3,
+          "totalTokenCount": 196,
+          "outputChars": 21,
+          "assessment": null,
+          "valid": false,
+          "failure": "NoSuchElementException",
+          "syntheticOutput": "{\"messages\":[\"SCAM\"]}",
+          "observedPssKb": 1016371
+        }
+      ]
+    },
+    {
+      "protocol": "binary-regex",
+      "cases": [
+        {
+          "case": 0,
+          "expectedHigh": false,
+          "latencyMs": 6026,
+          "firstChunkMs": 5893,
+          "conversationSetupMs": 2976,
+          "totalTokenCount": 167,
+          "outputChars": 5,
+          "assessment": {
+            "risk": "low"
+          },
+          "valid": true,
+          "failure": null,
+          "syntheticOutput": "OTHER",
+          "observedPssKb": 1075086
+        },
+        {
+          "case": 1,
+          "expectedHigh": true,
+          "latencyMs": 6049,
+          "firstChunkMs": 5844,
+          "conversationSetupMs": 2945,
+          "totalTokenCount": 196,
+          "outputChars": 4,
+          "assessment": {
+            "risk": "high"
+          },
+          "valid": true,
+          "failure": null,
+          "syntheticOutput": "SCAM",
+          "observedPssKb": 1077509
+        },
+        {
+          "case": 2,
+          "expectedHigh": false,
+          "latencyMs": 5987,
+          "firstChunkMs": 5781,
+          "conversationSetupMs": 2933,
+          "totalTokenCount": 176,
+          "outputChars": 4,
+          "assessment": {
+            "risk": "high"
+          },
+          "valid": true,
+          "failure": null,
+          "syntheticOutput": "SCAM",
+          "observedPssKb": 1076037
+        },
+        {
+          "case": 3,
+          "expectedHigh": true,
+          "latencyMs": 6105,
+          "firstChunkMs": 5902,
+          "conversationSetupMs": 3006,
+          "totalTokenCount": 180,
+          "outputChars": 4,
+          "assessment": {
+            "risk": "high"
+          },
+          "valid": true,
+          "failure": null,
+          "syntheticOutput": "SCAM",
+          "observedPssKb": 1076514
+        },
+        {
+          "case": 4,
+          "expectedHigh": false,
+          "latencyMs": 6020,
+          "firstChunkMs": 5865,
+          "conversationSetupMs": 2975,
+          "totalTokenCount": 175,
+          "outputChars": 5,
+          "assessment": {
+            "risk": "low"
+          },
+          "valid": true,
+          "failure": null,
+          "syntheticOutput": "OTHER",
+          "observedPssKb": 1076118
+        },
+        {
+          "case": 5,
+          "expectedHigh": true,
+          "latencyMs": 5933,
+          "firstChunkMs": 5798,
+          "conversationSetupMs": 2905,
+          "totalTokenCount": 191,
+          "outputChars": 5,
+          "assessment": {
+            "risk": "low"
+          },
+          "valid": true,
+          "failure": null,
+          "syntheticOutput": "OTHER",
+          "observedPssKb": 1077741
+        }
+      ]
+    }
+  ],
+  "modelSha256": "2df6821ec12702dafd33915e7a1a1adc7c4b053f3672fd9555dfaf3a114c4139",
+  "modelId": "qwen3-0.6b-nothink-int4",
+  "maxNumTokens": 1280
+}

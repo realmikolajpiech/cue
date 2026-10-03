@@ -1,44 +1,44 @@
 -- Merging decision tree log ---
 manifest
-ADDED from /Users/marcelchudyba/Desktop/HackYeah/modules/guardian/android/src/main/AndroidManifest.xml:1:1-13:12
-INJECTED from /Users/marcelchudyba/Desktop/HackYeah/modules/guardian/android/src/main/AndroidManifest.xml:1:1-13:12
+ADDED from /Users/mikolaj/Desktop/DS/AndroidStudio/hackyeah/modules/guardian/android/src/main/AndroidManifest.xml:1:1-13:12
+INJECTED from /Users/mikolaj/Desktop/DS/AndroidStudio/hackyeah/modules/guardian/android/src/main/AndroidManifest.xml:1:1-13:12
 	package
-		INJECTED from /Users/marcelchudyba/Desktop/HackYeah/modules/guardian/android/src/main/AndroidManifest.xml
+		INJECTED from /Users/mikolaj/Desktop/DS/AndroidStudio/hackyeah/modules/guardian/android/src/main/AndroidManifest.xml
 	xmlns:android
-		ADDED from /Users/marcelchudyba/Desktop/HackYeah/modules/guardian/android/src/main/AndroidManifest.xml:1:11-69
+		ADDED from /Users/mikolaj/Desktop/DS/AndroidStudio/hackyeah/modules/guardian/android/src/main/AndroidManifest.xml:1:11-69
 uses-permission#android.permission.POST_NOTIFICATIONS
-ADDED from /Users/marcelchudyba/Desktop/HackYeah/modules/guardian/android/src/main/AndroidManifest.xml:2:3-75
+ADDED from /Users/mikolaj/Desktop/DS/AndroidStudio/hackyeah/modules/guardian/android/src/main/AndroidManifest.xml:2:3-75
 	android:name
-		ADDED from /Users/marcelchudyba/Desktop/HackYeah/modules/guardian/android/src/main/AndroidManifest.xml:2:20-72
+		ADDED from /Users/mikolaj/Desktop/DS/AndroidStudio/hackyeah/modules/guardian/android/src/main/AndroidManifest.xml:2:20-72
 application
-ADDED from /Users/marcelchudyba/Desktop/HackYeah/modules/guardian/android/src/main/AndroidManifest.xml:3:3-12:17
+ADDED from /Users/mikolaj/Desktop/DS/AndroidStudio/hackyeah/modules/guardian/android/src/main/AndroidManifest.xml:3:3-12:17
 uses-native-library
-ADDED from /Users/marcelchudyba/Desktop/HackYeah/modules/guardian/android/src/main/AndroidManifest.xml:4:5-86
+ADDED from /Users/mikolaj/Desktop/DS/AndroidStudio/hackyeah/modules/guardian/android/src/main/AndroidManifest.xml:4:5-86
 	android:required
-		ADDED from /Users/marcelchudyba/Desktop/HackYeah/modules/guardian/android/src/main/AndroidManifest.xml:4:59-83
+		ADDED from /Users/mikolaj/Desktop/DS/AndroidStudio/hackyeah/modules/guardian/android/src/main/AndroidManifest.xml:4:59-83
 	android:name
-		ADDED from /Users/marcelchudyba/Desktop/HackYeah/modules/guardian/android/src/main/AndroidManifest.xml:4:26-58
+		ADDED from /Users/mikolaj/Desktop/DS/AndroidStudio/hackyeah/modules/guardian/android/src/main/AndroidManifest.xml:4:26-58
 service#expo.modules.guardian.GuardianNotificationService
-ADDED from /Users/marcelchudyba/Desktop/HackYeah/modules/guardian/android/src/main/AndroidManifest.xml:6:5-11:15
+ADDED from /Users/mikolaj/Desktop/DS/AndroidStudio/hackyeah/modules/guardian/android/src/main/AndroidManifest.xml:6:5-11:15
 	android:label
-		ADDED from /Users/marcelchudyba/Desktop/HackYeah/modules/guardian/android/src/main/AndroidManifest.xml:7:7-49
+		ADDED from /Users/mikolaj/Desktop/DS/AndroidStudio/hackyeah/modules/guardian/android/src/main/AndroidManifest.xml:7:7-49
 	android:exported
-		ADDED from /Users/marcelchudyba/Desktop/HackYeah/modules/guardian/android/src/main/AndroidManifest.xml:9:7-30
+		ADDED from /Users/mikolaj/Desktop/DS/AndroidStudio/hackyeah/modules/guardian/android/src/main/AndroidManifest.xml:9:7-30
 	android:permission
-		ADDED from /Users/marcelchudyba/Desktop/HackYeah/modules/guardian/android/src/main/AndroidManifest.xml:8:7-81
+		ADDED from /Users/mikolaj/Desktop/DS/AndroidStudio/hackyeah/modules/guardian/android/src/main/AndroidManifest.xml:8:7-81
 	android:name
-		ADDED from /Users/marcelchudyba/Desktop/HackYeah/modules/guardian/android/src/main/AndroidManifest.xml:6:14-57
+		ADDED from /Users/mikolaj/Desktop/DS/AndroidStudio/hackyeah/modules/guardian/android/src/main/AndroidManifest.xml:6:14-57
 intent-filter#action:name:android.service.notification.NotificationListenerService
-ADDED from /Users/marcelchudyba/Desktop/HackYeah/modules/guardian/android/src/main/AndroidManifest.xml:10:7-120
+ADDED from /Users/mikolaj/Desktop/DS/AndroidStudio/hackyeah/modules/guardian/android/src/main/AndroidManifest.xml:10:7-120
 action#android.service.notification.NotificationListenerService
-ADDED from /Users/marcelchudyba/Desktop/HackYeah/modules/guardian/android/src/main/AndroidManifest.xml:10:22-104
+ADDED from /Users/mikolaj/Desktop/DS/AndroidStudio/hackyeah/modules/guardian/android/src/main/AndroidManifest.xml:10:22-104
 	android:name
-		ADDED from /Users/marcelchudyba/Desktop/HackYeah/modules/guardian/android/src/main/AndroidManifest.xml:10:30-101
+		ADDED from /Users/mikolaj/Desktop/DS/AndroidStudio/hackyeah/modules/guardian/android/src/main/AndroidManifest.xml:10:30-101
 uses-sdk
-INJECTED from /Users/marcelchudyba/Desktop/HackYeah/modules/guardian/android/src/main/AndroidManifest.xml reason: use-sdk injection requested
-INJECTED from /Users/marcelchudyba/Desktop/HackYeah/modules/guardian/android/src/main/AndroidManifest.xml
-INJECTED from /Users/marcelchudyba/Desktop/HackYeah/modules/guardian/android/src/main/AndroidManifest.xml
+INJECTED from /Users/mikolaj/Desktop/DS/AndroidStudio/hackyeah/modules/guardian/android/src/main/AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from /Users/mikolaj/Desktop/DS/AndroidStudio/hackyeah/modules/guardian/android/src/main/AndroidManifest.xml
+INJECTED from /Users/mikolaj/Desktop/DS/AndroidStudio/hackyeah/modules/guardian/android/src/main/AndroidManifest.xml
 	android:targetSdkVersion
-		INJECTED from /Users/marcelchudyba/Desktop/HackYeah/modules/guardian/android/src/main/AndroidManifest.xml
+		INJECTED from /Users/mikolaj/Desktop/DS/AndroidStudio/hackyeah/modules/guardian/android/src/main/AndroidManifest.xml
 	android:minSdkVersion
-		INJECTED from /Users/marcelchudyba/Desktop/HackYeah/modules/guardian/android/src/main/AndroidManifest.xml
+		INJECTED from /Users/mikolaj/Desktop/DS/AndroidStudio/hackyeah/modules/guardian/android/src/main/AndroidManifest.xml
