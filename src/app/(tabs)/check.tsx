@@ -43,7 +43,7 @@ export default function CheckMessage() {
       <TextInput accessibilityLabel="Treść wiadomości lub link" placeholder="Wklej tutaj treść, która budzi Twoje wątpliwości…" placeholderTextColor={colors.secondaryText} value={message} editable={!busy} maxLength={1500} onChangeText={text => { setMessage(text); setError(null); }} multiline textAlignVertical="top" style={{ minHeight: 220, padding: 18, borderWidth: 1, borderColor: colors.border, borderRadius: 15, backgroundColor: colors.secondary, color: colors.text, fontFamily: 'DMSans', fontSize: 14, lineHeight: 25 }} />
       <Row style={{ gap: 6 }}><Icon name="lock" size={14} /><Copy style={{ fontSize: 10 }}>Treść i wynik nie są zapisywane · maks. 1500 znaków</Copy></Row>
       <Action label={busy ? 'Analizuję wiadomość…' : 'Sprawdź'} icon="arrow" disabled={busy || !message.trim() || !status?.available || !status.modelInstalled} onPress={() => { void check(); }} />
-      {busy && <Row><ActivityIndicator color={colors.text} /><Copy accessibilityLiveRegion="polite">Gemma analizuje lokalnie. Weryfikacja podejrzenia może potrwać dłużej.</Copy></Row>}
+      {busy && <Row><ActivityIndicator color={colors.text} /><Copy accessibilityLiveRegion="polite">Gemma analizuje lokalnie. Może to potrwać kilkanaście sekund.</Copy></Row>}
       <InlineError message={error} />
       {status && !status.available && <Copy>Analiza wymaga własnego buildu Guardian na Androidzie.</Copy>}
       {status?.available && !status.modelInstalled && <><Copy>Najpierw zainstaluj lokalny model Gemma.</Copy><Action secondary label="Skonfiguruj model" onPress={() => router.push('/model-setup')} /></>}
