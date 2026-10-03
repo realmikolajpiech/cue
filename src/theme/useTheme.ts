@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { useDemo } from '@/features/demo/store';
 const palettes = {
   light: { background: '#F7F7F7', surface: '#FFFFFF', text: '#202020', secondaryText: '#505050', accent: '#202020', border: '#E7E7E7', secondary: '#F3F3F3', warning: '#81480D', warningSoft: '#FCF2E5' },
@@ -22,9 +23,9 @@ const riskPalettes = {
   },
 };
 export function riskFromLabel(label: string): RiskLevel {
-  if (label === 'Wysokie ryzyko') return 'high';
-  if (label === 'Umiarkowane ryzyko' || label === 'Średnie ryzyko') return 'medium';
-  if (label === 'Niskie ryzyko') return 'low';
+  if ((label === 'Wysokie ryzyko' || label === t('Wysokie ryzyko'))) return 'high';
+  if ((label === 'Umiarkowane ryzyko' || label === t('Umiarkowane ryzyko')) || (label === 'Średnie ryzyko' || label === t('Średnie ryzyko'))) return 'medium';
+  if ((label === 'Niskie ryzyko' || label === t('Niskie ryzyko'))) return 'low';
   return 'uncertain';
 }
 export function riskColors(risk: RiskLevel, dark: boolean) { return riskPalettes[dark ? 'dark' : 'light'][risk]; }

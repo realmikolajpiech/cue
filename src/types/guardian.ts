@@ -23,3 +23,8 @@ export const manualResultSchema = resultSchema.extend({ sourceApp: z.literal('Ma
 export type ManualResult = z.infer<typeof manualResultSchema>;
 export type GuardianResult = z.infer<typeof resultSchema>;
 export type GuardianStatus = z.infer<typeof statusSchema>;
+export const notificationSchema = z.object({
+  id: z.string(), sourceApp: z.enum(['WhatsApp', 'Messenger', 'SMS', 'Beeper']),
+  text: z.string().min(1).max(1500), createdAt: z.number().positive(),
+});
+export type GuardianNotification = z.infer<typeof notificationSchema>;

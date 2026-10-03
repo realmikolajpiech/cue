@@ -1,9 +1,10 @@
+import { t, useLanguage } from '@/i18n';
 import { useEffect, useState } from 'react';
 import { AccessibilityInfo, Animated, Easing, Pressable, StyleSheet, View } from 'react-native';
 import { Copy } from '@/components/ui';
 import { useTheme } from '@/theme/useTheme';
 
-export function ProtectionToggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void }) {
+export function ProtectionToggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void }) { useLanguage();
   const { isDark, colors } = useTheme();
   const green = isDark ? '#6DDB98' : '#237A46';
   const [position] = useState(() => new Animated.Value(enabled ? 1 : 0));
@@ -36,8 +37,8 @@ export function ProtectionToggle({ enabled, onToggle }: { enabled: boolean; onTo
     }).start();
   }
 
-  return <Pressable accessibilityRole="switch" accessibilityLabel="Ochrona wiadomości"
-    accessibilityHint={enabled ? 'Naciśnij, aby wyłączyć ochronę' : 'Naciśnij, aby włączyć ochronę'}
+  return <Pressable accessibilityRole="switch" accessibilityLabel={t("Ochrona wiadomości")}
+    accessibilityHint={enabled ? t("Naciśnij, aby wyłączyć ochronę") : t("Naciśnij, aby włączyć ochronę")}
     accessibilityState={{ checked: enabled }} aria-checked={enabled}
     onPress={onToggle} onPressIn={() => animatePress(true)} onPressOut={() => animatePress(false)}
     style={styles.target}>
@@ -45,7 +46,7 @@ export function ProtectionToggle({ enabled, onToggle }: { enabled: boolean; onTo
       <Animated.View style={[StyleSheet.absoluteFill, styles.activeTrack, { backgroundColor: green, opacity: position }]} />
       <Animated.View style={[styles.thumb, { transform: [{ translateX: position.interpolate({ inputRange: [0, 1], outputRange: [0, 60] }) }] }]} />
     </Animated.View>
-    <View><Copy style={{ color: colors.text, fontFamily: 'DMSansMedium', textAlign: 'center' }}>{enabled ? 'Wyłącz ochronę' : 'Włącz ochronę'}</Copy></View>
+    <View><Copy style={{ color: colors.text, fontFamily: 'DMSansMedium', textAlign: 'center' }}>{enabled ? t("Wyłącz ochronę") : t("Włącz ochronę")}</Copy></View>
   </Pressable>;
 }
 

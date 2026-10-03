@@ -1,3 +1,4 @@
+import { t, useLanguage } from '@/i18n';
 import { useState } from 'react';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
@@ -13,14 +14,14 @@ const filters = [
 ] as const;
 type Filter = typeof filters[number]['id'];
 
-function AlertRow({ threat, last }: { threat: Threat; last: boolean }) {
+function AlertRow({ threat, last }: { threat: Threat; last: boolean }) { useLanguage();
   const { colors } = useTheme();
-  const status = threat.reviewed ? 'Przeczytane' : 'Nowe';
+  const status = threat.reviewed ? t("Przeczytane") : t("Nowe");
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`${status}. ${threat.title}. ${threat.source}, ${threat.time}`}
-      accessibilityHint="Otwiera ostrzeżenie i wskazówki, co zrobić."
+      accessibilityHint={t("Otwiera ostrzeżenie i wskazówki, co zrobić.")}
       onPress={() => router.push(`/alert/${threat.id}`)}
       style={({ pressed }) => [styles.row, {
         backgroundColor: pressed ? colors.secondary : colors.surface,
@@ -41,7 +42,7 @@ function AlertRow({ threat, last }: { threat: Threat; last: boolean }) {
   );
 }
 
-export default function Alerts() {
+export default function Alerts() { useLanguage();
   const { threats } = useProtection();
   const { colors } = useTheme();
   const [filter, setFilter] = useState<Filter>('all');
@@ -49,14 +50,14 @@ export default function Alerts() {
   const unreadCount = threats.filter(t => !t.reviewed).length;
 
   return (
-    <Screen title="Ostrzeżenia">
+    <Screen title={t("Ostrzeżenia")}>
       <View style={styles.body}>
         <View style={[styles.filters, { backgroundColor: colors.secondary }]}>
           {filters.map(({ id, label }) => (
             <Pressable
               key={id}
               accessibilityRole="button"
-              accessibilityLabel={id === 'new' ? `${label}, ${unreadCount}` : label}
+              accessibilityLabel={id === 'new' ? `${t(label)}, ${unreadCount}` : t(label)}
               accessibilityState={{ selected: filter === id }}
               onPress={() => setFilter(id)}
               style={({ pressed }) => [styles.filter, {
@@ -65,7 +66,7 @@ export default function Alerts() {
                 opacity: pressed ? 0.65 : 1,
               }]}
             >
-              <Copy style={[styles.filterLabel, { color: filter === id ? colors.text : colors.secondaryText }]}>{label}</Copy>
+              <Copy style={[styles.filterLabel, { color: filter === id ? colors.text : colors.secondaryText }]}>{t(label)}</Copy>
               {id === 'new' && unreadCount > 0 && <View style={[styles.count, { backgroundColor: colors.warningSoft }]}>
                 <Copy style={[styles.countLabel, { color: colors.warning }]}>{unreadCount}</Copy>
               </View>}
@@ -78,11 +79,11 @@ export default function Alerts() {
           </View>
         ) : (
           <Empty
-            title={filter === 'new' && threats.length ? 'Wszystko przeczytane' : filter === 'read' && threats.length ? 'Brak przeczytanych ostrzeżeń' : 'Nie ma ostrzeżeń'}
-            subtitle={threats.length ? 'Pozostałe ostrzeżenia znajdziesz w zakładce „Wszystkie”.' : 'Nowe ostrzeżenia pojawią się tutaj.'}
+            title={filter === 'new' && threats.length ? t("Wszystko przeczytane") : filter === 'read' && threats.length ? t("Brak przeczytanych ostrzeżeń") : t("Nie ma ostrzeżeń")}
+            subtitle={threats.length ? t("Pozostałe ostrzeżenia znajdziesz w zakładce „Wszystkie”.") : t("Nowe ostrzeżenia pojawią się tutaj.")}
           />
         )}
-        {visible.length > 0 && <Copy style={styles.hint}>Dotknij ostrzeżenia, aby zobaczyć, co zrobić.</Copy>}
+        {visible.length > 0 && <Copy style={styles.hint}>{t("Dotknij ostrzeżenia, aby zobaczyć, co zrobić.")}</Copy>}
       </View>
     </Screen>
   );

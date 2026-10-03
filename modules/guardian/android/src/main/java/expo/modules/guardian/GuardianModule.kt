@@ -23,6 +23,7 @@ class GuardianModule : Module() {
     OnDestroy { guardianRuntime.observers.remove(changed) }
     AsyncFunction("getStatus") { guardianRuntime.status() }
     AsyncFunction("getResults") { guardianRuntime.store.list().map { it.toString() } }
+    AsyncFunction("getNotifications") { guardianRuntime.notifications() }
     AsyncFunction("setMonitoring") Coroutine { enabled: Boolean -> guardianRuntime.setEnabled(enabled); guardianRuntime.status() }
     AsyncFunction("clearHistory") Coroutine { -> guardianRuntime.clearHistory() }
     AsyncFunction("markReviewed") { id: String -> guardianRuntime.store.review(id); guardianRuntime.notifyChanged() }

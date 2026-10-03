@@ -1,6 +1,6 @@
 package expo.modules.guardian
 
-/** Sensitive data. Never returned by the Expo bridge. Monotonic timestamps only. */
+/** Sensitive, transient data. Monotonic timestamps only; the picker exposes selected recent text. */
 data class PrivateMessage(val identity: String, val text: String, val receivedAt: Long)
 
 class ConversationBuffer(

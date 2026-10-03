@@ -17,7 +17,7 @@ import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.CopyOnWriteArraySet
 import java.util.concurrent.atomic.AtomicLong
 
-/** Process singleton: listener can run without a JS runtime. No message is emitted to JS. */
+/** Process singleton: listener can run without a JS runtime. Text is retrieved only by the notification picker. */
 class GuardianRuntime private constructor(val context: Context) {
   companion object {
     @Volatile private var instance: GuardianRuntime? = null
@@ -32,6 +32,7 @@ class GuardianRuntime private constructor(val context: Context) {
   private val preferences = context.getSharedPreferences("guardian", Context.MODE_PRIVATE)
   private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
   private val buffer = ConversationBuffer(SystemClock::elapsedRealtime)
+  private val notificationHistory = NotificationHistory(SystemClock::elapsedRealtime)
   private val generation = AtomicLong(0)
   private data class Work(val key: String, val source: String, val messages: List<PrivateMessage>, val epoch: Long, val received: Long)
   private val queue = Channel<Work>(16, BufferOverflow.DROP_OLDEST)
@@ -54,6 +55,7 @@ class GuardianRuntime private constructor(val context: Context) {
       while (isActive) {
         delay(30_000)
         buffer.prune()
+        notificationHistory.prune()
         if (!permissionGranted() && connected) disconnect()
       }
     }
@@ -100,7 +102,7 @@ class GuardianRuntime private constructor(val context: Context) {
   }
   fun disconnect() { connected = false; stopPending(); notifyChanged(); scope.launch { modelLifecycle.withLock { inference.close() }; notifyChanged() } }
   private fun stopPending() {
-    synchronized(gate) { generation.incrementAndGet(); buffer.clear(); removals.clear(); while (queue.tryReceive().isSuccess) {} }
+    synchronized(gate) { generation.incrementAndGet(); buffer.clear(); notificationHistory.clear(); removals.clear(); while (queue.tryReceive().isSuccess) {} }
     currentJob?.cancel(); benchmarkJob?.cancel(); inference.cancel()
   }
   private suspend fun initializeModel() = modelLifecycle.withLock { initializeVerifiedModel() }
@@ -130,8 +132,14 @@ class GuardianRuntime private constructor(val context: Context) {
     synchronized(gate) {
       val epoch = generation.get()
       if (!eligible(epoch)) return
+      notificationHistory.add(input.key, input.source, input.messages, System.currentTimeMillis())
       buffer.append(input.key, input.messages)?.let { queue.trySend(Work(input.key, input.source, it, epoch, SystemClock.elapsedRealtime())) }
     }
+    notifyChanged()
+  }
+  fun notifications(): List<Map<String, Any>> = synchronized(gate) {
+    if (!enabled || !permissionGranted()) { notificationHistory.clear(); return@synchronized emptyList() }
+    notificationHistory.list().map { mapOf("id" to it.id, "sourceApp" to it.source, "text" to it.text, "createdAt" to it.createdAt) }
   }
   fun remove(key: String) {
     synchronized(gate) {

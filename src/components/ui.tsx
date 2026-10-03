@@ -1,4 +1,5 @@
-import { Pressable, ScrollView, StyleSheet, Text, View, type ViewProps, type TextProps, type ColorValue } from 'react-native';
+import { t, useLanguage } from '@/i18n';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View, type ViewProps, type TextProps, type ColorValue } from 'react-native';
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,20 +19,24 @@ export function IconButton({ name, label, onPress }: { name: IconName; label: st
     <Icon name={name} size={30} />
   </Pressable>;
 }
-export function Screen({ children, title, header = true, back = false, centered = false }: { children: ReactNode; title?: string; header?: boolean; back?: boolean; centered?: boolean }) {
+export function Screen({ children, title, header = true, back = false, centered = false, footer }: { children: ReactNode; title?: string; header?: boolean; back?: boolean; centered?: boolean; footer?: ReactNode }) {
+  useLanguage();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   return <View style={{ flex: 1, backgroundColor: colors.background }}>
     <View style={{ width: '100%', maxWidth: 520, alignSelf: 'center', flex: 1 }}>
       {(header || back) && <Row style={{ paddingTop: insets.top + 12, paddingHorizontal: 20, paddingBottom: 12, justifyContent: 'space-between' }}>
         {back ? <Pressable accessibilityRole="button" onPress={() => router.canGoBack() ? router.back() : router.replace('/')} style={{ minHeight: 60, justifyContent: 'center', paddingRight: 20 }}>
-          <Row style={{ gap: 10 }}><Icon name="back" size={26} /><Copy style={{ color: colors.text, fontFamily: 'DMSansMedium' }}>Wróć</Copy></Row>
+          <Row style={{ gap: 10 }}><Icon name="back" size={26} /><Copy style={{ color: colors.text, fontFamily: 'DMSansMedium' }}>{t("Wróć")}</Copy></Row>
         </Pressable> : <Row style={{ gap: 8 }}><Icon name="shield" size={28} /><Text style={{ color: colors.text, fontSize: 27, fontFamily: 'ManropeBold', letterSpacing: -1 }}>guardian.</Text></Row>}
-        {!back && <IconButton name="settings" label="Otwórz ustawienia" onPress={() => router.push('/settings')} />}
+        {!back && <IconButton name="settings" label={t("Otwórz ustawienia")} onPress={() => router.push('/settings')} />}
       </Row>}
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 20, paddingTop: centered ? 20 : header || back ? 12 : 24, gap: 24, paddingBottom: centered ? 20 : insets.bottom + 32, ...(centered ? { flexGrow: 1, justifyContent: 'center' as const } : {}) }}>
+      <KeyboardAvoidingView style={{ flex: 1 }} enabled={!!footer} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 20, paddingTop: centered ? 20 : header || back ? 12 : 24, gap: 24, paddingBottom: footer ? 20 : centered ? 20 : insets.bottom + 32, ...(centered ? { flexGrow: 1, justifyContent: 'center' as const } : {}) }}>
         {title && <Copy title accessibilityRole="header">{title}</Copy>}{children}
       </ScrollView>
+      {footer && <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16, backgroundColor: colors.background }}>{footer}</View>}
+      </KeyboardAvoidingView>
     </View>
   </View>;
 }
