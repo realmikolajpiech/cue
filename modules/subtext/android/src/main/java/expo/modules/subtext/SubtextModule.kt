@@ -25,6 +25,16 @@ class SubtextModule : Module() {
     AsyncFunction("status") { subtextRuntime.status() }
     AsyncFunction("loadDemo") { subtextRuntime.loadDemo() }
     AsyncFunction("conversationWritingStyle") { id: String -> subtextRuntime.writingStyle(id) }
+    AsyncFunction("conversationReminders") { id: String ->
+      requireNotNull(subtextRuntime.store.room(id)) { "Nie znaleziono rozmowy." }
+      ConversationReminders.overview(subtextRuntime.store.memory(id)).toString()
+    }
+    AsyncFunction("refreshConversationReminders") Coroutine { id: String -> subtextRuntime.refreshReminders(id) }
+    AsyncFunction("editConversationReminder") { id: String, reminderId: String, patch: String ->
+      requireNotNull(subtextRuntime.store.room(id)) { "Nie znaleziono rozmowy." }
+      subtextRuntime.store.editReminder(id, reminderId, org.json.JSONObject(patch))
+      subtextRuntime.changed()
+    }
     AsyncFunction("conversationMemory") { id: String ->
       requireNotNull(subtextRuntime.store.room(id)) { "Nie znaleziono rozmowy." }
       val memory = subtextRuntime.store.memory(id)

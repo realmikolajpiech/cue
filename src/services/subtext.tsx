@@ -3,13 +3,16 @@ import { QueryClient, QueryClientProvider, focusManager, useQuery, useMutation, 
 import { useEffect, type ReactNode } from 'react';
 import { AppState } from 'react-native';
 import { z } from 'zod';
-import { profileSchema, roomSchema, subtextStatusSchema, writingStyleSchema, type Network } from '@/types/subtext';
+import { profileSchema, roomSchema, subtextStatusSchema, writingStyleSchema, reminderSchema, type Network } from '@/types/subtext';
 import { withDeadline } from './deadline';
 
 declare class SubtextModule extends NativeModule<{ onChanged: () => void }> {
   status(): Promise<string>;
   loadDemo(): Promise<string>;
   conversationWritingStyle(id: string): Promise<string>;
+  conversationReminders(id: string): Promise<string>;
+  refreshConversationReminders(id: string): Promise<string>;
+  editConversationReminder(id: string, reminderId: string, patch: string): Promise<void>;
   conversationMemory(id: string): Promise<string>;
   previewConversationWritingStyle(id: string): Promise<string>;
   writingStyle(): Promise<string>;
@@ -34,6 +37,10 @@ const unavailable = {
   messenger: { phase: 'NOT_CONFIGURED', detail: '' }, whatsapp: { phase: 'NOT_CONFIGURED', detail: '', pairingCode: null },
 };
 export const subtext = {
+  conversationReminders: async (id: string) => z.array(reminderSchema).parse(JSON.parse(await requireSubtext().conversationReminders(id))),
+  refreshConversationReminders: async (id: string) => z.array(reminderSchema).parse(JSON.parse(await requireSubtext().refreshConversationReminders(id))),
+  editConversationReminder: (id: string, reminderId: string, patch: { text?: string; dueDate?: string; status?: 'open' | 'tentative' | 'done' | 'cancelled'; delete?: boolean }) =>
+    requireSubtext().editConversationReminder(id, reminderId, JSON.stringify(patch)),
   conversationMemory: async (id: string) => z.object({ conversationId: z.string(), storedMemory: z.record(z.string(), z.unknown()), aiMemory: z.record(z.string(), z.unknown()) })
     .parse(JSON.parse(await requireSubtext().conversationMemory(id))),
   conversationWritingStyle: async (id: string) => writingStyleSchema.parse(JSON.parse(await requireSubtext().conversationWritingStyle(id))),
@@ -69,6 +76,7 @@ export function SubtextProvider({ children }: { children: ReactNode }) {
         void subtextCache.invalidateQueries({ queryKey: ['subtext', 'room'] });
         void subtextCache.invalidateQueries({ queryKey: ['subtext', 'writing-style'] });
         void subtextCache.invalidateQueries({ queryKey: ['subtext', 'memory'] });
+        void subtextCache.invalidateQueries({ queryKey: ['subtext', 'reminders'] });
       }, 500);
     };
     const subscription = native?.addListener('onChanged', invalidate);
@@ -80,8 +88,10 @@ export function SubtextProvider({ children }: { children: ReactNode }) {
 export function useSubtextStatus() { return useQuery({ queryKey: ['subtext', 'status'], queryFn: subtext.status, refetchInterval: 10000 }); }
 export function useRooms() { return useQuery({ queryKey: ['subtext', 'rooms'], queryFn: subtext.rooms }); }
 export function useRoom(id: string) { return useQuery({ queryKey: ['subtext', 'room', id], queryFn: () => subtext.room(id), enabled: !!id, staleTime: 0, retry: false }); }
-export function useSyncRoom(id: string, enabled: boolean) {
-  return useQuery({ queryKey: ['subtext', 'sync', id], enabled: !!id && enabled, retry: false, staleTime: Infinity, gcTime: Infinity, refetchOnWindowFocus: false, refetchOnReconnect: false,
+export function useSyncRoom(id: string, enabled: boolean, updatedAt = 0) {
+  return useQuery({ // A new inbox timestamp requests recent messages while the saved room stays visible.
+    queryKey: ['subtext', 'sync', id, updatedAt], enabled: !!id && enabled, retry: false, staleTime: 60000,
+    refetchInterval: 60000, refetchOnWindowFocus: true, refetchOnReconnect: true,
     queryFn: async () => {
       const room = await subtext.syncRoom(id);
       subtextCache.setQueryData(['subtext', 'room', id], room);

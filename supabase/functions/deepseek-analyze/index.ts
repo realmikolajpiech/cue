@@ -1,4 +1,5 @@
-import { PROMPT, MEMORY_PROMPT } from './prompt.ts';
+import { PROMPT, MEMORY_PROMPT, NO_REPLY_PROMPT, REMINDERS_PROMPT } from './prompt.ts';
+import { messageTime } from './message-time.ts';
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -55,7 +56,7 @@ Deno.serve(async (req: Request) => {
     // Bound and validate the persistent memory independently of the recent chat context.
     const personMemory = input.personMemory;
     if (personMemory !== undefined && (!personMemory || typeof personMemory !== 'object' || Array.isArray(personMemory) ||
-        JSON.stringify(personMemory).length > 60000)) return reply(400, { error: 'invalid_memory' });
+        JSON.stringify(personMemory).length > 120000)) return reply(400, { error: 'invalid_memory' });
     const styleInput = input.styleInput;
     if (styleInput !== undefined && (!styleInput || typeof styleInput !== 'object' || Array.isArray(styleInput) ||
         JSON.stringify(styleInput).length > 50000)) return reply(400, { error: 'invalid_style' });
@@ -68,14 +69,17 @@ Deno.serve(async (req: Request) => {
     });
     if (!quota.ok) return reply(503, { error: 'quota_unavailable' });
     if (await quota.json() !== true) return reply(429, { error: 'daily_limit' });
+    let timezone = typeof personMemory?.timezone === 'string' ? personMemory.timezone : 'UTC';
+    try { new Intl.DateTimeFormat('en', { timeZone: timezone }).format(); } catch { timezone = 'UTC'; }
     const messages = input.messages.map((m: { id: string; sender: string; text: string; timestamp: number; isMe: boolean }) =>
-      ({ id: m.id, sender: m.sender, text: m.text, timestamp: m.timestamp, isMe: m.isMe }));
+      ({ id: m.id, sender: m.sender, text: m.text, timestamp: m.timestamp, isMe: m.isMe,
+        calendar: messageTime(m.timestamp, timezone, m.text) }));
     const model = Deno.env.get('DEEPSEEK_MODEL') || 'deepseek-flash';
     const response = await fetch('https://api.deepseek.com/chat/completions', {
       method: 'POST', headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
       signal: AbortSignal.timeout(55000),
-      body: JSON.stringify({ model, thinking: { type: 'disabled' }, response_format: { type: 'json_object' }, max_tokens: 3500,
-        messages: [{ role: 'system', content: PROMPT + MEMORY_PROMPT }, { role: 'user', content: JSON.stringify({ messages, draft: input.draft,
+      body: JSON.stringify({ model, thinking: { type: 'disabled' }, response_format: { type: 'json_object' }, max_tokens: 4500,
+        messages: [{ role: 'system', content: PROMPT + MEMORY_PROMPT + NO_REPLY_PROMPT + REMINDERS_PROMPT }, { role: 'user', content: JSON.stringify({ messages, draft: input.draft,
           personMemory, styleInput, memoryOnly: input.memoryOnly === true }) }] }),
     });
     if (!response.ok) return reply([402, 429].includes(response.status) ? response.status : 502, { error: 'upstream_unavailable' });
@@ -87,7 +91,8 @@ Deno.serve(async (req: Request) => {
     if (!profile || typeof profile.summary !== 'string' || typeof profile.beforeReply !== 'string' ||
         !Array.isArray(profile.observations) || !Array.isArray(profile.commitments) ||
         !Array.isArray(profile.suggestions) || (!input.memoryOnly && !profile.suggestions.length) ||
-        (personMemory !== undefined && !Array.isArray(profile.memoryUpdates))) return reply(502, { error: 'invalid_response' });
+        (personMemory !== undefined && !Array.isArray(profile.memoryUpdates)) ||
+        (personMemory?.reminders !== undefined && !Array.isArray(profile.reminderUpdates))) return reply(502, { error: 'invalid_response' });
     return reply(200, profile);
   } catch {
     // Never log request bodies, provider responses, session tokens or credentials.

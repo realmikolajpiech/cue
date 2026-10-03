@@ -69,9 +69,17 @@ class SubtextStore(context: Context) {
     memories.put(key, memory)
   }
   @Synchronized fun memory(key: String): JSONObject = JSONObject((memories.optJSONObject(key) ?: JSONObject()).toString())
-  @Synchronized fun updateContext(key: String, updates: JSONArray, messages: JSONArray, revision: Long) {
+  @Synchronized fun updateContext(key: String, updates: JSONArray, messages: JSONArray, revision: Long,
+    reminderUpdates: JSONArray = JSONArray(), reminderSnapshot: JSONArray = JSONArray()) {
     val memory = memories.optJSONObject(key) ?: return
     PersonMemory.apply(memory, updates, messages, revision)
+    ConversationReminders.apply(memory, reminderUpdates, messages, reminderSnapshot)
+    memory.put("reminderVersion", 1)
+    saveMemories()
+  }
+  @Synchronized fun editReminder(key: String, id: String, patch: JSONObject) {
+    val memory = requireNotNull(memories.optJSONObject(key)) { "Nie znaleziono pamięci rozmowy." }
+    ConversationReminders.edit(memory, id, patch)
     saveMemories()
   }
   @Synchronized fun contextFailed(key: String, error: String) {

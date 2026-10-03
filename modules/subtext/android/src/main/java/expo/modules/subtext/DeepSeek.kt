@@ -53,6 +53,18 @@ object DeepSeek {
         .put("text", update.optString("text").take(600)).put("evidenceIds", JSONArray(valid)))
     }
     clean.put("memoryUpdates", cleanUpdates)
+    val reminderUpdates = raw.optJSONArray("reminderUpdates") ?: JSONArray()
+    // Typed fields, dates and evidence are checked again against the saved memory by the store.
+    clean.put("reminderUpdates", JSONArray((0 until minOf(reminderUpdates.length(), 8)).mapNotNull { i ->
+      reminderUpdates.optJSONObject(i)?.let { item ->
+        val evidence = item.optJSONArray("evidenceIds") ?: JSONArray()
+        val valid = (0 until evidence.length()).map { evidence.optString(it) }.distinct().filter { it in ids }.take(8)
+        if (valid.isEmpty()) null else JSONObject().put("replaceId", item.optString("replaceId").take(64))
+          .put("text", item.optString("text").take(400)).put("kind", item.optString("kind").take(20))
+          .put("owner", item.optString("owner").take(10)).put("status", item.optString("status").take(20))
+          .put("dueDate", item.optString("dueDate").take(40)).put("evidenceIds", JSONArray(valid))
+      }
+    }))
     raw.optJSONObject("writingStyle")?.let { style ->
       val habits = style.optJSONArray("habits") ?: JSONArray()
       clean.put("writingStyle", JSONObject()
@@ -73,8 +85,17 @@ object DeepSeek {
     val suggestions = raw.getJSONArray("suggestions"); val output = JSONArray()
     for (i in 0 until minOf(suggestions.length(), 3)) {
       val item = suggestions.getJSONObject(i)
-      require(item.getString("text").isNotBlank()) { "Pusta sugestia AI." }
-      output.put(JSONObject().put("tone", item.getString("tone").take(60)).put("text", item.getString("text").take(2000)))
+      val action = item.optString("action", "reply")
+      require(action == "reply" || action == "no_reply") { "Nieznany rodzaj sugestii AI." }
+      val suggestion = JSONObject().put("action", action)
+      if (action == "no_reply") {
+        require(item.optString("reason").isNotBlank()) { "Brak uzasadnienia nieodpisywania." }
+        suggestion.put("tone", "Nie odpisuj").put("text", "").put("reason", item.getString("reason").take(600))
+      } else {
+        require(item.getString("text").isNotBlank()) { "Pusta sugestia AI." }
+        suggestion.put("tone", item.getString("tone").take(60)).put("text", item.getString("text").take(2000))
+      }
+      output.put(suggestion)
     }
     require(memoryOnly || output.length() > 0) { "AI nie zwróciło podpowiedzi." }
     return clean.put("suggestions", output).put("createdAt", System.currentTimeMillis()).put("model", MODEL).put("messageCount", messages.length())

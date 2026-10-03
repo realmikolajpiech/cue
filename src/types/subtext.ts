@@ -7,7 +7,7 @@ const evidenceSchema = z.object({ text: z.string(), evidenceIds: z.array(z.strin
 export const profileSchema = z.object({
   replyDraft: z.string().optional(),
   summary: z.string(), beforeReply: z.string(), observations: z.array(evidenceSchema), commitments: z.array(evidenceSchema),
-  suggestions: z.array(z.object({ tone: z.string(), text: z.string() })), createdAt: z.number(), model: z.string(), messageCount: z.number(),
+  suggestions: z.array(z.object({ action: z.enum(['reply', 'no_reply']).default('reply'), tone: z.string(), text: z.string(), reason: z.string().optional() })), createdAt: z.number(), model: z.string(), messageCount: z.number(),
 });
 export const roomSchema = z.object({
   id: z.string(), remoteId: z.string(), network: networkSchema, name: z.string(), kind: z.string(),
@@ -22,7 +22,16 @@ export const subtextStatusSchema = z.object({
 export type Room = z.infer<typeof roomSchema>;
 export type Profile = z.infer<typeof profileSchema>;
 
+export const reminderSchema = z.object({
+  id: z.string(), text: z.string(), kind: z.enum(['meeting', 'commitment', 'waiting', 'important']),
+  owner: z.enum(['me', 'other', 'both']), status: z.enum(['open', 'tentative', 'done', 'cancelled']),
+  effectiveStatus: z.enum(['open', 'tentative', 'upcoming', 'waiting', 'overdue', 'past', 'expired', 'done', 'cancelled']),
+  dueDate: z.string(), dueAt: z.number().nullable(), updatedAt: z.number(), createdAt: z.number(), evidenceIds: z.array(z.string()),
+});
+export type ConversationReminder = z.infer<typeof reminderSchema>;
+
 export const writingStyleSchema = z.object({
+  reminders: z.array(reminderSchema).optional(),
   generated: z.boolean().optional(),
   updatedAt: z.number().optional(), contextUpdatedAt: z.number().optional(), pendingMessages: z.number().optional(), contextError: z.string().optional(),
   traits: z.array(z.object({ text: z.string(), matches: z.number(), sampleSize: z.number() })).optional(),

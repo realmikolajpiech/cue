@@ -95,6 +95,7 @@ internal object PersonMemory {
       .put("updatedAt", memory.optLong("updatedAt")).put("contextUpdatedAt", memory.optLong("contextUpdatedAt"))
       .put("pendingMessages", maxOf(0, memory.optLong("revision") - memory.optLong("analyzedRevision")))
       .put("contextError", memory.optString("contextError"))
+      .put("reminders", ConversationReminders.overview(memory))
   }
 
   fun writingSamples(memory: JSONObject): JSONArray = JSONArray(objects(memory.optJSONArray("recent") ?: JSONArray())
@@ -102,6 +103,8 @@ internal object PersonMemory {
       .put("text", sample.getString("text")).put("timestamp", sample.optLong("timestamp")) })
 
   fun input(memory: JSONObject): JSONObject = overview(memory).put("revision", memory.optLong("revision"))
+    .put("now", System.currentTimeMillis()).put("timezone", java.time.ZoneId.systemDefault().id)
+    .put("reminders", JSONArray(objects(ConversationReminders.overview(memory)).map { item -> item.apply { remove("evidenceIds") } }))
 
   /** Only grounded changes are applied; unspecified memories survive subsequent analyses. */
   fun apply(memory: JSONObject, updates: JSONArray, messages: JSONArray, revision: Long, now: Long = System.currentTimeMillis()) {

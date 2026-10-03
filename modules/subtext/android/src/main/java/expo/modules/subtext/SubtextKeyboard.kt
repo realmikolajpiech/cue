@@ -163,7 +163,7 @@ class SubtextKeyboard : LatinIME() {
         if (token != revision) return@launch
         hint.visibility = View.GONE
         val suggestions = profile.getJSONArray("suggestions")
-        val replies = (0 until suggestions.length()).map { suggestions.getJSONObject(it).getString("text") }.filter { it.isNotBlank() }
+        val replies = (0 until suggestions.length()).map { suggestions.getJSONObject(it) }
         if (replies.isEmpty()) { hint.text = "Brak propozycji. Spróbuj ponownie."; hint.visibility = View.VISIBLE }
         else showReplies(replies, id, token)
 
@@ -175,7 +175,7 @@ class SubtextKeyboard : LatinIME() {
       }
     }
   }
-  private fun showReplies(replies: List<String>, id: String, token: Int) {
+  private fun showReplies(replies: List<JSONObject>, id: String, token: Int) {
     resultScroll.removeAllViews()
     resultScroll.visibility = View.VISIBLE
     var index = 0
@@ -196,11 +196,16 @@ class SubtextKeyboard : LatinIME() {
     val count = TextView(this).apply { textSize = 12f; setTextColor(muted); gravity = Gravity.CENTER }
     val insert = key("Wstaw") {
       if (token == revision && !sensitive && selected == id) {
-        onTextInput(replies[index]); resultScroll.visibility = View.GONE
+        if (replies[index].optString("action") != "no_reply") onTextInput(replies[index].getString("text"))
+        resultScroll.visibility = View.GONE
       }
     }
     fun update() {
-      reply.text = replies[index]
+      val suggestion = replies[index]
+      val noReply = suggestion.optString("action") == "no_reply"
+      reply.text = if (noReply) "Nie odpisuj\n" + suggestion.optString("reason") else suggestion.getString("text")
+      insert.text = if (noReply) "Zostaw" else "Wstaw"
+      insert.contentDescription = if (noReply) "Zostaw rozmowę bez odpowiedzi" else "Wstaw odpowiedź"
       count.text = "${index + 1} / ${replies.size}"
       previous.isEnabled = index > 0; previous.alpha = if (index > 0) 1f else 0.35f
       next.isEnabled = index < replies.lastIndex; next.alpha = if (index < replies.lastIndex) 1f else 0.35f

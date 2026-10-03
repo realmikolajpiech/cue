@@ -125,11 +125,30 @@ class SubtextRuntime private constructor(private val context: Context) {
       check(token == generation.get() && prefs.getBoolean("cloud", false)) { "Analiza anulowana po zmianie ustawień." }
       profile.put("replyDraft", draft)
       store.profile(id, profile)
-      if (!room.optBoolean("demo")) store.updateContext(id, profile.getJSONArray("memoryUpdates"), recent, memory.optLong("revision"))
+      if (!room.optBoolean("demo")) store.updateContext(id, profile.getJSONArray("memoryUpdates"), recent, memory.optLong("revision"),
+        profile.getJSONArray("reminderUpdates"), memory.optJSONArray("reminders") ?: JSONArray())
       profile.toString()
     } finally { analyzing = null; changed() }
   }
   fun cloud(enabled: Boolean) { generation.incrementAndGet(); prefs.edit().putBoolean("cloud", enabled).apply(); changed() }
+  suspend fun refreshReminders(id: String): String = analysisMutex.withLock {
+    check(prefs.getBoolean("cloud", false)) { "Włącz analizę AI w ustawieniach, aby uzupełnić listę." }
+    val token = generation.get()
+    val room = JSONObject(cachedConversation(id))
+    check(!room.optBoolean("demo")) { "Rozmowa przykładowa nie aktualizuje pamięci." }
+    val history = room.getJSONArray("messages")
+    val recent = JSONArray((maxOf(0, history.length() - 80) until history.length()).map { history.getJSONObject(it) })
+    check(recent.length() > 0) { "Zsynchronizuj wiadomości, aby uzupełnić listę." }
+    val memory = store.memory(id)
+    analyzing = id; changed()
+    try {
+      val profile = DeepSeek.analyze(gateway, recent, "", memory, memoryOnly = true)
+      check(token == generation.get() && prefs.getBoolean("cloud", false)) { "Aktualizacja anulowana po zmianie ustawień." }
+      store.updateContext(id, profile.getJSONArray("memoryUpdates"), recent, memory.optLong("revision"),
+        profile.getJSONArray("reminderUpdates"), memory.optJSONArray("reminders") ?: JSONArray())
+      ConversationReminders.overview(store.memory(id)).toString()
+    } finally { analyzing = null; changed() }
+  }
   private suspend fun updatePendingMemory() {
     val now = System.currentTimeMillis()
     val day = now / 86_400_000
@@ -138,7 +157,8 @@ class SubtextRuntime private constructor(private val context: Context) {
     val eligible = store.rooms().filterNot { it.optBoolean("demo") }.firstOrNull { room ->
       val memory = store.memory(room.getString("id"))
       val pending = memory.optLong("revision") - memory.optLong("analyzedRevision")
-      pending >= (if (memory.optLong("contextUpdatedAt") == 0L) 8 else 20) &&
+      val bootstrap = memory.optInt("reminderVersion") < 1 && memory.optLong("revision") >= 8
+      (bootstrap || pending >= (if (memory.optLong("contextUpdatedAt") == 0L) 8 else 20)) &&
         now - maxOf(memory.optLong("contextUpdatedAt"), memory.optLong("attemptedAt")) >= 900_000
     }
     if (eligible == null) return
@@ -149,7 +169,8 @@ class SubtextRuntime private constructor(private val context: Context) {
       val room = store.room(id) ?: return@withLock
       val memory = store.memory(id)
       val pending = memory.optLong("revision") - memory.optLong("analyzedRevision")
-      if (pending < (if (memory.optLong("contextUpdatedAt") == 0L) 8 else 20)) return@withLock
+      val bootstrap = memory.optInt("reminderVersion") < 1 && memory.optLong("revision") >= 8
+      if (!bootstrap && pending < (if (memory.optLong("contextUpdatedAt") == 0L) 8 else 20)) return@withLock
       val all = room.getJSONArray("messages")
       val recent = JSONArray((maxOf(0, all.length() - 80) until all.length()).map { all.getJSONObject(it) })
       if (recent.length() == 0) return@withLock
@@ -158,7 +179,8 @@ class SubtextRuntime private constructor(private val context: Context) {
       try {
         val profile = DeepSeek.analyze(gateway, recent, "", memory, memoryOnly = true)
         if (token == generation.get() && prefs.getBoolean("cloud", false)) {
-          store.updateContext(id, profile.getJSONArray("memoryUpdates"), recent, memory.optLong("revision"))
+          store.updateContext(id, profile.getJSONArray("memoryUpdates"), recent, memory.optLong("revision"),
+        profile.getJSONArray("reminderUpdates"), memory.optJSONArray("reminders") ?: JSONArray())
         }
       } catch (error: CancellationException) { throw error }
       catch (error: Exception) {
@@ -205,7 +227,7 @@ class SubtextRuntime private constructor(private val context: Context) {
         }
         messages.put(message("preview-$index", "Rozmówca", scenario.first, 1000L, false))
         val intent = "Podgląd mojego ogólnego stylu pisania. Wcześniejsze wiadomości isMe=true to tylko próbki formy wypowiedzi z rozmów, a nie kontekst ani fakty. " +
-          "Naśladuj ich długość, skróty, wielkość liter, interpunkcję i emoji. Nie przenoś nazw, faktów ani tematów z próbek. " + scenario.second
+          "To ćwiczenie stylu: zwróć wyłącznie propozycje wiadomości action=reply, bez no_reply. Naśladuj ich długość, skróty, wielkość liter, interpunkcję i emoji. Nie przenoś nazw, faktów ani tematów z próbek. " + scenario.second
         val profile = DeepSeek.analyze(gateway, messages, intent, JSONObject())
         examples.put(JSONObject().put("id", "preview-$index").put("incoming", scenario.first)
           .put("reply", profile.getJSONArray("suggestions").getJSONObject(0).getString("text"))

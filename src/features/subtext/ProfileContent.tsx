@@ -12,6 +12,7 @@ import { Button, Disclosure, ErrorText, Field, ui } from './components';
 import { ConversationAvatar } from './ConversationRow';
 import { conversationTime, networkName } from './conversationPresentation';
 import type { Profile, Room } from '@/types/subtext';
+import ConversationReminders from './ConversationReminders';
 
 function Evidence({ items, room }: { items: Profile['observations']; room: Room }) {
   return <View style={{ gap: 16 }}>{items.map((item, index) => <View key={index} style={{ gap: 4 }}>
@@ -28,7 +29,7 @@ export default function ProfileContent({ id }: { id: string }) {
   const query = useRoom(id); const room = query.data;
   const { data: status } = useSubtextStatus(); const { colors } = useTheme();
   const phase = room ? status?.[room.network].phase : undefined;
-  const sync = useSyncRoom(id, phase === 'CONNECTED' && !room?.demo && !!room?.messages && room.messages.length === 0);
+  const sync = useSyncRoom(id, phase === 'CONNECTED' && !room?.demo, room?.updatedAt);
   const draft = useRef(room?.profile?.replyDraft ?? ''); const [tab, setTab] = useState<'context' | 'reply'>('context');
   const [initialDraft, setInitialDraft] = useState(room?.profile?.replyDraft ?? '');
   function changeTab(value: 'context' | 'reply') { Keyboard.dismiss(); if (value === 'reply') setInitialDraft(draft.current); setTab(value); }
@@ -92,6 +93,8 @@ export default function ProfileContent({ id }: { id: string }) {
     {developerMode && <Button label="Memory · DEV" secondary onPress={() => router.push({ pathname: '/person-style/[id]', params: { id, memory: 'true' } })} />}
     <ErrorText error={query.error ?? analysis.error ?? copyError} />
 
+    <ConversationReminders key={id} id={id} ready={ready} busy={busy} demo={room.demo} hasMessages={hasMessages} />
+
     <View style={[styles.tabs, { backgroundColor: colors.secondary }]}>
       {(['context', 'reply'] as const).map(value => <Pressable key={value} accessibilityRole="tab" accessibilityState={{ selected: tab === value }}
         onPress={() => changeTab(value)} style={[styles.tab, { backgroundColor: tab === value ? colors.surface : 'transparent' }]}>
@@ -128,15 +131,15 @@ export default function ProfileContent({ id }: { id: string }) {
       </View>
       <Button label={analysis.isPending && analysis.variables.kind === 'reply' ? 'Przygotowuję odpowiedzi…' : replies ? 'Zaproponuj inne odpowiedzi' : 'Zaproponuj odpowiedzi'}
         disabled={!ready || busy || !hasMessages} onPress={() => { Keyboard.dismiss(); setCopyError(undefined); analysis.mutate({ kind: 'reply', draft: draft.current }); }} />
-      <Copy style={ui.small}>Wybierasz i kopiujesz odpowiedź. Cue nie wysyła jej za Ciebie.</Copy>
+      <Copy style={ui.small}>Możesz wybrać odpowiedź albo zostawić rozmowę bez odpowiedzi. Cue nie wysyła niczego za Ciebie.</Copy>
       {replies?.suggestions.map((suggestion, index) => <Card key={replies.createdAt + '-' + index} style={{ padding: 16, gap: 12, borderRadius: 16 }}>
         <Copy style={[ui.small, { color: colors.accent, fontFamily: 'DMSansSemiBold' }]}>{suggestion.tone || 'Propozycja ' + (index + 1)}</Copy>
-        <Copy selectable style={[ui.body, { color: colors.text }]}>{suggestion.text}</Copy>
-        <Pressable accessibilityRole="button" accessibilityLabel={'Kopiuj odpowiedź ' + (index + 1)}
+        <Copy selectable style={[ui.body, { color: colors.text }]}>{suggestion.action === 'no_reply' ? suggestion.reason : suggestion.text}</Copy>
+        {suggestion.action !== 'no_reply' && <Pressable accessibilityRole="button" accessibilityLabel={'Kopiuj odpowiedź ' + (index + 1)}
           onPress={() => { Keyboard.dismiss(); void Clipboard.setStringAsync(suggestion.text).then(() => { setCopied(index); setCopyError(undefined); }).catch(setCopyError); }}
           style={({ pressed }) => ({ minHeight: 44, justifyContent: 'center', opacity: pressed ? 0.6 : 1 })}>
           <Row style={{ gap: 8 }}><Icon name={copied === index ? 'check' : 'copy'} size={18} color={colors.accent} /><Copy accessibilityLiveRegion="polite" style={[ui.small, { color: colors.accent, fontFamily: 'DMSansSemiBold' }]}>{copied === index ? 'Skopiowano' : 'Kopiuj odpowiedź'}</Copy></Row>
-        </Pressable>
+        </Pressable>}
       </Card>)}
     </>}
     {busy && <Row style={{ gap: 8 }}><ActivityIndicator size="small" color={colors.accent} /><Copy accessibilityLiveRegion="polite" style={[ui.small, { flex: 1 }]}>{anotherAnalysis ? 'Cue kończy analizę innej rozmowy. Za chwilę możesz spróbować tutaj.' : 'Cue czyta wiadomości i przygotowuje pomoc. Możesz wrócić do listy rozmów.'}</Copy></Row>}

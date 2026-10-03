@@ -23,6 +23,26 @@ class DeepSeekTest {
     val raw = result(); raw.getJSONArray("suggestions").getJSONObject(0).put("text", " ")
     DeepSeek.validate(raw, messages)
   }
+  @Test fun acceptsNoReplyWithoutTurningAdviceIntoAMessage() {
+    val raw = result().put("suggestions", JSONArray().put(JSONObject()
+      .put("action", "no_reply").put("tone", "Inny tytuł")
+      .put("text", "Ten tekst nie może trafić do komunikatora")
+      .put("reason", "Rozmowa już się zakończyła.")))
+    val suggestion = DeepSeek.validate(raw, messages).getJSONArray("suggestions").getJSONObject(0)
+    assertEquals("no_reply", suggestion.getString("action"))
+    assertEquals("Nie odpisuj", suggestion.getString("tone"))
+    assertEquals("", suggestion.getString("text"))
+    assertEquals("Rozmowa już się zakończyła.", suggestion.getString("reason"))
+  }
+  @Test(expected = IllegalArgumentException::class) fun rejectsNoReplyWithoutReason() {
+    val raw = result().put("suggestions", JSONArray().put(JSONObject()
+      .put("action", "no_reply").put("text", "").put("reason", " ")))
+    DeepSeek.validate(raw, messages)
+  }
+  @Test fun legacySuggestionsRemainReplies() {
+    assertEquals("reply", DeepSeek.validate(result(), messages)
+      .getJSONArray("suggestions").getJSONObject(0).getString("action"))
+  }
   @Test fun capsOutputAndDoesNotReturnUnvalidatedFields() {
     val raw = result().put("summary", "x".repeat(5000)).put("secret", "not part of the contract")
     val clean = DeepSeek.validate(raw, messages)
