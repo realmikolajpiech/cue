@@ -7,6 +7,7 @@ import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Rect
 import android.graphics.Typeface
+import android.graphics.drawable.InsetDrawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.RippleDrawable
 import android.inputmethodservice.InputMethodService.Insets
@@ -53,6 +54,8 @@ class SubtextKeyboard : LatinIME() {
   private var pickerMotion: KeyboardPickerMotion? = null
   private var toolbarMotion: KeyboardToolbarMotion? = null
   private val panelMotion = KeyboardPanelMotion()
+  private var headerExpanded = false
+  private var chevronAnimator: android.animation.ValueAnimator? = null
   private val hiddenKeys = linkedMapOf<View, Int>()
   private var pickerHeight = 0
   private var inputTarget: KeyboardInputTarget? = null
@@ -193,26 +196,27 @@ class SubtextKeyboard : LatinIME() {
     val toolbar = brandToolbar()
     if (mode == Mode.TYPING || mode == Mode.REPLIES || mode == Mode.LOADING) {
       val room = person()
-      toolbar.addView(button((room?.optString("name") ?: "Wybierz rozmowę") + " ▾", false) { undo = null; generateAfterChoice = false; open(Mode.PEOPLE) }.apply {
+      toolbar.addView(button((room?.optString("name") ?: "Wybierz osobę"), false) { undo = null; generateAfterChoice = false; open(Mode.PEOPLE) }.apply {
         gravity = Gravity.START or Gravity.CENTER_VERTICAL; maxLines = 1; ellipsize = TextUtils.TruncateAt.END
-        setPadding(dp(8), 0, dp(8), 0); contentDescription = "Rozmowa: ${room?.optString("name") ?: "nie wybrano"}. Zmień rozmowę"
+        styleRecipient(this, false); contentDescription = "Rozmowa: ${room?.optString("name") ?: "nie wybrano"}. Zmień rozmowę"
       }, LinearLayout.LayoutParams(0, dp(48), 1f))
       val action = undo
       if (mode == Mode.LOADING) {
-        toolbar.addView(button("Anuluj", false) { typing() }, LinearLayout.LayoutParams(dp(124), dp(44)))
-      } else toolbar.addView(button(if (mode == Mode.REPLIES) { if (replies[replyIndex].optString("action") == "no_reply") "Gotowe" else if (draft.isEmpty()) "Wstaw" else "Zastąp szkic" } else if (action != null) "Cofnij" else "Pomóż odpisać", true) {
+        toolbar.addView(button("Anuluj", false) { typing() }, LinearLayout.LayoutParams(dp(112), dp(44)))
+      } else toolbar.addView(button(if (mode == Mode.REPLIES) { if (replies[replyIndex].optString("action") == "no_reply") "Gotowe" else if (draft.isEmpty()) "Wstaw" else "Zastąp szkic" } else if (action != null) "Cofnij" else "Podpowiedz", true) {
         if (mode == Mode.REPLIES) {
           val reply = replies[replyIndex]
           if (reply.optString("action") == "no_reply") typing() else insert(reply.getString("text"))
         } else if (action != null) undoInsert(action) else if (room == null) { generateAfterChoice = true; open(Mode.PEOPLE) } else generate()
-      }, LinearLayout.LayoutParams(dp(124), dp(44)))
+      }, LinearLayout.LayoutParams(dp(112), dp(44)))
     } else {
       toolbar.addView(label(person()?.optString("name") ?: "Cue", 13f, true).apply {
         setPadding(dp(8), 0, dp(8), 0); gravity = Gravity.CENTER_VERTICAL
         maxLines = 1; ellipsize = TextUtils.TruncateAt.END
       }, LinearLayout.LayoutParams(0, dp(44), 1f))
-      toolbar.addView(button("Zamknij", false) { typing() }, LinearLayout.LayoutParams(dp(124), dp(44)))
+      toolbar.addView(button("Zamknij", false) { typing() }, LinearLayout.LayoutParams(dp(112), dp(44)))
     }
+    finishToolbar(toolbar)
     panel.addView(toolbar, LinearLayout.LayoutParams(-1, dp(56)))
     if (mode == Mode.TYPING) return
     if (mode == Mode.LOADING) {
@@ -259,11 +263,12 @@ class SubtextKeyboard : LatinIME() {
 
   private fun renderPicker() {
     val toolbar = brandToolbar()
-    toolbar.addView(button("Wybierz rozmowę ▴", false) { typing() }.apply {
+    toolbar.addView(button("Wybierz osobę", false) { typing() }.apply {
       gravity = Gravity.START or Gravity.CENTER_VERTICAL; maxLines = 1; ellipsize = TextUtils.TruncateAt.END
-      contentDescription = "Zamknij wybór rozmowy i wróć do pisania"
+      styleRecipient(this, true); contentDescription = "Zamknij wybór rozmowy i wróć do pisania"
     }, LinearLayout.LayoutParams(0, dp(48), 1f))
-    toolbar.addView(button("Szukaj", false) { open(Mode.SEARCH) }, LinearLayout.LayoutParams(dp(124), dp(44)))
+    toolbar.addView(button("Szukaj", false) { open(Mode.SEARCH) }, LinearLayout.LayoutParams(dp(112), dp(44)))
+    finishToolbar(toolbar)
     panel.addView(toolbar, LinearLayout.LayoutParams(-1, dp(56)))
     val list = ListView(this).apply {
       divider = null; isVerticalScrollBarEnabled = true
@@ -278,14 +283,17 @@ class SubtextKeyboard : LatinIME() {
         val room = searchRooms[position]
         val row = (convertView as? LinearLayout) ?: LinearLayout(this@SubtextKeyboard).apply {
           gravity = Gravity.CENTER_VERTICAL; setPadding(dp(8), 0, dp(8), 0)
-          addView(label("", 15f, true).apply { gravity = Gravity.CENTER; setTextColor(accent); background = rounded(card, 18) }, LinearLayout.LayoutParams(dp(36), dp(36)).apply { marginEnd = dp(12) })
+          addView(KeyboardPersonAvatar(this@SubtextKeyboard, label("", 15f, true).apply { gravity = Gravity.CENTER; setTextColor(accent); background = rounded(card, 18) }, scope), LinearLayout.LayoutParams(dp(36), dp(36)).apply { marginEnd = dp(12) })
           addView(label("", 16f).apply { maxLines = 1; ellipsize = TextUtils.TruncateAt.END }, LinearLayout.LayoutParams(0, -2, 1f))
-          addView(label("", 20f).apply { setTextColor(accent) })
+          addView(label("", 20f).apply { setTextColor(accent) }, LinearLayout.LayoutParams(-2, -2).apply { marginEnd = dp(8) })
+          addView(ImageView(this@SubtextKeyboard).apply { scaleType = ImageView.ScaleType.FIT_CENTER }, LinearLayout.LayoutParams(dp(20), dp(20)))
           layoutParams = AbsListView.LayoutParams(-1, dp(52))
         }
-        (row.getChildAt(0) as TextView).text = room.optString("name").trim().take(1)
+        (row.getChildAt(0) as KeyboardPersonAvatar).bind(room.optString("name"), room.optString("avatarUri"))
         (row.getChildAt(1) as TextView).text = room.optString("name")
         (row.getChildAt(2) as TextView).text = if (room.optString("id") == selected) "✓" else ""
+        row.getChildAt(2).visibility = if (room.optString("id") == selected) View.VISIBLE else View.GONE
+        bindPlatform(row.getChildAt(3) as ImageView, room)
         return row
       }
     }
@@ -308,7 +316,8 @@ class SubtextKeyboard : LatinIME() {
     }
     searchEditor = editor
     toolbar.addView(editor, LinearLayout.LayoutParams(0, dp(44), 1f))
-    toolbar.addView(button("Wróć do listy", false) { open(Mode.PEOPLE) }, LinearLayout.LayoutParams(dp(124), dp(44)))
+    toolbar.addView(button("Wróć do listy", false) { open(Mode.PEOPLE) }, LinearLayout.LayoutParams(dp(112), dp(44)))
+    finishToolbar(toolbar)
     panel.addView(toolbar, LinearLayout.LayoutParams(-1, dp(56)))
     searchConnection = object : BaseInputConnection(editor, true) {
       override fun getEditable(): Editable = editor.editableText
@@ -330,14 +339,17 @@ class SubtextKeyboard : LatinIME() {
         val room = searchResults[position]
         val row = (convertView as? LinearLayout) ?: LinearLayout(this@SubtextKeyboard).apply {
           gravity = Gravity.CENTER_VERTICAL; setPadding(dp(8), 0, dp(8), 0)
-          addView(label("", 14f, true).apply { gravity = Gravity.CENTER; setTextColor(accent); background = rounded(card, 14) }, LinearLayout.LayoutParams(dp(28), dp(28)).apply { marginEnd = dp(12) })
+          addView(KeyboardPersonAvatar(this@SubtextKeyboard, label("", 14f, true).apply { gravity = Gravity.CENTER; setTextColor(accent); background = rounded(card, 14) }, scope), LinearLayout.LayoutParams(dp(28), dp(28)).apply { marginEnd = dp(12) })
           addView(label("", 15f).apply { maxLines = 1; ellipsize = TextUtils.TruncateAt.END }, LinearLayout.LayoutParams(0, -2, 1f))
-          addView(label("", 18f).apply { setTextColor(accent) })
+          addView(label("", 18f).apply { setTextColor(accent) }, LinearLayout.LayoutParams(-2, -2).apply { marginEnd = dp(8) })
+          addView(ImageView(this@SubtextKeyboard).apply { scaleType = ImageView.ScaleType.FIT_CENTER }, LinearLayout.LayoutParams(dp(20), dp(20)))
           layoutParams = AbsListView.LayoutParams(-1, dp(44))
         }
-        (row.getChildAt(0) as TextView).text = room.optString("name").trim().take(1)
+        (row.getChildAt(0) as KeyboardPersonAvatar).bind(room.optString("name"), room.optString("avatarUri"))
         (row.getChildAt(1) as TextView).text = room.optString("name")
         (row.getChildAt(2) as TextView).text = if (room.optString("id") == selected) "✓" else ""
+        row.getChildAt(2).visibility = if (room.optString("id") == selected) View.VISIBLE else View.GONE
+        bindPlatform(row.getChildAt(3) as ImageView, room)
         row.contentDescription = room.optString("name")
         return row
       }
@@ -364,6 +376,17 @@ class SubtextKeyboard : LatinIME() {
     })
     update()
     panel.announceForAccessibility("Wyszukaj osobę. Klawiatura wpisuje teraz imię, nie wiadomość.")
+  }
+
+  private fun bindPlatform(icon: ImageView, room: JSONObject) {
+    val platform = when (room.optString("network")) {
+      "messenger" -> R.drawable.cue_network_messenger to "Messenger"
+      "whatsapp" -> R.drawable.cue_network_whatsapp to "WhatsApp"
+      else -> null
+    }
+    icon.visibility = if (platform == null) View.GONE else View.VISIBLE
+    icon.setImageResource(platform?.first ?: 0)
+    icon.contentDescription = platform?.second
   }
 
   private fun choosePerson(room: JSONObject) {
@@ -494,9 +517,46 @@ class SubtextKeyboard : LatinIME() {
   }
   private fun brandToolbar() = LinearLayout(this).apply {
     gravity = Gravity.CENTER_VERTICAL; setPadding(dp(8), dp(4), dp(8), dp(4))
-    addView(mascot(32), LinearLayout.LayoutParams(dp(32), dp(32)).apply {
-      marginStart = dp(4); marginEnd = dp(4)
+    addView(mascot(28), LinearLayout.LayoutParams(dp(28), dp(28)).apply {
+      marginStart = dp(4); marginEnd = dp(8)
     })
+  }
+  private fun styleRecipient(view: Button, expanded: Boolean) {
+    view.textSize = 14f
+    view.letterSpacing = -0.015f
+    view.setTextColor(ink)
+    chevronAnimator?.cancel()
+    val startLevel = if (headerExpanded) 10000 else 0
+    val endLevel = if (expanded) 10000 else 0
+    val chevron = android.graphics.drawable.RotateDrawable().apply {
+      drawable = getDrawable(R.drawable.cue_chevron_down)?.mutate()?.apply { setTint(muted) }
+      fromDegrees = 0f; toDegrees = 180f
+      setBounds(0, 0, dp(14), dp(14)); level = startLevel
+    }
+    if (startLevel != endLevel && android.animation.ValueAnimator.areAnimatorsEnabled()) {
+      chevronAnimator = android.animation.ValueAnimator.ofInt(startLevel, endLevel).apply {
+        duration = 140
+        addUpdateListener { chevron.level = it.animatedValue as Int }
+        start()
+      }
+    } else chevron.level = endLevel
+    headerExpanded = expanded
+    view.setCompoundDrawablesRelative(null, null, chevron, null)
+    view.compoundDrawablePadding = dp(6)
+    view.setPadding(dp(4), 0, dp(12), 0)
+  }
+  private fun finishToolbar(toolbar: LinearLayout) {
+    val action = toolbar.getChildAt(toolbar.childCount - 1) as? Button ?: return
+    val primary = mode == Mode.TYPING || mode == Mode.REPLIES
+    val fill = if (primary) Color.parseColor(if (dark) "#27344C" else "#E6EDF9") else Color.TRANSPARENT
+    val pill = rounded(fill, 16).apply {
+      if (primary) setStroke(dp(1).coerceAtLeast(1), Color.parseColor(if (dark) "#3B4B68" else "#CDD9EF"))
+    }
+    action.background = RippleDrawable(ColorStateList.valueOf(0x225F78B8), InsetDrawable(pill, dp(4), dp(5), 0, dp(5)), null)
+    action.setTextColor(if (primary) accent else muted)
+    action.textSize = 13f; action.letterSpacing = 0f
+    action.setPadding(dp(10), 0, dp(6), 0)
+    action.maxLines = 1; action.ellipsize = TextUtils.TruncateAt.END
   }
   private fun mascot(size: Int) = ImageView(this).apply {
     setImageResource(R.drawable.cue_brand); contentDescription = "Cue"; scaleType = ImageView.ScaleType.CENTER_CROP
@@ -547,5 +607,5 @@ class SubtextKeyboard : LatinIME() {
     super.onFinishInputView(finishingInput)
   }
   override fun onFinishInput() { pickerMotion?.cancel(); toolbarMotion?.cancel(); panelMotion.cancel(); revision++; job?.cancel(); selected = null; undo = null; endSearch(); restoreKeys(); mode = Mode.TYPING; super.onFinishInput() }
-  override fun onDestroy() { pickerMotion?.cancel(); toolbarMotion?.cancel(); panelMotion.cancel(); scope.cancel(); super.onDestroy() }
+  override fun onDestroy() { chevronAnimator?.cancel(); pickerMotion?.cancel(); toolbarMotion?.cancel(); panelMotion.cancel(); scope.cancel(); super.onDestroy() }
 }

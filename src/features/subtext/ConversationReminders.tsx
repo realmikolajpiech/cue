@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Alert, Modal, Pressable, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, Pressable, StyleSheet, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Card, Copy, Icon, Row } from '@/components/ui';
+import { Copy, Icon, Row } from '@/components/ui';
 import { subtext } from '@/services/subtext';
 import { useTheme } from '@/theme/useTheme';
 import type { ConversationReminder } from '@/types/subtext';
@@ -51,28 +51,35 @@ export default function ConversationReminders({ id, ready, busy, demo, hasMessag
   const active = items.filter(item => !archived.has(item.effectiveStatus));
   const history = items.filter(item => archived.has(item.effectiveStatus));
   function openEditor(item: ConversationReminder) { setEditing(item); setText(item.text); setDate(editableDate(item.dueDate)); setEditError(undefined); }
-  function renderItem(item: ConversationReminder) {
-    return <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={`Edytuj: ${item.text}`} onPress={() => openEditor(item)}
-      style={({ pressed }) => ({ paddingVertical: 10, gap: 4, opacity: pressed ? .6 : 1 })}>
-      <Row style={{ alignItems: 'flex-start', gap: 10 }}><Icon name={item.effectiveStatus === 'done' ? 'check' : 'history'} size={18} color={colors.accent} />
-        <View style={{ flex: 1, gap: 4 }}><Copy selectable style={[ui.body, { color: colors.text }]}>{item.text}</Copy>
-          <Copy style={ui.small}>{item.owner === 'me' ? 'Po Twojej stronie' : item.owner === 'other' ? 'Po stronie rozmówcy' : 'Wspólna sprawa'} · {labels[item.effectiveStatus]}{item.dueDate ? ` · ${dateLabel(item.dueDate)}` : ''}</Copy>
-        </View><Icon name="chevron" size={16} color={colors.secondaryText} /></Row>
+  function renderItem(item: ConversationReminder, index: number) {
+    const detail = [item.owner === 'me' ? 'Ty' : item.owner === 'other' ? 'Rozmówca' : 'Wspólne',
+      item.effectiveStatus !== 'open' ? labels[item.effectiveStatus] : '', dateLabel(item.dueDate)].filter(Boolean).join(' · ');
+    return <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={`Edytuj: ${item.text}. ${detail}`} onPress={() => openEditor(item)}
+      style={({ pressed }) => [styles.item, { borderTopWidth: index ? StyleSheet.hairlineWidth : 0, borderColor: colors.border, opacity: pressed ? .6 : 1 }]}>
+      <View style={{ flex: 1, gap: 3 }}>
+        <Copy numberOfLines={2} style={[styles.itemText, { color: colors.text }]}>{item.text}</Copy>
+        <Copy numberOfLines={2} style={[styles.detail, { color: colors.secondaryText }]}>{detail}</Copy>
+      </View>
+      <Icon name="chevron" size={15} color={colors.secondaryText} />
     </Pressable>;
   }
+  if (!items.length) return null;
+
   return <>
-    <Card style={{ padding: 16, gap: 10, borderRadius: 16 }}>
-      <Copy title style={ui.title}>Warto pamiętać</Copy>
-      {query.isPending ? <Copy style={ui.small}>Odczytuję listę…</Copy> : active.length ? active.map(renderItem) :
-        <Copy style={ui.small}>Brak aktualnych spraw. Tutaj pojawią się spotkania, obietnice i ważne informacje z tej rozmowy.</Copy>}
+    <View style={styles.section}>
+      <Row style={{ justifyContent: 'space-between', gap: 12 }}>
+        <Copy accessibilityRole="header" style={[styles.title, { color: colors.text, flex: 1 }]}>Warto pamiętać</Copy>
+        {!demo && <Pressable accessibilityRole="button" accessibilityLabel="Uzupełnij sprawy z wiadomości"
+          disabled={!ready || busy || !hasMessages || refresh.isPending} onPress={() => refresh.mutate()}
+          style={({ pressed }) => [styles.refresh, { opacity: !ready || busy || !hasMessages ? .35 : pressed ? .6 : 1 }]}>
+          {refresh.isPending ? <ActivityIndicator size="small" color={colors.accent} /> : <Icon name="refresh" size={18} color={colors.accent} />}
+        </Pressable>}
+      </Row>
+      <View>{active.map(renderItem)}</View>
       {!!history.length && <Disclosure label={`Historia (${history.length})`} small>{history.map(renderItem)}</Disclosure>}
       <ErrorText error={query.error ?? refresh.error ?? update.error} />
-      {!demo && <Pressable accessibilityRole="button" disabled={!ready || busy || !hasMessages || refresh.isPending}
-        onPress={() => refresh.mutate()} style={{ minHeight: 44, justifyContent: 'center', opacity: !ready || busy || !hasMessages || refresh.isPending ? .5 : 1 }}>
-        <Copy style={[ui.small, { color: colors.accent, fontFamily: 'DMSansSemiBold' }]}>{refresh.isPending ? 'Uzupełniam listę…' : items.length ? 'Uzupełnij z wiadomości' : 'Znajdź ważne sprawy'}</Copy>
-      </Pressable>}
       {!ready && !demo && <Copy style={ui.small}>Włącz analizę AI, aby uzupełniać listę z wiadomości.</Copy>}
-    </Card>
+    </View>
     <Modal visible={!!editing} animationType="slide" onRequestClose={() => setEditing(null)}>
       <Page>
         <Button label="Zamknij" secondary onPress={() => setEditing(null)} />
@@ -100,3 +107,12 @@ export default function ConversationReminders({ id, ready, busy, demo, hasMessag
     </Modal>
   </>;
 }
+
+const styles = StyleSheet.create({
+  section: { gap: 2, paddingBottom: 12 },
+  title: { fontSize: 17, lineHeight: 24, fontFamily: 'DMSansSemiBold' },
+  refresh: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  item: { minHeight: 64, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 14 },
+  itemText: { fontSize: 14, lineHeight: 20, fontFamily: 'DMSansMedium' },
+  detail: { fontSize: 12, lineHeight: 18 },
+});
