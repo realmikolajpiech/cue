@@ -1,27 +1,7 @@
-import { useColorScheme } from 'react-native';
-
+import { useDemo } from '@/features/demo/store';
 const palettes = {
-  light: {
-    background: '#F5F7F6',
-    surface: '#FFFFFF',
-    text: '#17231C',
-    secondaryText: '#526258',
-    accent: '#246B47',
-    border: '#DCE4DF',
-  },
-  dark: {
-    background: '#111814',
-    surface: '#1B2520',
-    text: '#ECF3EF',
-    secondaryText: '#ACBEB2',
-    accent: '#8ED0A9',
-    border: '#33463A',
-  },
-} as const;
-
-export function useTheme() {
-  const isDark = useColorScheme() === 'dark';
-  return { isDark, colors: palettes[isDark ? 'dark' : 'light'] };
-}
-
+  light: { background: '#F7F7F7', surface: '#FFFFFF', text: '#202020', secondaryText: '#737373', accent: '#202020', border: '#E7E7E7', secondary: '#F3F3F3', warning: '#A76620', warningSoft: '#FCF2E5' },
+  dark: { background: '#111111', surface: '#1B1B1B', text: '#F5F5F5', secondaryText: '#A3A3A3', accent: '#F5F5F5', border: '#303030', secondary: '#252525', warning: '#EFB36C', warningSoft: '#3A2B1D' },
+};
+export function useTheme() { const isDark = useDemo(s => s.dark); return { isDark, colors: palettes[isDark ? 'dark' : 'light'] }; }
 export const spacing = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32 } as const;
