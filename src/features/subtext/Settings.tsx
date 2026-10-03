@@ -18,7 +18,7 @@ export default function Settings() {
     <Row style={{ justifyContent: 'space-between' }}><Copy style={ui.body}>Analiza AI</Copy><Switch accessibilityLabel="Analiza AI" value={status?.cloudEnabled ?? false} disabled={!status?.available || action.isPending}
       onValueChange={enabled => {
         if (!enabled) { action.mutate(() => subtext.cloud(false)); return; }
-        Alert.alert('Włączyć analizę AI?', 'DeepSeek otrzyma do 80 ostatnich zapisanych wiadomości wybranej rozmowy, nazwy nadawców i Twój szkic odpowiedzi.', [
+        Alert.alert('Włączyć analizę AI?', 'DeepSeek otrzyma do 80 ostatnich zapisanych wiadomości wybranej rozmowy, nazwy nadawców, Twój szkic oraz próbki Twoich wiadomości z zapisanych rozmów do dopasowania stylu.', [
           { text: 'Anuluj', style: 'cancel' }, { text: 'Włącz', onPress: () => action.mutate(() => subtext.cloud(true)) },
         ]);
       }} /></Row>
@@ -32,7 +32,7 @@ export default function Settings() {
     </Disclosure>
     <Row style={{ justifyContent: 'space-between' }}><Copy style={ui.body}>Ciemny motyw</Copy><Switch accessibilityLabel="Ciemny motyw" value={dark} onValueChange={toggleTheme} /></Row>
     <Disclosure label="Dane i prywatność">
-      <Copy style={ui.small}>Analiza wysyła do DeepSeek treść wybranej rozmowy, nazwy nadawców i Twój szkic. Dane logowania zostają na telefonie. Cue nie wysyła odpowiedzi za Ciebie.</Copy>
+      <Copy style={ui.small}>Analiza wysyła do DeepSeek treść wybranej rozmowy, nazwy nadawców, Twój szkic i próbki Twoich wiadomości z innych zapisanych rozmów do dopasowania stylu. Dane logowania zostają na telefonie. Cue nie wysyła odpowiedzi za Ciebie.</Copy>
       <Button label="Wyczyść dane Cue" secondary disabled={!status?.available || action.isPending} onPress={() => Alert.alert('Wyczyścić dane?', 'Usuniesz lokalne wiadomości i profile. Synchronizacja może pobrać wiadomości ponownie.', [
         { text: 'Anuluj', style: 'cancel' }, { text: 'Wyczyść', style: 'destructive', onPress: () => action.mutate(async () => { await subtext.clear(); subtextCache.removeQueries({ queryKey: ['subtext', 'room'] }); }) },
       ])} />
