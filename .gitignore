@@ -51,3 +51,6 @@ web-build/
 .env
 .env*.local
 .idea/
+
+# Local benchmark output
+benchmarks/*.local.json

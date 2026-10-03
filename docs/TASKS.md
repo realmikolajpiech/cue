@@ -1,68 +1,60 @@
-# Guardian — zadania implementacyjne
+# Guardian — pozostałe taski dla dwóch osób
 
-Aktualizacja: 3 października 2026. `[x]` oznacza fundament zaimplementowany; `[ ]` oznacza pracę do wykonania. Obecny kod to ogólny szkielet, bez funkcji produktu. Zadania prowadzą od obecnego projektu do MVP opisanego w [dokumencie produktu](PRODUCT.md).
+Aktualizacja: 3 października 2026. Lista zawiera tylko pracę pozostałą do wykonania lub odbioru. Ukończone elementy opisują [architektura](ARCHITECTURE.md) i historia Git. Priorytet na teraz: aplikacja uruchomiona jako własny build na podłączonym Androidzie. Dokończenie Gemmy i benchmark są odłożone zgodnie z decyzją zespołu.
 
-## P0 Fundament projektu
+## Podział odpowiedzialności
 
-- [x] F01 Rozbudować istniejący Expo SDK 57: TypeScript strict, Router w `src/app`, aliasy, lint i lockfile.
-- [x] F02 Przygotować katalogi `components`, `features`, `services`, `theme`, `types` oraz jeden ekran startowy szkieletu.
-- [x] F03 Dodać podstawowy motyw light/dark i wspólną skalę odstępów.
-- [x] F04 Zapisać dokument produktu, backlog i instrukcję uruchomienia w repo.
-- [ ] F05 Dodać schemat wyników, słownik ryzyk, kategorii i sygnałów; walidować payloady na granicy native / JS.
-- [ ] F06 Wybrać zarządzanie stanem zgodnie z potrzebami: małe preferencje, status silnika i lokalna historia. Nie instalować bibliotek przed ich wykorzystaniem.
-- [ ] F07 Utworzyć lokalny moduł Expo Kotlin i kontrakt native. Development build musi rozpoznawać moduł; Expo Go ma jawnie pokazywać brak funkcji native.
-- [ ] F08 Dodać onboarding i nawigację produktu dopiero przy implementacji właściwych ekranów.
+| Osoba | Obszar | Główne katalogi | Co można robić równocześnie |
+| --- | --- | --- | --- |
+| Osoba 1 | Android, model i jakość analizy | `modules/guardian`, `benchmarks`, `plugins`, `scripts` | Testy silnika i listenera bez zmieniania UI |
+| Osoba 2 | Expo, UX i demo | `src/app`, `src/components`, `src/features`, `docs` | Ekrany i stany ochrony na podstawie istniejącego kontraktu, bez czekania na model |
 
-Odbiór szkieletu: lint, typecheck, Expo Doctor oraz export Android i web. Test prawdziwej ochrony będzie osobnym etapem po integracji native i modelu.
+Wspólny kontrakt znajduje się w `src/types/guardian.ts`, a adapter w `src/services/guardian.ts`. Zmiany nazw i typów metod najpierw ustalcie razem. Nie zmieniajcie równocześnie `app.json`, `package.json` i lockfile; instalacje dependencies koordynuje jedna osoba. Surowe wiadomości nie mogą przekraczać granicy Kotlin → JS.
 
-## P0 Sprawdzenie największych ryzyk
+## Osoba 1 — Android i AI
 
-- [ ] R01 Zweryfikować oryginalny załącznik challenge'u i stworzyć mapę wymaganie → demonstracja → dowód. Nie wyciągać wymagań z domysłów. Odbiór: lista wymaganych kryteriów z oryginalnym źródłem.
-- [ ] R02 Uruchomić Gemma 3 1B przez LiteRT-LM na fizycznym Androidzie, dobrać zgodny artefakt i przypiąć wersję biblioteki. Odbiór: offline inference po restarcie, pomiar RAM i czasu, znana licencja. Jeśli jakość za niska, sprawdzić Gemma 3n E2B / inną małą rodzinę.
-- [ ] R03 Zbudować benchmark 20 scamów + 20 hard negatives po polsku. Odbiór: raport precision / recall / false positives / uncertain / JSON validity; zapisany prompt i model. Nie dostrajać na zbiorze testowym.
-- [ ] R04 Sprawdzić NotificationListenerService dla SMS, WhatsApp, Messenger. Odbiór: rzeczywiste sample formatów bez prywatnych logów, lista ograniczeń i skuteczne grupowanie rozmów.
+### P0 odłożone do czasu powrotu do Gemmy
 
-R02 i R04 są niezależne technicznie. Warstwa UI może rozwijać się bez nich dzięki fixtures; działająca ochrona wymaga obu.
+- [ ] A01 Dokończyć i zweryfikować Gemma 3 1B na fizycznym telefonie. Kod adaptera LiteRT-LM jest przygotowany, ale nie ma odebranego modelu ani pomiaru. Uzyskać licencjonowany `.litertlm`, potwierdzić SHA-256, wersję artefaktu, działanie GPU/CPU, czas startu i RAM. Odbiór: rzeczywista analiza offline po restarcie. Jeśli jakość za niska, zbadać inny mały model. Dawne R02/N04.
+- [ ] A02 Uruchomić benchmark istniejących 40 przypadków testowych. Raport ma zawierać precision, recall, false positives, uncertain, JSON validity, p50/p95 i próbki PSS; instrukcja w `benchmarks/README.md`. Nie dostrajać promptu na tym zbiorze. Odbiór: rzeczywisty raport z modelu i telefonu, nie symulacja. Zależność: A01. Dawne R03.
 
-## P0 Pipeline Android
+### P0 odbiór pipeline na fizycznym Androidzie
 
-- [ ] N01 Dodać usługę listenera i deklarację manifestu w module. Zgoda ma pochodzić z ustawień systemowych po objaśnieniu. Odbiór: denied / granted / revoked, ponowne połączenie i restart procesu.
-- [ ] N02 Normalizować MessagingStyle, tekst i aktualizacje powiadomień; odrzucać własne i grupowe summary. Odbiór: brak duplikatów i brak łączenia obcych konwersacji.
-- [ ] N03 ConversationBuffer: 5 wiadomości, TTL 15 min, tylko RAM, limity liczby konwersacji i rozmiaru. Odbiór: testy TTL z kontrolowanym zegarem, limitów, pauzy, deduplikacji i czyszczenia.
-- [ ] N04 Implementować GuardianInference z LiteRT-LM poza wątkiem UI: serializowana kolejka, timeout, cancel, lifecycle engine i fallback sprzętowy. Zależności: R02, N03.
-- [ ] N05 Walidować odpowiedź modelu i mapować wyłącznie enumy do bezpiecznych lokalnych wyjaśnień. Odbiór: malformed JSON, nieznana kategoria, PII w output, prompt injection nie trafiają jako swobodny tekst do JS.
-- [ ] N06 Przesyłać zdarzenia wyniku i statusu przez most; synchronizować po wznowieniu UI. Odbiór: wyłącznie kontrakt, żadnych raw messages, znaczników kontaktu ani cytatów.
-- [ ] N07 Dodać trwały lokalny magazyn minimalnych wyników z retencją i usuwaniem. Odbiór: restart, limit historii, migracja schematu, delete history bez ponownego przywrócenia.
-- [ ] N08 Dodać systemowe ostrzeżenie z kanałem, zgodą na notifications, deep linkiem i rate limit. Zależności: N05–N07. Odbiór: cold start, duplicate events, foreground/background i odmowa zgody.
+- [ ] A03 Sprawdzić prawdziwe powiadomienia SMS/WhatsApp/Messenger po świadomym włączeniu dostępu przez użytkownika. Użyć testowych rozmów bez prywatnych danych. Zidentyfikować stabilne klucze konwersacji, aktualizacje MessagingStyle, fallback i summary. Odbiór: brak duplikatów i mieszania rozmów; lista ograniczeń konkretnych aplikacji. Dawne R04/N02.
+- [ ] A04 Odebrać lifecycle: dostęp denied/granted/revoked, rebind, restart procesu, pauza, cancel, usunięcie powiadomienia i kasowanie historii w czasie inference. Sprawdzić, że późny wynik nie wraca po usunięciu. Odbiór: krótki protokół scenariuszy na telefonie. Zależności: A01, A03 dla pełnego flow. Dawne N01/N03/N06/N07.
+- [ ] A05 Odebrać systemowe ostrzeżenia: POST_NOTIFICATIONS denied/granted, kanał, rate limit, cold-start deep link, foreground/background. Odbiór: rzeczywiste high daje jedno ostrzeżenie i otwiera odpowiedni wynik; blokada powiadomień nie niszczy historii. Zależności: A01 i A03. Dawne N08.
 
-## P1 Konfiguracja i użyteczny produkt
+### P1 po odbiorze P0
 
-- [ ] U01 Ekran konfiguracji: instrukcja dostępu, powrót z settings, rzeczywisty refresh stanu. Status „aktywna” tylko przy listener connected + model ready + monitoring enabled.
-- [ ] U02 Model manager: licencja, wolne miejsce, checksum, atomowy zapis, postęp, retry i anulowanie; obsłużyć offline i uszkodzony plik. Zależność: R02.
-- [ ] U03 Połączyć dashboard i historię z wynikami native, oddzielić demo od realnych danych. Odbiór: empty / loading / error / ready / paused / uncertain.
-- [ ] U04 Wybrać aplikacje do monitorowania, pauza i wznowienie; natychmiast czyścić bufor po pauzie lub cofnięciu zgody.
-- [ ] U05 Zapisywać lokalny feedback „sprawdzone” i „błędne ostrzeżenie” bez automatycznego zmieniania oceny modelu.
-- [ ] U06 Sprawdzić TalkBack, XL font, contrast, small screen, light/dark, Android Back i powroty z ustawień. Nagrać pełny flow i sprawdzić ruch na release build.
+- [ ] A06 Model manager: katalog sprawdzonych artefaktów, rozmiar i wolne miejsce, checksum wobec znanego katalogu, pobieranie z postępem, cancel, retry, uszkodzony plik. Import lokalnego pliku jest punktem startu, nie pełnym managerem. Dawne U02.
+- [ ] A07 Wybór aplikacji do monitorowania, test zużycia baterii, zachowanie po długiej bezczynności i ograniczeniach producenta. Sprawdzić, czy potrzebna jest dodatkowa architektura pracy w tle. Dawne U04/R04.
+- [ ] A08 Uzupełnić pomiar driver hang / OOM / timeout inicjalizacji. Obecny timeout dotyczy inference, nie gwarantuje przerwania natywnego `initialize`.
 
-## P1 Demo hackathonowe
+## Osoba 2 — Expo i UX
 
-- [ ] D01 Przygotować syntetyczne powiadomienia scenariusza podszywania się pod rodzinę oraz poprawnej rozmowy. Odbiór: deterministyczny scenariusz wejścia; wynik pochodzi z rzeczywistego lokalnego modelu.
-- [ ] D02 Pokazać airplane mode, powiadomienie, kontekst, ostrzeżenie i wyjaśnienie; oddzielić działającą ścieżkę od demo UI.
-- [ ] D03 Przygotować 3-minutowy pitch: problem, lokalna architektura, demo, pomiary, ograniczenia, następny krok. Zależności: R01–R04, N01–N08.
-- [ ] D04 Development / preview APK i fizyczny smoke test przed prezentacją. Nie włączać cloud jako ukrytego obejścia awarii local inference.
+### P0 odbiór i dopracowanie aplikacji
 
-## P2 Po MVP
+- [ ] B01 Odebrać konfigurację na telefonie: powrót z ustawień systemowych, loader i błąd importu, brak modelu, brak dostępu, unavailable na iOS/web. Status „aktywna” musi zależeć od rzeczywistego listenera, gotowego modelu i monitorowania. UI nie może obiecywać ochrony przy brakującym komponencie. Można wykonać teraz bez Gemmy; pełny ready później z A01.
+- [ ] B02 Odebrać nawigację: onboarding nie wraca po Android Back, zakładki zachowują miejsce, szczegóły mają bazową nawigację pod deep linkiem. Sprawdzić start zimny/ciepły i brak wyniku po retencji. Zakładki i flow są zaimplementowane; pozostaje pełny odbiór na urządzeniu.
+- [ ] B03 Sprawdzić light/dark, duży tekst, TalkBack, kontrast i mały ekran. Nagrać pełny flow na fizycznym Androidzie; pomiar wydajności robić w release build. Nie zastępować pomiaru fps screenshotami. Dawne U06.
 
-- [ ] P01 Enhanced AI Analysis: osobna zgoda i opis zakresu, redakcja PII z testami, backend bez zapisu rozmów, limity i timeout. Dopiero po przeglądzie prywatności i jakości redakcji.
-- [ ] P02 Rozbudowany benchmark na różnych telefonach, bateria, wielojęzyczność i odporność na nowe formy manipulacji.
-- [ ] P03 Zaprojektować alternatywne wejście na iOS; nie zakładać dostępu do powiadomień innych aplikacji.
-- [ ] P04 Rozstrzygnąć model dystrybucji, aktualizacji modeli i ewentualny model biznesowy. Rozmowa nie ustala monetyzacji.
+### P1 produkt i prezentacja
 
-## Proponowana kolejność najbliższych prac
+- [ ] B04 Rozdzielić empty/loading/error/paused/uncertain w finalnym UX historii i dashboardu; przejrzeć długie treści, etykiety i zalecenia. Aktualny UI jest bazą do iteracji. Dawne U03.
+- [ ] B05 Dodać „błędne ostrzeżenie” i dobrowolny lokalny feedback. „Sprawdzone” już istnieje; feedback nie zmienia automatycznie ryzyka i nie wysyła rozmów. Dawne U05.
+- [ ] B06 Przygotować syntetyczny scenariusz demonstracyjny z rzeczywistym modelem: podszywanie się pod rodzinę i poprawna rozmowa. Pokazać offline i kontrolę użytkownika. Osoba 1 dostarcza wejście/native; osoba 2 przygotowuje przebieg i recording. Zależności: A01–A05. Dawne D01/D02.
+- [ ] B07 Przygotować prezentację PDF do 10 slajdów i opis zgłoszenia. Dane zespołu i granicę prac przed eventem dostarcza zespół. Ujawnić istotne AI i zasoby z `RESOURCES.md`. Wymagania są zweryfikowane w `CHALLENGE.md`. Dawne D03/R01.
+- [ ] B08 Przygotować preview APK i końcowy smoke test przed prezentacją. Nie zastępować awarii lokalnego modelu ukrytym cloud fallbackiem. Zależność: A01–A05, B01–B03. Dawne D04.
 
-1. R01, R02 i R04: zweryfikować wymagania, lokalny model i dostępne dane.
-2. R03 oraz N01–N05: ocenić jakość i zbudować pipeline bez UI.
-3. N06–N08 i U01–U05: połączyć wyniki, stan ochrony i ostrzeżenia.
-4. U06 i D01–D04: przetestować pełny produkt i przygotować demo.
+## P2 po MVP
 
-Najpierw dowód, że model rozumie polski kontekst na docelowym telefonie. Sam dopracowany dashboard nie usuwa tego ryzyka.
+- [ ] A09 Enhanced AI Analysis: osobna zgoda, redakcja PII z pomiarem jakości, backend bez zapisu rozmów, limity i timeout. Wyłącznie po osobnej decyzji zespołu i przeglądzie prywatności.
+- [ ] A10 Poszerzyć benchmark o inne telefony, języki i nowe manipulacje; nie przedstawiać 40 przykładów jako produkcyjnej skuteczności.
+- [ ] B09 Zaprojektować alternatywne wejście na iOS; nie obiecywać dostępu do powiadomień innych aplikacji.
+- [ ] B10 Ustalić dystrybucję, aktualizacje modeli i ewentualną monetyzację.
+
+## Synchronizacja dwóch osób
+
+1. Teraz: osoba 1 przygotowuje A03/A04 bez prywatnych danych; osoba 2 robi B01–B03. A01/A02 czekają na powrót do Gemmy.
+2. Po powrocie do modelu: osoba 1 robi A01/A02; osoba 2 robi B04/B05/B07 na ustalonym kontrakcie.
+3. Po gotowym pipeline: wspólnie odebrać A04/A05 i B06/B08. Zespół potrzebuje działającego lokalnego modelu do demonstracji ochrony.

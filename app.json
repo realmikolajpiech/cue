@@ -16,7 +16,8 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": true
+      "predictiveBackGestureEnabled": true,
+      "package": "com.mikolajpiech.guardian"
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -26,7 +27,17 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      "expo-splash-screen"
+      "expo-splash-screen",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 26,
+            "kotlinVersion": "2.3.20"
+          }
+        }
+      ],
+      "./plugins/withGuardianAndroid"
     ],
     "scheme": "guardian",
     "experiments": {

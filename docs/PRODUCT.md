@@ -4,7 +4,7 @@ Stan: fundamenty projektu, 3 października 2026. Dokument służy jako referencj
 
 ## Źródło i ustalenia
 
-Źródło: [udostępniona rozmowa](https://chatgpt.com/share/6ac0cd27-0d0c-83ed-8a0f-eb91f123b8cd). Widoczny fragment obejmuje zmianę architektury z reguł na lokalny LLM oraz podział Kotlin / Expo. Załącznik „Details” i wcześniejszy opis challenge'u nie są dostępne. Zgodność z regulaminem wymaga sprawdzenia oryginalnego załącznika.
+Źródło: [udostępniona rozmowa](https://chatgpt.com/share/6ac0cd27-0d0c-83ed-8a0f-eb91f123b8cd). Widoczny fragment obejmuje zmianę architektury z reguł na lokalny LLM oraz podział Kotlin / Expo. Załącznik „Details - ARTIFICIAL INTELLIGENCE.pdf” został przekazany i zweryfikowany; wymagania i ich realizację opisuje [CHALLENGE.md](CHALLENGE.md). Wcześniejszy opis rozmowy nie jest dostępny.
 
 Ustalone w rozmowie: Android jako platforma docelowa, Expo jako UI, NotificationListenerService jako wejście, lokalny LLM jako główny silnik, krótki kontekst rozmowy, wyjaśnialne poziomy ryzyka zamiast procentów, brak surowych wiadomości w JS, opcjonalna chmura dopiero po anonimizacji i zgodzie. Regexy mogą pomagać w parsowaniu, ale nie zastępują rozumienia kontekstu.
 
@@ -21,6 +21,17 @@ Proponowani odbiorcy: osoby korzystające z komunikatorów i SMS, szczególnie o
 Guardian rozpoznaje wzorce manipulacji w dostępnych powiadomieniach, opisuje przesłanki i proponuje bezpieczny kolejny krok. Użytkownik podejmuje decyzję. Brak ostrzeżenia nie stanowi gwarancji bezpieczeństwa, a niskie ryzyko nie powinno być przedstawiane jako certyfikat bezpiecznej rozmowy.
 
 Przykład: po zmianie numeru i pilnej prośbie o pieniądze aplikacja wskazuje możliwe podszywanie się pod bliską osobę, wymienia zmianę tożsamości, presję czasu i prośbę o pieniądze oraz zaleca kontakt przez wcześniej znany kanał.
+
+## Główne funkcje produktu
+
+- **Automatic scam detection** — nasłuchiwanie powiadomień z SMS/WhatsApp/Messenger i automatyczna analiza podejrzanych wiadomości.
+- **Context-aware AI** — lokalny LLM analizuje nie jedną wiadomość, tylko krótki kontekst rozmowy i wykrywa np. podszywanie się, presję czasu, prośby o pieniądze czy dane dostępowe.
+- **Instant warning** — jeśli coś wygląda podejrzanie, użytkownik dostaje natychmiastowy alert typu „Possible impersonation scam”.
+- **Explainable detection** — aplikacja pokazuje *dlaczego* coś oznaczyła, np. „nowy numer”, „pilna prośba”, „przelew pieniędzy”.
+- **Safe next action** — nie tylko ostrzega, ale mówi co zrobić, np. „zadzwoń na wcześniej znany numer”, „otwórz oficjalną aplikację banku”, „nie podawaj kodu”.
+- **Manual check** — możliwość ręcznego wklejenia wiadomości/linku albo później udostępnienia go do Guardiana.
+- **Local-first privacy** — wiadomości analizowane lokalnie na urządzeniu; surowa treść nie musi trafiać do chmury.
+- **History of threats** — historia wykrytych prób oszustwa bez zapisywania pełnych prywatnych rozmów.
 
 ## Zakres produktu
 
@@ -46,7 +57,7 @@ Poza MVP: lokalny czat ogólnego przeznaczenia, automatyczne przelewy, automatyc
 4. Instalacja modelu: rozmiar, licencja, wymagania urządzenia, miejsce na dysku, postęp i anulowanie.
 5. Weryfikacja statusu listenera i modelu. Dopiero rzeczywista gotowość oznacza aktywną ochronę.
 
-Obecny szkielet nie zawiera onboardingu ani demo. Powyższa ścieżka jest zadaniem do implementacji.
+Onboarding, konfiguracja dostępu i import pliku są zaimplementowane. Pobieranie modelu i pełny odbiór ochrony na urządzeniu pozostają do wykonania.
 
 ### Ostrzeżenie
 
@@ -89,9 +100,9 @@ Kotlin jest strefą danych wrażliwych. Listener odbiera tylko dostępne treści
 
 Proponowany bufor: do 5 wiadomości, TTL 15 minut, tylko RAM; ograniczona liczba konwersacji i długość wiadomości. TTL powinien działać także bez nowych zdarzeń, a usunięcie powiadomienia, pauza i utrata zgody muszą być obsłużone. Nie logować treści, promptów, nazw kontaktów ani odpowiedzi zawierających cytaty.
 
-Expo używa TypeScript i Expo Router. Propozycja dla dalszej implementacji: Zustand do małych preferencji i TanStack Query do asynchronicznego statusu mostu, jeśli skala funkcji je uzasadni. Te biblioteki nie są częścią obecnego szkieletu. Historia rzeczywistych wyników wymaga lokalnego magazynu i polityki retencji.
+Expo używa TypeScript i Expo Router. Propozycja dla dalszej implementacji: Zustand do małych preferencji i TanStack Query do asynchronicznego statusu mostu, jeśli skala funkcji je uzasadni. Zustand zapisuje ukończenie onboardingu; TanStack Query obsługuje status i historię modułu native. Historia rzeczywistych wyników wymaga lokalnego magazynu i polityki retencji.
 
-Planowany lokalny moduł Expo powinien powstać w `modules/guardian`; obecny szkielet jeszcze go nie zawiera. Wygenerowane katalogi `android/` i `ios/` są produktami CNG, a nie źródłem implementacji. Własny kod native znajduje się w module. Expo Go pozwala obejrzeć UI, ale własny moduł wymaga development build.
+Lokalny moduł Expo znajduje się w `modules/guardian`. Wygenerowane katalogi `android/` i `ios/` są produktami CNG, a nie źródłem implementacji. Własny kod native znajduje się w module. Expo Go pozwala obejrzeć UI, ale własny moduł wymaga development build.
 
 ## Model i wynik
 
@@ -127,6 +138,6 @@ MVP gotowe dopiero, gdy: rzeczywiste powiadomienia tworzą poprawny kontekst bez
 
 ## Stan fundamentów i następny krok
 
-Zgodnie z ograniczonym zakresem obecny fundament obejmuje wyłącznie konfigurację Expo, TypeScript strict, Expo Router, strukturę katalogów, podstawowy motyw light/dark i jeden ekran startowy. Nie ma onboardingu, demo, analizy wiadomości, modułu native, modelu ani integracji z powiadomieniami. Funkcje opisane powyżej stanowią docelowy zakres, nie stan implementacji.
+Aktualna implementacja zawiera onboarding, nawigację, konfigurację, kontrakt wyników, lokalny moduł Kotlin, listener, bufor RAM, historię i ostrzeżenia. Adapter LiteRT-LM i korpus benchmarku są przygotowane, lecz integrację Gemmy i pomiary odkładamy zgodnie z decyzją użytkownika. Bez zaimportowanego i zweryfikowanego modelu nie deklarujemy działającej ochrony. Stan testów i ograniczenia opisuje [ARCHITECTURE.md](ARCHITECTURE.md).
 
 Kolejność implementacji i kryteria odbioru są w [TASKS.md](TASKS.md). Pierwszym ryzykownym zadaniem jest benchmark modelu na fizycznym telefonie, równolegle z technicznym spike listenera.
