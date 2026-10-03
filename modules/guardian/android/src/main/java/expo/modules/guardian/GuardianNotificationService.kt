@@ -10,8 +10,13 @@ class GuardianNotificationService : NotificationListenerService() {
     runtime.connect {
       // After process restart, don't lose a recent notification that is still visible.
       // Fetch only after the engine is ready; the normal buffer deduplicates updates.
+      val visible = activeNotifications ?: emptyArray()
+      val saved = runtime.store.list().associateBy { it.getString("id").hashCode() }
+      visible.filter { it.packageName == packageName && it.notification.channelId == "guardian_risk" }.forEach { warning ->
+        saved[warning.id]?.let { GuardianWarnings.post(this, it) }
+      }
       val cutoff = System.currentTimeMillis() - 15 * 60 * 1000L
-      activeNotifications?.filter { it.postTime > cutoff }?.forEach(::onNotificationPosted)
+      visible.filter { it.postTime > cutoff }.forEach(::onNotificationPosted)
     }
   }
   override fun onListenerDisconnected() {
