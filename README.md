@@ -6,7 +6,7 @@ light/dark i jeden ekran startowy. Funkcje produktu nie są jeszcze zaimplemento
 
 ## Uruchomienie
 
-Wymagany Node.js 22.13 lub nowszy. Polecenia wykonuj w katalogu `expo-app`.
+Wymagany Node.js 22.13 lub nowszy. Polecenia wykonuj w głównym katalogu repozytorium.
 
 ```sh
 npm ci
