@@ -70,9 +70,10 @@ export default function ConversationReminders({ id, ready, busy, demo, hasMessag
       <Row style={{ justifyContent: 'space-between', gap: 12 }}>
         <Copy accessibilityRole="header" style={[styles.title, { color: colors.text, flex: 1 }]}>Warto pamiętać</Copy>
         {!demo && <Pressable accessibilityRole="button" accessibilityLabel="Uzupełnij sprawy z wiadomości"
+          accessibilityState={{ disabled: !ready || busy || !hasMessages || refresh.isPending, busy: refresh.isPending }}
           disabled={!ready || busy || !hasMessages || refresh.isPending} onPress={() => refresh.mutate()}
           style={({ pressed }) => [styles.refresh, { opacity: !ready || busy || !hasMessages ? .35 : pressed ? .6 : 1 }]}>
-          {refresh.isPending ? <ActivityIndicator size="small" color={colors.accent} /> : <Icon name="refresh" size={18} color={colors.accent} />}
+          {refresh.isPending ? <ActivityIndicator size="small" color={colors.accent} /> : <Copy style={[styles.refreshLabel, { color: colors.accent }]}>Uzupełnij</Copy>}
         </Pressable>}
       </Row>
       <View>{active.map(renderItem)}</View>
@@ -111,7 +112,8 @@ export default function ConversationReminders({ id, ready, busy, demo, hasMessag
 const styles = StyleSheet.create({
   section: { gap: 2, paddingBottom: 12 },
   title: { fontSize: 17, lineHeight: 24, fontFamily: 'DMSansSemiBold' },
-  refresh: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  refresh: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
+  refreshLabel: { fontSize: 13, lineHeight: 20, fontFamily: 'DMSansMedium' },
   item: { minHeight: 64, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 14 },
   itemText: { fontSize: 14, lineHeight: 20, fontFamily: 'DMSansMedium' },
   detail: { fontSize: 12, lineHeight: 18 },

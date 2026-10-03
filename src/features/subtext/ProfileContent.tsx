@@ -25,7 +25,7 @@ export default function ProfileContent({ id }: { id: string }) {
 
   return <View style={{ gap: 8 }}>
     <Row style={styles.identity}>
-      <ConversationAvatar name={room.name} uri={room.avatarUri} size={52} />
+      <ConversationAvatar name={room.name} uri={room.avatarUri} network={room.network} size={52} />
       <View style={{ flex: 1, gap: 2 }}>
         <Copy style={[styles.network, { color: colors.text }]}>{networkName(room.network)}</Copy>
         <Copy accessibilityLiveRegion="polite" style={styles.status}>
@@ -33,7 +33,8 @@ export default function ProfileContent({ id }: { id: string }) {
         </Copy>
       </View>
       {!room.demo && <Pressable accessibilityRole="button" accessibilityLabel="Zsynchronizuj rozmowę" disabled={sync.isFetching}
-        onPress={() => { void sync.refetch(); }} style={styles.iconButton}>
+        accessibilityState={{ disabled: sync.isFetching, busy: sync.isFetching }}
+        onPress={() => { void sync.refetch(); }} style={({ pressed }) => [styles.iconButton, { opacity: pressed ? .6 : 1 }]}>
         {sync.isFetching ? <ActivityIndicator size="small" color={colors.accent} /> : <Icon name="refresh" size={20} color={colors.accent} />}
       </Pressable>}
     </Row>
