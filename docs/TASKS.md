@@ -1,18 +1,19 @@
 # Guardian — zadania implementacyjne
 
-Aktualizacja: 3 października 2026. `[x]` oznacza fundament zaimplementowany; `[ ]` oznacza pracę do wykonania. Demo UI nie oznacza działającej ochrony. Zadania prowadzą od obecnego projektu do MVP opisanego w [dokumencie produktu](PRODUCT.md).
+Aktualizacja: 3 października 2026. `[x]` oznacza fundament zaimplementowany; `[ ]` oznacza pracę do wykonania. Obecny kod to ogólny szkielet, bez funkcji produktu. Zadania prowadzą od obecnego projektu do MVP opisanego w [dokumencie produktu](PRODUCT.md).
 
 ## P0 Fundament projektu
 
-- [x] F01 Rozbudować istniejący Expo SDK 57: TypeScript strict, Router w `src/app`, aliasy, lint, kontrola wersji dependencies i lockfile.
-- [x] F02 Dodać onboarding z usunięciem ze stosu po zakończeniu, zakładki Ochrona / Ostrzeżenia / Ustawienia i szczegóły wyniku.
-- [x] F03 Dodać semantyczne tokeny jasnego i ciemnego motywu, komponenty, dostępne cele dotyku i symbole platformowe.
-- [x] F04 Przygotować schemat wyniku, słownik ryzyk, kategorie, sygnały i wyraźnie oznaczone fixtures demonstracyjne.
-- [x] F05 Wydzielić status mostu Android, jawny stan braku silnika, Zustand z zapisanym onboardingiem oraz TanStack Query do statusu.
-- [x] F06 Dodać lokalny moduł Expo Kotlin: status dostępu, otwarcie ustawień i punkt integracji inference; bez zbierania wiadomości przed implementacją silnika.
-- [x] F07 Zapisać produkt, architekturę, kontrakt, backlog i instrukcję uruchomienia w repo.
+- [x] F01 Rozbudować istniejący Expo SDK 57: TypeScript strict, Router w `src/app`, aliasy, lint i lockfile.
+- [x] F02 Przygotować katalogi `components`, `features`, `services`, `theme`, `types` oraz jeden ekran startowy szkieletu.
+- [x] F03 Dodać podstawowy motyw light/dark i wspólną skalę odstępów.
+- [x] F04 Zapisać dokument produktu, backlog i instrukcję uruchomienia w repo.
+- [ ] F05 Dodać schemat wyników, słownik ryzyk, kategorii i sygnałów; walidować payloady na granicy native / JS.
+- [ ] F06 Wybrać zarządzanie stanem zgodnie z potrzebami: małe preferencje, status silnika i lokalna historia. Nie instalować bibliotek przed ich wykorzystaniem.
+- [ ] F07 Utworzyć lokalny moduł Expo Kotlin i kontrakt native. Development build musi rozpoznawać moduł; Expo Go ma jawnie pokazywać brak funkcji native.
+- [ ] F08 Dodać onboarding i nawigację produktu dopiero przy implementacji właściwych ekranów.
 
-Odbiór fundamentów: lint, typecheck, Expo Doctor, export Android i web, smoke UI. Pełny test native i pomiar wydajności nie są zastępowane eksportem bundla.
+Odbiór szkieletu: lint, typecheck, Expo Doctor oraz export Android i web. Test prawdziwej ochrony będzie osobnym etapem po integracji native i modelu.
 
 ## P0 Sprawdzenie największych ryzyk
 

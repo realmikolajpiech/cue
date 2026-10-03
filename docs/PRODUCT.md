@@ -46,7 +46,7 @@ Poza MVP: lokalny czat ogólnego przeznaczenia, automatyczne przelewy, automatyc
 4. Instalacja modelu: rozmiar, licencja, wymagania urządzenia, miejsce na dysku, postęp i anulowanie.
 5. Weryfikacja statusu listenera i modelu. Dopiero rzeczywista gotowość oznacza aktywną ochronę.
 
-W fundamentach onboarding prowadzi do demo. Nie prosi o dostęp do powiadomień i nie pobiera modelu.
+Obecny szkielet nie zawiera onboardingu ani demo. Powyższa ścieżka jest zadaniem do implementacji.
 
 ### Ostrzeżenie
 
@@ -89,9 +89,9 @@ Kotlin jest strefą danych wrażliwych. Listener odbiera tylko dostępne treści
 
 Proponowany bufor: do 5 wiadomości, TTL 15 minut, tylko RAM; ograniczona liczba konwersacji i długość wiadomości. TTL powinien działać także bez nowych zdarzeń, a usunięcie powiadomienia, pauza i utrata zgody muszą być obsłużone. Nie logować treści, promptów, nazw kontaktów ani odpowiedzi zawierających cytaty.
 
-Expo używa TypeScript i Expo Router. Zustand trzyma małe preferencje i demonstracyjne wyniki; zapis preferencji w AsyncStorage wystarcza na tym etapie. TanStack Query obsługuje odczyt statusu mostu. W przyszłości historia rzeczywistych wyników powinna mieć zdefiniowany lokalny magazyn i politykę retencji.
+Expo używa TypeScript i Expo Router. Propozycja dla dalszej implementacji: Zustand do małych preferencji i TanStack Query do asynchronicznego statusu mostu, jeśli skala funkcji je uzasadni. Te biblioteki nie są częścią obecnego szkieletu. Historia rzeczywistych wyników wymaga lokalnego magazynu i polityki retencji.
 
-Lokalny moduł Expo żyje w `expo-app/modules/guardian`. Wygenerowane katalogi `android/` i `ios/` są produktami CNG, a nie źródłem implementacji. Własny kod native znajduje się w module. Expo Go pozwala obejrzeć UI, ale własny moduł wymaga development build.
+Planowany lokalny moduł Expo powinien powstać w `expo-app/modules/guardian`; obecny szkielet jeszcze go nie zawiera. Wygenerowane katalogi `android/` i `ios/` są produktami CNG, a nie źródłem implementacji. Własny kod native znajduje się w module. Expo Go pozwala obejrzeć UI, ale własny moduł wymaga development build.
 
 ## Model i wynik
 
@@ -127,6 +127,6 @@ MVP gotowe dopiero, gdy: rzeczywiste powiadomienia tworzą poprawny kontekst bez
 
 ## Stan fundamentów i następny krok
 
-Fundament obejmuje UI demonstracyjne, typy i walidację wyników, status native, strukturę lokalnego modułu oraz dokumentację. Demo używa przygotowanych wyników, nie AI. Nie ma jeszcze LiteRT-LM, model download, listenera produkcyjnego, systemowych ostrzeżeń ani cloud.
+Zgodnie z ograniczonym zakresem obecny fundament obejmuje wyłącznie konfigurację Expo, TypeScript strict, Expo Router, strukturę katalogów, podstawowy motyw light/dark i jeden ekran startowy. Nie ma onboardingu, demo, analizy wiadomości, modułu native, modelu ani integracji z powiadomieniami. Funkcje opisane powyżej stanowią docelowy zakres, nie stan implementacji.
 
-Kolejność implementacji i kryteria odbioru są w [TASKS.md](TASKS.md), a granice modułu w [ARCHITECTURE.md](ARCHITECTURE.md). Pierwszym ryzykownym zadaniem jest benchmark modelu na fizycznym telefonie, równolegle z technicznym spike listenera.
+Kolejność implementacji i kryteria odbioru są w [TASKS.md](TASKS.md). Pierwszym ryzykownym zadaniem jest benchmark modelu na fizycznym telefonie, równolegle z technicznym spike listenera.

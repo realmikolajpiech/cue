@@ -1,0 +1,41 @@
+# Guardian
+
+Szkielet aplikacji Expo do lokalnej ochrony przed manipulacją w wiadomościach.
+Obecny zakres: Expo SDK 57, TypeScript strict, Expo Router, podstawowy motyw
+light/dark i jeden ekran startowy. Funkcje produktu nie są jeszcze zaimplementowane.
+
+## Uruchomienie
+
+Wymagany Node.js 22.13 lub nowszy.
+
+```sh
+cd expo-app
+npm ci
+npm start
+```
+
+`npm run android`, `npm run ios` i `npm run web` uruchamiają odpowiedni podgląd.
+Expo Go wystarcza dla obecnego szkieletu. Planowany moduł Kotlin i lokalny LLM
+będą wymagały development build na Androidzie.
+
+## Sprawdzenie projektu
+
+```sh
+npm run lint
+npm run typecheck
+npm run doctor
+```
+
+## Struktura
+
+- `expo-app/src/app` — routing i ekrany.
+- `expo-app/src/components` — współdzielone komponenty.
+- `expo-app/src/features` — przyszłe funkcje produktu.
+- `expo-app/src/services` — przyszłe integracje.
+- `expo-app/src/theme` — kolory i odstępy.
+- `expo-app/src/types` — przyszłe wspólne typy.
+- [Dokument produktu](docs/PRODUCT.md) — założenia, zakres, architektura i ograniczenia.
+- [Taski](docs/TASKS.md) — priorytety, zależności i kryteria odbioru.
+
+Projekt Android Studio został usunięty. Docelowy kod Kotlin powstanie jako lokalny
+moduł Expo; katalogów native generowanych przez Expo nie edytujemy ręcznie.
