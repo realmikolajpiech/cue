@@ -69,6 +69,8 @@ class SubtextKeyboard : LatinIME() {
   private var stripVisibility = View.VISIBLE
   private var generateAfterChoice = false
   private var goalAfterChoice = false
+  private var goalSelectionStart = -1
+  private var goalSelectionEnd = -1
   private val consumedHardwareKeys = mutableSetOf<Int>()
   private val runtime get() = SubtextRuntime.get(this)
   private val surface get() = Settings.getValues()?.mColors?.get(ColorType.MAIN_BACKGROUND) ?: getColor(R.color.cue_login_background)
@@ -196,7 +198,7 @@ class SubtextKeyboard : LatinIME() {
     panel.removeAllViews(); panel.setBackgroundColor(surface)
     panel.visibility = if (available) View.VISIBLE else View.GONE
     if (!available) return
-    strip?.visibility = if (isPicker(mode) || isEditing()) View.GONE else stripVisibility
+    strip?.visibility = if (isPicker(mode) || mode == Mode.SEARCH) View.GONE else stripVisibility
     if (mode == Mode.PEOPLE) { renderPicker(); return }
     if (mode == Mode.SEARCH) { renderPeople(); return }
     if (mode == Mode.GOAL) { renderGoal(); return }
@@ -398,10 +400,16 @@ class SubtextKeyboard : LatinIME() {
     }, LinearLayout.LayoutParams(0, dp(44), 1f))
     toolbar.addView(button("Zapisz", true) { saveGoal() }, LinearLayout.LayoutParams(dp(96), dp(44)))
     finishToolbar(toolbar); panel.addView(toolbar, LinearLayout.LayoutParams(-1, dp(56)))
-    val editor = EditText(this).apply {
+    goalSelectionStart = -1; goalSelectionEnd = -1
+    val editor = object : EditText(this) {
+      override fun onSelectionChanged(selStart: Int, selEnd: Int) {
+        super.onSelectionChanged(selStart, selEnd)
+        post { if (mode == Mode.GOAL && searchEditor === this) syncGoalSelection(this) }
+      }
+    }.apply {
       textSize = 14f; setTextColor(ink); setHintTextColor(muted)
       hint = "Co chcesz osiągnąć w tej rozmowie?"; contentDescription = "Cel rozmowy"
-      inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+      inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
       filters = arrayOf(android.text.InputFilter.LengthFilter(1000))
       isFocusable = true; isFocusableInTouchMode = true
       isCursorVisible = true; showSoftInputOnFocus = false
@@ -416,17 +424,29 @@ class SubtextKeyboard : LatinIME() {
     actions.addView(button("Wróć", false) { endSearch(); open(Mode.STYLES) }, LinearLayout.LayoutParams(0, dp(44), 1f))
     actions.addView(button("Usuń cel", false) { runtime.setConversationGoal(id, ""); typing() }, LinearLayout.LayoutParams(0, dp(44), 1f))
     body.addView(actions); panel.addView(body)
-    searchConnection = object : BaseInputConnection(editor, true) {
-      override fun getEditable(): Editable = editor.editableText
-      override fun getExtractedText(request: ExtractedTextRequest?, flags: Int) = ExtractedText().apply {
-        text = editor.text.toString(); startOffset = 0; partialStartOffset = -1; partialEndOffset = -1
-        selectionStart = Selection.getSelectionStart(editor.text); selectionEnd = Selection.getSelectionEnd(editor.text)
-      }
-      override fun performEditorAction(actionCode: Int): Boolean { saveGoal(); return true }
-    }
+    // Use Android's full editor connection: composition, selection, clipboard and cursor keys.
+    editor.setOnEditorActionListener { _, _, _ -> searchConnection?.commitText("\n", 1); true }
+    searchConnection = editor.onCreateInputConnection(EditorInfo().apply {
+      inputType = editor.inputType
+      imeOptions = EditorInfo.IME_FLAG_NO_ENTER_ACTION
+      initialSelStart = editor.selectionStart; initialSelEnd = editor.selectionEnd
+    })
     currentInputConnection
-    editor.post { if (mode == Mode.GOAL && searchEditor === editor) editor.requestFocus() }
+    editor.post {
+      if (mode == Mode.GOAL && searchEditor === editor) {
+        editor.requestFocus(); syncGoalSelection(editor)
+      }
+    }
     panel.announceForAccessibility("Wpisz cel rozmowy. Klawiatura edytuje cel, nie wiadomość.")
+  }
+
+  private fun syncGoalSelection(editor: EditText) {
+    val start = editor.selectionStart; val end = editor.selectionEnd
+    if (start == goalSelectionStart && end == goalSelectionEnd) return
+    val previousStart = goalSelectionStart; val previousEnd = goalSelectionEnd
+    goalSelectionStart = start; goalSelectionEnd = end
+    super.onUpdateSelection(previousStart, previousEnd, start, end,
+      BaseInputConnection.getComposingSpanStart(editor.text), BaseInputConnection.getComposingSpanEnd(editor.text))
   }
 
   private fun saveGoal() {
@@ -458,7 +478,7 @@ class SubtextKeyboard : LatinIME() {
   private fun chooseOnlyResult() { if (searchResults.size == 1) choosePerson(searchResults.single()) }
 
   override fun onEvent(event: Event) {
-    if (!isEditing()) { super.onEvent(event); return }
+    if (mode != Mode.SEARCH) { super.onEvent(event); return }
     when {
       event.keyCode == KeyCode.DELETE -> searchConnection?.deleteSurroundingText(1, 0)
       event.codePoint == 10 || event.keyCode == KeyCode.SHIFT_ENTER -> submitEditor()
@@ -469,7 +489,7 @@ class SubtextKeyboard : LatinIME() {
     }
   }
   override fun onTextInput(rawText: String?) {
-    if (isEditing()) searchConnection?.commitText(rawText.orEmpty(), 1) else super.onTextInput(rawText)
+    if (mode == Mode.SEARCH) searchConnection?.commitText(rawText.orEmpty(), 1) else super.onTextInput(rawText)
   }
 
   private fun readDraft(): String? = currentInputConnection?.let(KeyboardDraftEditor::read)
@@ -727,7 +747,8 @@ class SubtextKeyboard : LatinIME() {
 
   override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
     if (keyCode == KeyEvent.KEYCODE_BACK && mode != Mode.TYPING) { backHandled = true; if (mode == Mode.SEARCH) open(Mode.PEOPLE) else if (mode == Mode.GOAL) { endSearch(); open(Mode.STYLES) } else typing(); return true }
-    if (isEditing()) {
+    if (mode == Mode.GOAL) return searchEditor?.dispatchKeyEvent(event) ?: true
+    if (mode == Mode.SEARCH) {
       consumedHardwareKeys.add(keyCode)
       when (keyCode) {
         KeyEvent.KEYCODE_DEL -> searchConnection?.deleteSurroundingText(1, 0)
@@ -741,6 +762,7 @@ class SubtextKeyboard : LatinIME() {
   override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
     if (keyCode == KeyEvent.KEYCODE_BACK && backHandled) { backHandled = false; return true }
     if (consumedHardwareKeys.remove(keyCode)) return true
+    if (mode == Mode.GOAL) return searchEditor?.dispatchKeyEvent(event) ?: true
     return super.onKeyUp(keyCode, event)
   }
   override fun onFinishInputView(finishingInput: Boolean) {
