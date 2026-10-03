@@ -69,3 +69,7 @@ artifacts/*.apk
 supabase/.temp/
 supabase/.branches/
 supabase/.env*
+
+# Vendored HeliBoard build output
+vendor/heliboard/android/build/
+vendor/heliboard/android/.cxx/
