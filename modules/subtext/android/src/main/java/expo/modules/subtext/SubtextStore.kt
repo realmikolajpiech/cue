@@ -10,13 +10,14 @@ class SubtextStore(context: Context) {
   private val file = AtomicFile(File(context.noBackupFilesDir, "subtext-conversations.json"))
   private var data = runCatching { JSONObject(String(file.readFully())) }.getOrDefault(JSONObject())
   init {
-    val excluded = data.keys().asSequence().filter { data.getJSONObject(it).optString("kind") != "PRIVATE" }.toList()
+    val excluded = data.keys().asSequence().filter { data.getJSONObject(it).optString("kind") == "GROUP" }.toList()
     excluded.forEach { data.remove(it) }
     if (excluded.isNotEmpty()) save()
   }
   @Synchronized fun rooms(): List<JSONObject> = data.keys().asSequence().map { JSONObject(data.getJSONObject(it).toString()) }
+    .filter { it.optString("kind") == "PRIVATE" }
     .sortedByDescending { it.optLong("updatedAt") }.toList()
-  @Synchronized fun room(key: String): JSONObject? = data.optJSONObject(key)?.let { JSONObject(it.toString()) }
+  @Synchronized fun room(key: String): JSONObject? = data.optJSONObject(key)?.takeIf { it.optString("kind") == "PRIVATE" }?.let { JSONObject(it.toString()) }
   @Synchronized fun merge(network: String, id: String, name: String, kind: String, messages: List<JSONObject> = emptyList(), timestamp: Long = 0) {
     val key = "$network:$id"
     if (kind != "PRIVATE") {

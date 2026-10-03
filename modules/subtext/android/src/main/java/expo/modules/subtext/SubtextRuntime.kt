@@ -36,10 +36,12 @@ class SubtextRuntime private constructor(private val context: Context) {
     scope.launch { messenger.state.collect { changed() } }
     scope.launch { whatsapp.state.collect { changed() } }
     scope.launch { messenger.conversations.debounce(500).collect { rooms ->
-      rooms.take(150).forEach { store.merge("messenger", it.id, it.name, it.kind.name, timestamp = it.timestamp) }; store.flush(); changed()
+      rooms.filter { it.kind == ConversationKind.GROUP }.forEach { store.merge("messenger", it.id, it.name, it.kind.name) }
+      rooms.filter { it.kind == ConversationKind.PRIVATE }.take(150).forEach { store.merge("messenger", it.id, it.name, it.kind.name, timestamp = it.timestamp) }; store.flush(); changed()
     } }
     scope.launch { whatsapp.conversations.debounce(500).collect { rooms ->
-      rooms.take(150).forEach { store.merge("whatsapp", it.id, it.name, it.kind.name, timestamp = it.timestamp) }; store.flush(); changed()
+      rooms.filter { it.kind == ConversationKind.GROUP }.forEach { store.merge("whatsapp", it.id, it.name, it.kind.name) }
+      rooms.filter { it.kind == ConversationKind.PRIVATE }.take(150).forEach { store.merge("whatsapp", it.id, it.name, it.kind.name, timestamp = it.timestamp) }; store.flush(); changed()
     } }
     scope.launch { messenger.messages.debounce(500).collect { chats ->
       chats.forEach { (id, messages) ->
@@ -82,7 +84,13 @@ class SubtextRuntime private constructor(private val context: Context) {
       else whatsapp.readMessages(remote, 100).map { message(it.id, it.senderName, it.text, it.timestamp, it.isMe) }
     store.merge(network, remote, room.getString("name"), room.getString("kind"), messages)
     store.flush()
-    return requireNotNull(store.room(id)).toString()
+    val result = requireNotNull(store.room(id))
+    if (result.getJSONArray("messages").length() == 0) {
+      result.put("historyNotice", if (network == "messenger" && messenger.isEncrypted(remote))
+        "Messenger nie udostępnił historii tego szyfrowanego czatu. Cue może zapisywać nowe wiadomości odebrane po połączeniu konta."
+      else "Komunikator nie udostępnił jeszcze wiadomości. Spróbuj odświeżyć po synchronizacji.")
+    }
+    return result.toString()
   }
   suspend fun analyze(id: String, draft: String): String = analysisMutex.withLock {
     check(prefs.getBoolean("cloud", false)) { "Włącz analizę DeepSeek w ustawieniach. Wybrana rozmowa zostanie wysłana do API." }
@@ -90,11 +98,11 @@ class SubtextRuntime private constructor(private val context: Context) {
     val token = generation.get()
     analyzing = id; changed()
     try {
-      read(id)
+      val fetched = JSONObject(read(id))
       val room = requireNotNull(store.room(id)) { "Rozmowa została usunięta." }
       val all = room.getJSONArray("messages")
       val recent = JSONArray((maxOf(0, all.length() - 80) until all.length()).map { all.getJSONObject(it) })
-      check(recent.length() > 0) { "Brak wiadomości do analizy. Poczekaj na synchronizację rozmowy." }
+      check(recent.length() > 0) { fetched.optString("historyNotice", "Wiadomości nie zostały jeszcze zsynchronizowane.") }
       val profile = DeepSeek.analyze(key, recent, draft)
       check(token == generation.get() && prefs.getBoolean("cloud", false)) { "Analiza anulowana po zmianie ustawień." }
       store.profile(id, profile)

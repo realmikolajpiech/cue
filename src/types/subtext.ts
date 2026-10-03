@@ -11,7 +11,7 @@ export const profileSchema = z.object({
 export const roomSchema = z.object({
   id: z.string(), remoteId: z.string(), network: networkSchema, name: z.string(), kind: z.string(),
   updatedAt: z.number(), snippet: z.string(), profile: profileSchema.nullable(), messageCount: z.number().optional(),
-  messages: z.array(messageSchema).optional(), demo: z.boolean().optional(),
+  historyNotice: z.string().optional(), messages: z.array(messageSchema).optional(), demo: z.boolean().optional(),
 });
 const connectionSchema = z.object({ phase: z.string(), detail: z.string(), pairingCode: z.string().nullable().optional() });
 export const subtextStatusSchema = z.object({

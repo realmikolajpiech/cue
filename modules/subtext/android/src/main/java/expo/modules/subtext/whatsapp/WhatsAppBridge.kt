@@ -212,11 +212,16 @@ class WhatsAppRepository(
     }
 
     suspend fun readMessages(conversationId: String, limit: Int): List<WhatsAppMessage> = withContext(Dispatchers.IO) {
-        if (conversationKinds[conversationId] != ConversationKind.PRIVATE) return@withContext emptyList()
-        val active = bridge ?: return@withContext emptyList()
+        restoreIfPossible()
+        val connected = withTimeoutOrNull(CONNECTION_TIMEOUT_MS) { state.first { it.phase != WhatsAppPhase.CONNECTING } }
+        check(connected?.phase == WhatsAppPhase.CONNECTED) { "WhatsApp nie jest połączony. Połącz konto w ustawieniach." }
+        if (conversationKinds[conversationId] == null) refreshConversations()
+        check(conversationKinds[conversationId] != ConversationKind.GROUP) { "Obsługiwane są tylko rozmowy prywatne." }
+        val active = checkNotNull(bridge) { "Trwa łączenie z WhatsAppem." }
         runCatching { active.fetchMessages(conversationId, limit.coerceIn(1, 100).toLong()) }
             .onSuccess(::mergeFetchedMessages)
             .onFailure { markOperationalFailure(it, "Message fetch failed") }
+            .getOrThrow()
         mutableMessages.value[conversationId].orEmpty().takeLast(limit.coerceIn(1, 100))
     }
 

@@ -220,11 +220,20 @@ open class MessengerRepository(
     }
 
     suspend fun readMessages(conversationId: String, limit: Int): List<MessengerMessage> = withContext(Dispatchers.IO) {
-        if (conversationKinds[conversationId] != ConversationKind.PRIVATE) return@withContext emptyList()
-        val active = bridge ?: return@withContext emptyList()
+        restoreIfPossible()
+        val connected = withTimeoutOrNull(CONNECTION_TIMEOUT_MS) {
+            state.first { it.phase != MessengerPhase.CONNECTING }
+        }
+        check(connected?.phase == MessengerPhase.CONNECTED) { "Messenger nie jest połączony. Połącz konto ponownie w ustawieniach." }
+        // Persisted inbox rows survive a process restart; bridge metadata does not.
+        // Reload it before checking the private-chat classification.
+        if (conversationKinds[conversationId] == null) refreshConversations()
+        check(conversationKinds[conversationId] != ConversationKind.GROUP) { "Obsługiwane są tylko rozmowy prywatne." }
+        val active = checkNotNull(bridge) { "Trwa łączenie z Messengerem." }
         runCatching { active.fetchMessages(conversationId, limit.coerceIn(1, 100).toLong(), "") }
             .onSuccess(::mergeFetchedMessages)
             .onFailure { markOperationalFailure(it, "Message fetch failed") }
+            .getOrThrow()
         // The bridge may return an empty table before the socket delivers history.
         if (mutableMessages.value[conversationId].isNullOrEmpty()) {
             withTimeoutOrNull(FETCH_EVENT_TIMEOUT_MS) {
@@ -233,6 +242,8 @@ open class MessengerRepository(
         }
         mutableMessages.value[conversationId].orEmpty().takeLast(limit.coerceIn(1, 100))
     }
+
+    fun isEncrypted(conversationId: String): Boolean = e2eeByConversation.containsKey(conversationId)
 
     suspend fun sendMessage(
         conversationId: String,
@@ -733,11 +744,13 @@ internal fun resolveMessengerConversationId(
     contacts: Map<String, String>,
     recipients: Map<String, String>,
 ): String {
-    if (kinds[id] == ConversationKind.GROUP) return id
-    return kinds.keys.firstOrNull { thread ->
+    val normalized = if (id.endsWith("@msgr")) id.substringBefore('@').substringBefore(':') else id
+    if (kinds[normalized] == ConversationKind.GROUP) return normalized
+    return kinds.keys.sorted().firstOrNull { thread ->
+        thread != normalized &&
         kinds[thread] == ConversationKind.PRIVATE &&
-            (contacts[thread] == id || recipients[thread]?.substringBefore('@') == id)
-    } ?: id
+            (contacts[thread] == normalized || recipients[thread]?.substringBefore('@')?.substringBefore(':') == normalized)
+    } ?: normalized
 }
 
 internal fun parseMessengerEncryptedConversation(payload: String): MessengerConversation? = runCatching {

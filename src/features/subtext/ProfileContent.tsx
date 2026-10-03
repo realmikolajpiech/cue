@@ -32,7 +32,7 @@ export default function ProfileContent({ id }: { id: string }) {
   const ready = status?.hasApiKey && status?.cloudEnabled;
   return <View style={{ gap: 20 }}>
     <ErrorText error={query.error ?? analysis.error ?? copyError} />
-    {query.isPending && <Copy style={ui.body}>Wczytuję…</Copy>}
+    {query.isPending && <Copy style={ui.body}>Pobieram wiadomości…</Copy>}
     {room && <>
       <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderColor: colors.border }}>
         {(['profile', 'replies'] as const).map(value => <Pressable key={value} accessibilityRole="tab" accessibilityState={{ selected: tab === value }}
@@ -40,6 +40,7 @@ export default function ProfileContent({ id }: { id: string }) {
           <Copy style={[ui.body, { color: tab === value ? colors.text : colors.secondaryText, fontFamily: 'DMSansSemiBold' }]}>{value === 'profile' ? 'Profil' : 'Odpowiedzi'}</Copy>
         </Pressable>)}
       </View>
+      {room.historyNotice && <Copy style={ui.small}>{room.historyNotice}</Copy>}
       {room.demo && <Copy style={ui.small}>Rozmowa przykładowa</Copy>}
       {!ready && <Button label="Skonfiguruj AI" secondary onPress={() => router.navigate('/alerts')} />}
       {tab === 'profile' ? <>
@@ -62,7 +63,7 @@ export default function ProfileContent({ id }: { id: string }) {
       </>}
       <Disclosure label="Wiadomości">
         <Button label={query.isFetching ? 'Odświeżam…' : 'Odśwież'} secondary disabled={query.isFetching} onPress={() => { void query.refetch(); }} />
-        {!room.messages?.length && <Copy style={ui.small}>Brak dostępnych wiadomości.</Copy>}
+        {!room.messages?.length && <Copy style={ui.small}>{room.historyNotice ?? 'Wiadomości nie zostały jeszcze zsynchronizowane.'}</Copy>}
         {room.messages?.map(message => <View key={message.id} style={{ gap: 4, paddingVertical: 8, borderBottomWidth: 1, borderColor: colors.border }}>
           <Copy style={ui.small}>{message.isMe ? 'Ty' : message.sender}</Copy><Copy selectable style={ui.body}>{message.text}</Copy>
         </View>)}
