@@ -102,7 +102,11 @@ class SubtextRuntime private constructor(private val context: Context) {
       val all = room.getJSONArray("messages")
       val recent = JSONArray((maxOf(0, all.length() - 80) until all.length()).map { all.getJSONObject(it) })
       check(recent.length() > 0) { fetched.optString("historyNotice", "Wiadomości nie zostały jeszcze zsynchronizowane.") }
+<<<<<<< HEAD
       val profile = DeepSeek.analyze(gateway, recent, draft)
+=======
+      val profile = DeepSeek.analyze(key, recent, draft, all, DeepSeek.generalWritingHistory(store.rooms()))
+>>>>>>> 19c9d6f79feed493ef64882bb902c4e9e6544f65
       check(token == generation.get() && prefs.getBoolean("cloud", false)) { "Analiza anulowana po zmianie ustawień." }
       store.profile(id, profile)
       profile.toString()
