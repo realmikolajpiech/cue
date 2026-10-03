@@ -1,0 +1,24 @@
+{
+  "source": "cue-logo.png (user supplied; unchanged)",
+  "imageTool": "Built-in image_gen",
+  "assets": {
+    "logo": "cue-logo.png",
+    "mascot": "cue-mascot.png",
+    "adaptiveCutout": "cue-mascot-cutout.png",
+    "launcher": "icon.png",
+    "splash": "splash-icon.png",
+    "favicon": "favicon.png"
+  },
+  "prompts": {
+    "mascotPanel": "Edit target: supplied Cue logo. Replace the blue backdrop and oval ground shadow with a PERFECTLY SOLID flat pale lavender background, hex #EFEDFF. Preserve the exact original cream ghost holding lavender phone, peach cheeks, sparkle and both chat bubbles, with precisely the same face, pose, colors and smooth 3D material. Close framing, artwork occupying 85 percent of square canvas, centered vertically and horizontally. Clean smooth boundaries, no artifacts or stray flecks. No text. The background must be solid pale lavender throughout, no texture, grain or gradient. Do not make this transparent.",
+    "adaptiveCutout": "Use case: background-extraction. Remove only the blue background and oval ground shadow from the supplied Cue logo. Preserve the cream smiling ghost holding the lavender phone, peach cheeks, sparkle and both chat bubbles. Preserve character identity, pose, proportions, lighting, material texture and colors. Center complete artwork on a square transparent canvas with a small even margin. No text or additional objects. True alpha background."
+  },
+  "design": {
+    "primary": "#4563AB",
+    "lavender": "#EFEDFF",
+    "cream": "#FFF9F4",
+    "ink": "#24283F",
+    "darkBackground": "#171D32",
+    "corners": "Cards 24; fields 16; actions 28; large artwork 24."
+  }
+}

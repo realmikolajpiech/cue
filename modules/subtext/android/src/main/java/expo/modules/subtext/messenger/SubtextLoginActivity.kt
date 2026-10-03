@@ -77,7 +77,11 @@ class SubtextLoginActivity : Activity() {
             desktopMode = !desktopMode
             val original = WebSettings.getDefaultUserAgent(this@SubtextLoginActivity)
             browser.settings.userAgentString = if (desktopMode) desktopChromeUserAgent(original) else mobileChromeUserAgent(original)
-            reloadPage()
+            notice.visibility = View.GONE
+            browser.stopLoading()
+            // The desktop fallback must leave the mobile host as well as change the agent.
+            val current = browser.url ?: LOGIN_URL
+            browser.loadUrl(if (desktopMode) current.replace("https://m.facebook.com", "https://www.facebook.com") else current)
           }
           true
         }

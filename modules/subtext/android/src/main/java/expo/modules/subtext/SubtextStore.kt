@@ -26,6 +26,19 @@ class SubtextStore(context: Context) {
     .filter { it.optString("kind") == "PRIVATE" }
     .sortedByDescending { it.optLong("updatedAt") }.toList()
   @Synchronized fun room(key: String): JSONObject? = data.optJSONObject(key)?.takeIf { it.optString("kind") == "PRIVATE" }?.let { JSONObject(it.toString()) }
+  // The inbox should not serialize hundreds of message bodies per conversation.
+  @Synchronized fun summaries(): List<JSONObject> = data.keys().asSequence().map { data.getJSONObject(it) }
+    .filter { it.optString("kind") == "PRIVATE" }.map { room ->
+      JSONObject().apply {
+        listOf("id", "remoteId", "network", "name", "kind", "updatedAt", "snippet", "profile", "demo").forEach { key ->
+          if (room.has(key)) {
+            val value = room.get(key)
+            put(key, if (value is JSONObject) JSONObject(value.toString()) else value)
+          }
+        }
+        put("messageCount", room.getJSONArray("messages").length())
+      }
+    }.sortedByDescending { it.optLong("updatedAt") }.toList()
   @Synchronized fun merge(network: String, id: String, name: String, kind: String, messages: List<JSONObject> = emptyList(), timestamp: Long = 0) {
     val key = "$network:$id"
     if (kind != "PRIVATE") {
