@@ -73,13 +73,22 @@ mkdir -p "$repo_root/modules/subtext/android/libs"
     cp "$repo_root/scripts/bridges/messenger-profile-photos_test.go" fbmessagebridge/profile_photos_test.go
     perl -0pi -e 's/contactNames map\[int64\]string/contactNames map[int64]string\n\tprofilePhotos sync.Map\n\tthreadProfilePhotos sync.Map/; s/func \(b \*Bridge\) harvestContacts\(tbl \*table.LSTable\) \{/func (b *Bridge) harvestContacts(tbl *table.LSTable) {\n\tb.harvestProfilePhotos(tbl)/' fbmessagebridge/bridge_fb.go
     gofmt -w fbmessagebridge/bridge_fb.go fbmessagebridge/conversation_names.go fbmessagebridge/profile_photos*.go whatsappbridge/profile_photos.go instagrambridge/bridge.go
-    go test ./fbmessagebridge ./whatsappbridge ./telegrambridge ./instagrambridge
+    if [[ "${BRIDGE_PLATFORM:-android}" == "android" ]]; then
+        go test ./fbmessagebridge ./whatsappbridge ./telegrambridge ./instagrambridge
+    fi
+    if [[ "${BRIDGE_PLATFORM:-android}" == "ios" ]]; then
+        mkdir -p "$repo_root/modules/subtext/ios/Frameworks"
+        "$GOBIN/gomobile" bind -target ios/arm64,iossimulator/arm64 -iosversion 16.4 \
+            -ldflags="-s -w" -o "$repo_root/modules/subtext/ios/Frameworks/Messagebridges.xcframework" \
+            fi.mirrormsg/fbmessagebridge fi.mirrormsg/whatsappbridge
+    else
     "$GOBIN/gomobile" bind \
         -target android/arm64 \
         -androidapi 24 \
         -javapkg fi.mirrormsg \
         -o "$repo_root/modules/subtext/android/libs/messagebridges.aar" \
         fi.mirrormsg/fbmessagebridge fi.mirrormsg/whatsappbridge fi.mirrormsg/telegrambridge fi.mirrormsg/instagrambridge
+    fi
 )
 
-echo "Built app/libs/messagebridges.aar"
+echo "Built ${BRIDGE_PLATFORM:-android} messaging bridges"

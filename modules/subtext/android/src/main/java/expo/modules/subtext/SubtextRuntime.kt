@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.content.ContextCompat
 import expo.modules.subtext.device.ConversationKind
+import expo.modules.subtext.messenger.MetaBridgeService
 import expo.modules.subtext.messenger.MessengerRepository
 import expo.modules.subtext.whatsapp.WhatsAppRepository
 import kotlinx.coroutines.*
@@ -23,6 +24,7 @@ import java.util.concurrent.atomic.AtomicLong
 class SubtextRuntime private constructor(private val context: Context) {
   val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
   val messenger = MessengerRepository(context)
+  val instagram = MessengerRepository(context, MetaBridgeService.INSTAGRAM)
   val whatsapp = WhatsAppRepository(context)
   val store = SubtextStore(context)
   private val photos = ProfilePhotoCache(context)
@@ -42,23 +44,28 @@ class SubtextRuntime private constructor(private val context: Context) {
     SecureValue(context).set("")
     File(context.filesDir, "subtext-key.import").delete()
     scope.launch { messenger.state.collect { changed() } }
+    scope.launch { instagram.state.collect { changed() } }
     scope.launch { whatsapp.state.collect { changed() } }
-    scope.launch { messenger.conversations.debounce(500).collect { rooms ->
-      rooms.filter { it.kind == ConversationKind.GROUP }.forEach { store.merge("messenger", it.id, it.name, it.kind.name) }
-      rooms.filter { it.kind == ConversationKind.PRIVATE }.take(150).forEach { store.merge("messenger", it.id, it.name, it.kind.name, timestamp = it.timestamp) }; store.flush(); changed()
-    } }
+    listOf("messenger" to messenger, "instagram" to instagram).forEach { (network, repository) ->
+      scope.launch { repository.conversations.debounce(500).collect { rooms ->
+        rooms.filter { it.kind == ConversationKind.GROUP }.forEach { store.merge(network, it.id, it.name, it.kind.name) }
+        rooms.filter { it.kind == ConversationKind.PRIVATE }.take(150).forEach {
+          store.merge(network, it.id, it.name, it.kind.name, timestamp = it.timestamp)
+        }; store.flush(); changed()
+      } }
+      scope.launch { repository.messages.debounce(500).collect { chats ->
+        chats.forEach { (id, messages) ->
+          val room = repository.conversations.value.find { it.id == id }
+          if (room?.kind != ConversationKind.PRIVATE) return@forEach
+          store.merge(network, id, room.name, room.kind.name, messages.map {
+            message(it.id, it.senderName, it.text, it.timestamp, it.isMe, it.mediaId)
+          })
+        }; store.flush(); changed(); memoryRequests.trySend(Unit)
+      } }
+    }
     scope.launch { whatsapp.conversations.debounce(500).collect { rooms ->
       rooms.filter { it.kind == ConversationKind.GROUP }.forEach { store.merge("whatsapp", it.id, it.name, it.kind.name) }
       rooms.filter { it.kind == ConversationKind.PRIVATE }.take(150).forEach { store.merge("whatsapp", it.id, it.name, it.kind.name, timestamp = it.timestamp) }; store.flush(); changed()
-    } }
-    scope.launch { messenger.messages.debounce(500).collect { chats ->
-      chats.forEach { (id, messages) ->
-        val room = messenger.conversations.value.find { it.id == id }
-        if (room?.kind != ConversationKind.PRIVATE) return@forEach
-        store.merge("messenger", id, room.name, room.kind.name, messages.map {
-          message(it.id, it.senderName, it.text, it.timestamp, it.isMe, it.mediaId)
-        })
-      }; store.flush(); changed(); memoryRequests.trySend(Unit)
     } }
     scope.launch { whatsapp.messages.debounce(500).collect { chats ->
       chats.forEach { (id, messages) ->
@@ -84,8 +91,11 @@ class SubtextRuntime private constructor(private val context: Context) {
           coroutineScope {
             batch.map { room -> async {
               val network = room.getString("network")
-              val connected = if (network == "messenger") messenger.state.value.phase.name == "CONNECTED"
-                else whatsapp.state.value.phase.name == "CONNECTED"
+              val connected = when (network) {
+                "messenger" -> messenger.state.value.phase.name == "CONNECTED"
+                "whatsapp" -> whatsapp.state.value.phase.name == "CONNECTED"
+                else -> false // The Instagram bridge currently supplies no profile-photo URL.
+              }
               if (!connected || token != generation.get()) return@async
               val id = room.getString("id")
               val remote = room.getString("remoteId")
@@ -116,7 +126,7 @@ class SubtextRuntime private constructor(private val context: Context) {
     }
   }
   fun changed() { observers.forEach { runCatching { it() } } }
-  fun restore() { messenger.restoreIfPossible(); whatsapp.restoreIfPossible() }
+  fun restore() { messenger.restoreIfPossible(); whatsapp.restoreIfPossible(); instagram.restoreIfPossible() }
   fun startConnections() {
     prefs.edit().putBoolean("background", true).apply()
     ContextCompat.startForegroundService(context, Intent(context, ConnectionService::class.java))
@@ -124,10 +134,11 @@ class SubtextRuntime private constructor(private val context: Context) {
   fun status(): String = JSONObject().put("available", true).put("model", DeepSeek.MODEL)
     .put("hasApiKey", true).put("cloudEnabled", prefs.getBoolean("cloud", false))
     .put("backgroundEnabled", prefs.getBoolean("background", false)).put("analyzing", analyzing ?: JSONObject.NULL)
+    .put("instagram", JSONObject().put("phase", instagram.state.value.phase.name).put("detail", instagram.state.value.detail))
     .put("messenger", JSONObject().put("phase", messenger.state.value.phase.name).put("detail", messenger.state.value.detail))
     .put("whatsapp", JSONObject().put("phase", whatsapp.state.value.phase.name).put("detail", whatsapp.state.value.detail)
       .put("pairingCode", whatsapp.state.value.pairingCode ?: JSONObject.NULL)).toString()
-  suspend fun refresh() { restore(); messenger.refreshConversations(); whatsapp.refreshConversations() }
+  suspend fun refresh() { restore(); messenger.refreshConversations(); whatsapp.refreshConversations(); instagram.refreshConversations() }
   fun cachedConversation(id: String): String {
     val room = requireNotNull(store.room(id)) { "Nie znaleziono rozmowy." }
     check(room.optString("kind") == "PRIVATE") { "Obsługiwane są tylko rozmowy prywatne." }
@@ -143,8 +154,12 @@ class SubtextRuntime private constructor(private val context: Context) {
     check(room.optString("kind") == "PRIVATE") { "Obsługiwane są tylko rozmowy prywatne." }
     if (room.optBoolean("demo")) return@withTimeout room.toString()
     val remote = room.getString("remoteId"); val network = room.getString("network")
-    val messages = if (network == "messenger") messenger.readMessages(remote, 100).map { message(it.id, it.senderName, it.text, it.timestamp, it.isMe, it.mediaId) }
-      else whatsapp.readMessages(remote, 100).map { message(it.id, it.senderName, it.text, it.timestamp, it.isMe, it.mediaId) }
+    val messages = when (network) {
+      "messenger", "instagram" -> (if (network == "messenger") messenger else instagram).readMessages(remote, 100)
+        .map { message(it.id, it.senderName, it.text, it.timestamp, it.isMe, it.mediaId) }
+      "whatsapp" -> whatsapp.readMessages(remote, 100).map { message(it.id, it.senderName, it.text, it.timestamp, it.isMe, it.mediaId) }
+      else -> error("Nieznany komunikator.")
+    }
     store.merge(network, remote, room.getString("name"), room.getString("kind"), messages)
     store.flush()
     memoryRequests.trySend(Unit)
@@ -171,7 +186,12 @@ class SubtextRuntime private constructor(private val context: Context) {
     val mediaId = message.optString("mediaId").ifBlank { messageId }
     suspend fun download(): ByteArray {
       android.util.Log.d("CueImage", "Downloading from $network")
-      return if (network == "messenger") messenger.downloadImage(mediaId) else whatsapp.downloadImage(mediaId)
+      return when (network) {
+        "messenger" -> messenger.downloadImage(mediaId)
+        "whatsapp" -> whatsapp.downloadImage(mediaId)
+        "instagram" -> instagram.downloadImage(mediaId)
+        else -> error("Nieznany komunikator.")
+      }
     }
     val raw = try { download() }
       catch (error: CancellationException) { throw error }
@@ -219,6 +239,7 @@ class SubtextRuntime private constructor(private val context: Context) {
   }
   suspend fun analyze(id: String, draft: String, tone: String? = null, intensity: Int? = null,
     rejected: List<String> = emptyList()): String = analysisMutex.withLock {
+    checkAIAllowed(id)
     check(prefs.getBoolean("cloud", false)) { "Włącz analizę DeepSeek w ustawieniach. Wybrana rozmowa zostanie wysłana do API." }
     val token = generation.get()
     analyzing = id; changed()
@@ -237,7 +258,7 @@ class SubtextRuntime private constructor(private val context: Context) {
       check(token == generation.get() && prefs.getBoolean("cloud", false)) { "Analiza anulowana po zmianie ustawień." }
       profile.put("replyDraft", draft)
       store.profile(id, profile)
-      if (!room.optBoolean("demo")) store.updateContext(id, profile.getJSONArray("memoryUpdates"), recent, memory.optLong("revision"),
+      store.updateContext(id, profile.getJSONArray("memoryUpdates"), recent, memory.optLong("revision"),
         profile.getJSONArray("reminderUpdates"), memory.optJSONArray("reminders") ?: JSONArray())
       profile.toString()
     } finally { analyzing = null; changed() }
@@ -250,7 +271,7 @@ class SubtextRuntime private constructor(private val context: Context) {
     check(prefs.getBoolean("cloud", false)) { "Włącz analizę AI w ustawieniach, aby uzupełnić listę." }
     val token = generation.get()
     val room = JSONObject(cachedConversation(id))
-    check(!room.optBoolean("demo")) { "Rozmowa przykładowa nie aktualizuje pamięci." }
+    checkAIAllowed(id)
     val history = room.getJSONArray("messages")
     val recent = JSONArray((maxOf(0, history.length() - 80) until history.length()).map { history.getJSONObject(it) })
     check(recent.length() > 0) { "Zsynchronizuj wiadomości, aby uzupełnić listę." }
@@ -273,6 +294,7 @@ class SubtextRuntime private constructor(private val context: Context) {
       val token = generation.get()
       val id = candidate.getString("id")
       val room = store.room(id) ?: return@withLock
+      if (room.optBoolean("aiExcluded")) return@withLock
       val memory = store.memory(id)
       if (!MemoryAutoUpdate.eligible(memory, now)) return@withLock
       val all = room.getJSONArray("messages")
@@ -293,7 +315,7 @@ class SubtextRuntime private constructor(private val context: Context) {
       } finally { analyzing = null; changed() }
     }
   }
-  private fun styleRooms(id: String?): List<JSONObject> = if (id == null) store.rooms()
+  private fun styleRooms(id: String?): List<JSONObject> = if (id == null) store.rooms().filterNot { store.memory(it.getString("id")).optBoolean("aiExcluded") }
     else listOf(requireNotNull(store.room(id)) { "Nie znaleziono rozmowy." })
   fun conversationGoal(id: String): String = prefs.getString("conversation-goal:$id", "") ?: ""
   fun setConversationGoal(id: String, goal: String) {
@@ -338,6 +360,7 @@ class SubtextRuntime private constructor(private val context: Context) {
   }
   suspend fun previewWritingStyle(id: String? = null): String = analysisMutex.withLock {
     check(prefs.getBoolean("cloud", false)) { "Włącz analizę AI w ustawieniach, aby utworzyć podgląd." }
+    if (id != null) checkAIAllowed(id)
     val samples = styleSamples(id)
     check(samples.length() >= 5) { "Potrzebujemy przynajmniej 5 Twoich wiadomości. Zsynchronizuj rozmowy." }
     val token = generation.get()
@@ -373,18 +396,21 @@ class SubtextRuntime private constructor(private val context: Context) {
       writingStyle(id)
     } finally { analyzing = null; changed() }
   }
+  private fun checkAIAllowed(id: String) {
+    check(!store.memory(id).optBoolean("aiExcluded")) { "AI jest wyłączone dla tej rozmowy. Zmień ustawienie w jej profilu." }
+  }
+  fun setConversationAI(id: String, enabled: Boolean) {
+    generation.incrementAndGet()
+    store.setAIExcluded(id, !enabled)
+    if (enabled) memoryRequests.trySend(Unit)
+    changed()
+  }
   fun loadDemo(): String {
-    val now = System.currentTimeMillis()
-    val sample = listOf(
-      message("demo-1", "Marta", "W piątek przygotuję pierwszą wersję prezentacji. Ty możesz sprawdzić dane?", now - 172800000, false),
-      message("demo-2", "Ty", "Jasne, sprawdzę dane do poniedziałku rano.", now - 172790000, true),
-      message("demo-3", "Marta", "Super. Wolę krótkie podsumowanie w punktach, wystarczy tutaj.", now - 172780000, false),
-      message("demo-4", "Ty", "Dane sprawdzone. Dwie liczby w tabeli wymagają poprawki, zaraz podeślę szczegóły.", now - 3600000, true),
-      message("demo-5", "Marta", "Dzięki! Mam dziś sporo spotkań. Możesz też przygotować całą prezentację na jutro?", now - 60000, false)
-    )
-    store.merge("messenger", "subtext-demo", "Marta · przykład", "PRIVATE", sample)
-    store.markDemo("messenger:subtext-demo"); changed()
-    return "messenger:subtext-demo"
+    if (store.room(CueDemo.ID)?.has("demoStage") != true) store.demoStage(0)
+    changed(); return CueDemo.ID
+  }
+  suspend fun demoStage(stage: Int): String = analysisMutex.withLock {
+    store.demoStage(stage).also { changed() }
   }
   private fun clearStylePreviews() {
     val editor = prefs.edit()
@@ -395,11 +421,16 @@ class SubtextRuntime private constructor(private val context: Context) {
   fun disconnect(network: String) = synchronized(photoLifecycleLock) {
     generation.incrementAndGet()
     clearStylePreviews()
-    if (network == "messenger") messenger.logout() else if (network == "whatsapp") whatsapp.logout() else error("Nieznany komunikator.")
+    when (network) {
+      "messenger" -> messenger.logout()
+      "whatsapp" -> whatsapp.logout()
+      "instagram" -> instagram.logout()
+      else -> error("Nieznany komunikator.")
+    }
     images.clear(network)
     photos.clear(network)
     store.clear(network)
-    if (!messenger.hasSession() && !whatsapp.hasSession()) {
+    if (!messenger.hasSession() && !whatsapp.hasSession() && !instagram.hasSession()) {
       prefs.edit().putBoolean("background", false).apply()
       context.stopService(Intent(context, ConnectionService::class.java))
     }

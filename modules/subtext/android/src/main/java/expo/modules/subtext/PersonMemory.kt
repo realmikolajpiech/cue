@@ -104,7 +104,10 @@ internal object PersonMemory {
 
   fun input(memory: JSONObject): JSONObject = overview(memory).put("revision", memory.optLong("revision"))
     .put("now", System.currentTimeMillis()).put("timezone", java.time.ZoneId.systemDefault().id)
-    .put("reminders", JSONArray(objects(ConversationReminders.overview(memory)).map { item -> item.apply { remove("evidenceIds") } }))
+    .put("reminders", JSONArray(objects(ConversationReminders.overview(memory)).map { item -> item.apply { remove("evidenceIds"); remove("sources") } }))
+    .put("relationship", JSONArray(objects(memory.optJSONArray("relationship") ?: JSONArray()).map { item ->
+      JSONObject(item.toString()).apply { remove("sources") }
+    }))
 
   /** Only grounded changes are applied; unspecified memories survive subsequent analyses. */
   fun apply(memory: JSONObject, updates: JSONArray, messages: JSONArray, revision: Long, now: Long = System.currentTimeMillis()) {
@@ -122,6 +125,7 @@ internal object PersonMemory {
       if (replace.isBlank() && entries.values.any { it.optString("text") == text }) continue
       val id = replace.ifBlank { digest(text + valid.joinToString()).take(24) }
       entries[id] = JSONObject().put("id", id).put("text", text).put("evidenceIds", JSONArray(valid)).put("updatedAt", now)
+        .put("sources", MemoryEvidence.capture(valid, messages))
     }
     memory.put("relationship", JSONArray(entries.values.sortedByDescending { it.optLong("updatedAt") }.take(24)))
       .put("analyzedRevision", revision).put("contextUpdatedAt", now).put("contextError", "")

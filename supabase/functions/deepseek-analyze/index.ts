@@ -1,4 +1,4 @@
-import { PROMPT, MEMORY_PROMPT, NO_REPLY_PROMPT, REMINDERS_PROMPT, CURRENT_THREAD_PROMPT, MEDIA_PROMPT } from './prompt.ts';
+import { PROMPT, MEMORY_PROMPT, NO_REPLY_PROMPT, REMINDERS_PROMPT, CURRENT_THREAD_PROMPT, MEDIA_PROMPT, OUTPUT_RELIABILITY_PROMPT } from './prompt.ts';
 import { validateImages, visionContent } from './vision.ts';
 import { messageTime } from './message-time.ts';
 
@@ -85,7 +85,7 @@ Deno.serve(async (req: Request) => {
       method: 'POST', headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
       signal: AbortSignal.timeout(55000),
       body: JSON.stringify({ model, thinking: { type: 'disabled' }, response_format: { type: 'json_object' }, max_tokens: 4500,
-        messages: [{ role: 'system', content: PROMPT + MEMORY_PROMPT + NO_REPLY_PROMPT + REMINDERS_PROMPT + CURRENT_THREAD_PROMPT + MEDIA_PROMPT }, { role: 'user', content: visionContent({ messages, draft: input.draft,
+        messages: [{ role: 'system', content: PROMPT + MEMORY_PROMPT + NO_REPLY_PROMPT + REMINDERS_PROMPT + CURRENT_THREAD_PROMPT + MEDIA_PROMPT + OUTPUT_RELIABILITY_PROMPT }, { role: 'user', content: visionContent({ messages, draft: input.draft,
           personMemory, styleInput, memoryOnly: input.memoryOnly === true }, images) }] }),
     });
     if (!response.ok) return reply([402, 429].includes(response.status) ? response.status : 502, { error: 'upstream_unavailable' });

@@ -33,8 +33,11 @@
   },
   "connections": {
     "intro": "Connect a messenger to see your conversations in Cue.",
-    "androidOnly": "Connecting accounts is available in the Android app.",
+    "androidOnly": "Connecting accounts requires a native Cue build on your phone.",
     "refresh": "Refresh chats",
+    "connectInstagram": "Connect Instagram",
+    "instagramHint": "Sign in to Instagram to sync private DMs. If Instagram asks for approval, confirm in its app and return to Cue.",
+    "instagramBuildRequired": "Install the latest app build to connect Instagram.",
     "connectMessenger": "Connect Messenger",
     "manage": "Manage account",
     "signInAgain": "Sign in again",
@@ -56,7 +59,7 @@
     "notFound": "No chats found",
     "notFoundHint": "Try a different name or messenger.",
     "addFirst": "Add your first account",
-    "addFirstHint": "Connect Messenger or WhatsApp to see your conversations.",
+    "addFirstHint": "Connect Messenger, WhatsApp or Instagram to see your conversations.",
     "showAll": "Show all chats",
     "connect": "Connect a messenger",
     "syncing": "Syncing…",
@@ -94,7 +97,7 @@
     "fillLabel": "Fill in items from messages",
     "fill": "Fill in",
     "history": "History ({{count}})",
-    "enableAI": "Turn on AI analysis to fill the list from messages.",
+    "enableAI": "Analysis requires AI to be enabled in settings and for this conversation.",
     "editLabel": "Edit: {{text}}. {{detail}}",
     "other": "Them",
     "shared": "Shared",
@@ -165,11 +168,26 @@
     "incomingLabel": "Them: {{text}}",
     "replyLabel": "Cue suggestion: {{text}}",
     "tone": {
-      "natural": { "label": "Natural", "description": "The way you usually write — no extra tone." },
-      "flirt": { "label": "Flirty", "description": "Subtle interest, warmth and light humour." },
-      "assertive": { "label": "Assertive", "description": "Clear needs and boundaries, calm and without aggression." },
-      "empathetic": { "label": "Empathetic", "description": "Understanding emotions and support without empty comfort." },
-      "calming": { "label": "De-escalating", "description": "A calm reply that helps reach common ground." }
+      "natural": {
+        "label": "Natural",
+        "description": "The way you usually write — no extra tone."
+      },
+      "flirt": {
+        "label": "Flirty",
+        "description": "Subtle interest, warmth and light humour."
+      },
+      "assertive": {
+        "label": "Assertive",
+        "description": "Clear needs and boundaries, calm and without aggression."
+      },
+      "empathetic": {
+        "label": "Empathetic",
+        "description": "Understanding emotions and support without empty comfort."
+      },
+      "calming": {
+        "label": "De-escalating",
+        "description": "A calm reply that helps reach common ground."
+      }
     }
   },
   "settings": {
@@ -180,9 +198,9 @@
     "connected_one": "{{networks}} · connected",
     "connected_other": "{{networks}} · connected",
     "connectionInterrupted": "Connection interrupted",
-    "addAccount": "Add Messenger or WhatsApp",
+    "addAccount": "Add Messenger, WhatsApp or Instagram",
     "enableAITitle": "Turn on AI analysis?",
-    "enableAIMessage": "Up to the last 80 messages, sender names, the draft and chat memory will be sent to DeepSeek via Supabase. Memory and the “Worth remembering” list update after new sent and received messages. Messages sent in a row are analysed together. Style traits are computed on the phone.",
+    "enableAIMessage": "Up to 80 recent messages, sender names, your draft, conversation memory and up to 3 recent photos used for replies will be sent to DeepSeek through Supabase. Memory and reminders update after new sent and received messages. Consecutive messages are analyzed together. Automatic memory analysis covers synced chats; you can disable AI for each conversation in its profile. Writing style features are computed on your phone.",
     "conversations": "Chats",
     "connectedAccounts": "Connected accounts",
     "keyboard": "Cue keyboard",
@@ -208,14 +226,17 @@
     "enableSubtitle": "Open the Android keyboard list",
     "choose": "2. Choose Cue for typing",
     "chooseSubtitle": "Pick it from your phone's keyboards",
-    "androidOnly": "The Cue keyboard is available in the Android app.",
+    "androidOnly": "The Cue keyboard requires a native app build.",
     "try": "Try the keyboard",
     "tryPlaceholder": "Type a few words…",
-    "notSent": "Text from this field is not sent as a message."
+    "notSent": "Text from this field is not sent as a message.",
+    "enableSubtitleIOS": "Settings → General → Keyboard → Keyboards → Add New Keyboard → Cue",
+    "chooseSubtitleIOS": "Hold 🌐 on your keyboard and select Cue",
+    "fullAccessIOS": "Enable Full Access in the Cue keyboard settings to use saved conversations and AI. Typing works without it. Refresh conversations in the Cue app."
   },
   "privacy": {
     "clearTitle": "Delete data saved in Cue?",
-    "clearMessage": "This deletes saved conversations, summaries, memory and style. Messages in Messenger and WhatsApp stay. The next sync may download the conversations again.",
+    "clearMessage": "This deletes saved conversations, summaries, memory and style. Messages in Messenger, WhatsApp and Instagram stay. The next sync may download the conversations again.",
     "clearConfirm": "Delete data",
     "onDevice": "On your phone",
     "onDeviceTitle": "Conversations, memory and style",
@@ -225,7 +246,7 @@
     "enabled": "On",
     "disabled": "Off",
     "aiData": "With AI on, up to the last 80 messages, sender names, the draft and the selected chat's memory are sent to DeepSeek via Supabase.",
-    "aiUpdates": "Memory and the “Worth remembering” list update automatically after new sent and received messages, after a short pause in typing. You always review and send replies yourself.",
+    "aiUpdates": "Memory and reminders update automatically after new sent and received messages, following a short pause in typing. Automatic memory covers synced conversations except those where you disable AI in the profile. Disabling AI does not withdraw data already sent to the provider. You always review and send replies yourself.",
     "management": "Data management",
     "managementFooter": "Deleting Cue data doesn't delete messages from your messengers. Syncing may download them again.",
     "deleting": "Deleting data…",
@@ -245,30 +266,57 @@
     "decide": "You decide what to send. You can turn on AI analysis separately in settings.",
     "lookAround": "I'll look around first",
     "steps": [
-      { "title": "Less overthinking. More talking.", "body": "You want to keep the conversation going, flirt or support someone. But what do you reply?", "cta": "See a suggestion" },
-      { "title": "Good words start with context.", "body": "Cue combines available messages and key details so the suggestion fits your conversation.", "cta": "I want to try" },
-      { "title": "Your conversations. Your words.", "body": "AI suggestions right in your keyboard, where you already type.", "cta": "Connect a messenger" }
+      {
+        "title": "Less overthinking. More talking.",
+        "body": "You want to keep the conversation going, flirt or support someone. But what do you reply?",
+        "cta": "See a suggestion"
+      },
+      {
+        "title": "Good words start with context.",
+        "body": "Cue combines available messages and key details so the suggestion fits your conversation.",
+        "cta": "I want to try"
+      },
+      {
+        "title": "Your conversations. Your words.",
+        "body": "AI suggestions right in your keyboard, where you already type.",
+        "cta": "Connect a messenger"
+      }
     ],
     "setup": [
-      { "title": "Connect a messenger", "detail": "Messenger or WhatsApp." },
-      { "title": "Pick a person", "detail": "See the context of your conversation." },
-      { "title": "Enable the Cue keyboard", "detail": "Choose a suggestion and make it your own." }
+      {
+        "title": "Connect a messenger",
+        "detail": "Messenger, WhatsApp or Instagram."
+      },
+      {
+        "title": "Pick a person",
+        "detail": "See the context of your conversation."
+      },
+      {
+        "title": "Enable the Cue keyboard",
+        "detail": "Choose a suggestion and make it your own."
+      }
     ],
     "examples": {
       "everyday": {
-        "label": "Everyday", "name": "Olivia", "message": "So what are we doing on Saturday?",
+        "label": "Everyday",
+        "name": "Olivia",
+        "message": "So what are we doing on Saturday?",
         "context": "She recently said: “I finally want to try that Italian place in the old town.”",
         "reply": "Maybe that Italian place in the old town you mentioned? Does 6 pm work for you?",
         "desire": "Suggest something that ties back to your conversation."
       },
       "flirt": {
-        "label": "Flirt", "name": "Maya", "message": "Yesterday was pretty nice :)",
+        "label": "Flirt",
+        "name": "Maya",
+        "message": "Yesterday was pretty nice :)",
         "context": "After meeting up you joked that a pool rematch is mandatory.",
         "reply": "For me too :) But that pool rematch is still on. When are you giving me a chance?",
         "desire": "Show interest without a forced line."
       },
       "support": {
-        "label": "Support", "name": "Jake", "message": "Well, it didn't work out…",
+        "label": "Support",
+        "name": "Jake",
+        "message": "Well, it didn't work out…",
         "context": "Jake had written earlier about a job interview he really cared about.",
         "reply": "Damn, I know you really wanted that job. Want to talk or go get some fresh air?",
         "desire": "Show you're listening, even when it's hard to find the words."
@@ -276,7 +324,7 @@
     }
   },
   "errors": {
-    "nativeMissing": "Install the Cue build on Android. Expo Go and the web preview don't support messengers.",
+    "nativeMissing": "Install a native Cue build on your phone. Expo Go and web previews do not support messaging connections.",
     "roomTimeout": "Couldn't read the saved conversation. Try again.",
     "imageTimeout": "Loading the photo is taking too long. Try again.",
     "syncTimeout": "Sync is taking too long. Saved messages are still available. Try again.",

@@ -25,18 +25,19 @@ class SubtextStore(context: Context) {
   @Synchronized fun rooms(): List<JSONObject> = data.keys().asSequence().map { JSONObject(data.getJSONObject(it).toString()) }
     .filter { it.optString("kind") == "PRIVATE" }
     .sortedByDescending { it.optLong("updatedAt") }.toList()
-  @Synchronized fun room(key: String): JSONObject? = data.optJSONObject(key)?.takeIf { it.optString("kind") == "PRIVATE" }?.let { JSONObject(it.toString()) }
+  @Synchronized fun room(key: String): JSONObject? = data.optJSONObject(key)?.takeIf { it.optString("kind") == "PRIVATE" }?.let { JSONObject(it.toString()).put("aiExcluded", memories.optJSONObject(key)?.optBoolean("aiExcluded") ?: false) }
   // The inbox should not serialize hundreds of message bodies per conversation.
   @Synchronized fun summaries(): List<JSONObject> = data.keys().asSequence().map { data.getJSONObject(it) }
     .filter { it.optString("kind") == "PRIVATE" }.map { room ->
       JSONObject().apply {
-        listOf("id", "remoteId", "network", "name", "kind", "updatedAt", "snippet", "profile", "demo", "avatarUri").forEach { key ->
+        listOf("id", "remoteId", "network", "name", "kind", "updatedAt", "snippet", "profile", "demo", "demoStage", "avatarUri").forEach { key ->
           if (room.has(key)) {
             val value = room.get(key)
             put(key, if (value is JSONObject) JSONObject(value.toString()) else value)
           }
         }
         put("messageCount", room.getJSONArray("messages").length())
+        put("aiExcluded", memories.optJSONObject(room.getString("id"))?.optBoolean("aiExcluded") ?: false)
       }
     }.sortedByDescending { it.optLong("updatedAt") }.toList()
   @Synchronized fun merge(network: String, id: String, name: String, kind: String, messages: List<JSONObject> = emptyList(), timestamp: Long = 0) {
@@ -90,6 +91,25 @@ class SubtextStore(context: Context) {
   @Synchronized fun contextFailed(key: String, error: String) {
     memories.optJSONObject(key)?.put("contextError", error.take(300))?.put("attemptedAt", System.currentTimeMillis())
     saveMemories()
+  }
+  @Synchronized fun setAIExcluded(key: String, excluded: Boolean) {
+    requireNotNull(data.optJSONObject(key)) { "Nie znaleziono rozmowy." }
+    val memory = memories.optJSONObject(key) ?: JSONObject()
+    memories.put(key, memory.put("aiExcluded", excluded)); saveMemories()
+  }
+  @Synchronized fun demoStage(stage: Int, now: Long = System.currentTimeMillis()): String {
+    require(stage in 0..3)
+    val key = CueDemo.ID
+    val existing = data.optJSONObject(key)
+    require(stage == 0 || (existing?.optInt("demoStage", -1) ?: -1) + 1 == stage) { "Otwórz kolejne kroki po kolei." }
+    if (stage == 0) { data.remove(key); memories.remove(key) }
+    val base = if (stage == 0) now else existing!!.getLong("demoBase")
+    val history = CueDemo.messages(stage, base)
+    merge("messenger", "subtext-demo", "Marta · demo", "PRIVATE", history)
+    data.getJSONObject(key).put("demo", true).put("demoStage", stage).put("demoBase", base)
+    updateMemory(key, history)
+    save(); saveMemories()
+    return key
   }
   @Synchronized fun markDemo(key: String) { data.getJSONObject(key).put("demo", true); save() }
   @Synchronized fun profile(key: String, profile: JSONObject) {

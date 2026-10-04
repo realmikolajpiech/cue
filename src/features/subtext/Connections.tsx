@@ -4,6 +4,7 @@ import { Card, Copy, Icon, Row } from '@/components/ui';
 import { useSubtextStatus, useSubtextAction, subtext } from '@/services/subtext';
 import { type Network } from '@/types/subtext';
 import { useTranslation } from '@/i18n';
+import { ConversationPlatformIcon } from './ConversationRow';
 import { Page, Button, Disclosure, Field, ErrorText, ui } from './components';
 
 export default function Connections() {
@@ -33,6 +34,18 @@ export default function Connections() {
         <Button label={action.isPending ? t('connections.preparingCode') : t('connections.getPairingCode')} disabled={!status?.available || action.isPending} onPress={() => action.mutate(() => subtext.whatsapp(phone.current))} />
       </> : <Button label={t('connections.refresh')} disabled={action.isPending} onPress={() => action.mutate(subtext.refresh)} />}
       {status?.whatsapp.phase !== 'NOT_CONFIGURED' && status?.available && <Disclosure label={t('connections.manage')}><Button label={t('common.disconnect')} secondary disabled={action.isPending} onPress={() => disconnect('whatsapp')} /></Disclosure>}
+    </Card>
+    <Card><Row><ConversationPlatformIcon network="instagram" size={24} /><Copy style={ui.title}>Instagram</Copy></Row>
+      <Copy style={ui.body}>{phase(status?.instagram.phase)}</Copy>
+      <Copy style={ui.body}>{t('connections.instagramHint')}</Copy>
+      <Button label={status?.instagram.phase === 'CONNECTED' ? t('connections.refresh') : t('connections.connectInstagram')}
+        disabled={!status?.available || !subtext.supportsInstagram() || action.isPending || status?.instagram.phase === 'CONNECTING'}
+        onPress={() => action.mutate(status?.instagram.phase === 'CONNECTED' ? subtext.refresh : subtext.instagram)} />
+      {status?.available && !subtext.supportsInstagram() && <Copy style={ui.body}>{t('connections.instagramBuildRequired')}</Copy>}
+      {status?.instagram.phase !== 'NOT_CONFIGURED' && status?.available && subtext.supportsInstagram() && <Disclosure label={t('connections.manage')}>
+        <Button label={t('connections.signInAgain')} secondary disabled={action.isPending} onPress={() => action.mutate(subtext.instagram)} />
+        <Button label={t('common.disconnect')} secondary disabled={action.isPending} onPress={() => disconnect('instagram')} />
+      </Disclosure>}
     </Card>
     <ErrorText error={action.error ?? error} />
 

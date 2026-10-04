@@ -3,7 +3,7 @@ import { Alert } from 'react-native';
 import { router } from 'expo-router';
 import { useMutation } from '@tanstack/react-query';
 import { usePreferences } from '@/features/preferences';
-import { useDemo } from '@/features/demo/store';
+import { useAppearance } from '@/theme/preferences';
 import { subtext, subtextCache, useSubtextStatus, useSubtextAction } from '@/services/subtext';
 import { Page, Button, ErrorText } from './components';
 import { useSubtextPreferences } from './preferences';
@@ -16,13 +16,13 @@ export default function Settings() {
   const { t } = useTranslation();
   const demo = useSubtextAction();
   const ai = useMutation({ mutationFn: subtext.cloud, onSuccess: () => subtextCache.invalidateQueries({ queryKey: ['subtext', 'status'] }) });
-  const dark = useDemo(s => s.dark); const toggleTheme = useDemo(s => s.toggleTheme);
+  const dark = useAppearance(s => s.dark); const toggleTheme = useAppearance(s => s.toggleTheme);
   const developerMode = usePreferences(s => s.developerMode);
   const toggleDeveloperMode = usePreferences(s => s.toggleDeveloperMode);
   const [advanced, setAdvanced] = useState(false);
   const selectPerson = useSubtextPreferences(s => s.selectPerson);
-  const connected = [status?.messenger.phase === 'CONNECTED' && 'Messenger', status?.whatsapp.phase === 'CONNECTED' && 'WhatsApp'].filter(Boolean);
-  const phases = [status?.messenger.phase, status?.whatsapp.phase];
+  const connected = [status?.messenger.phase === 'CONNECTED' && 'Messenger', status?.whatsapp.phase === 'CONNECTED' && 'WhatsApp', status?.instagram.phase === 'CONNECTED' && 'Instagram'].filter(Boolean);
+  const phases = [status?.messenger.phase, status?.whatsapp.phase, status?.instagram.phase];
   const connectionLabel = statusQuery.isPending ? t('settings.checkingConnection') : !status ? t('settings.connectionCheckFailed')
     : phases.some(phase => phase === 'SESSION_EXPIRED' || phase === 'REAUTH_REQUIRED') ? t('settings.signInAgain')
     : phases.includes('CONNECTING') ? t('settings.connectingAccounts')

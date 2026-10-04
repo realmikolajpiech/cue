@@ -5,15 +5,15 @@ import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { useTheme } from '@/theme/useTheme';
 import { SubtextProvider } from '@/services/subtext';
 import { useSubtextPreferences } from '@/features/subtext/preferences';
-import { useDemo } from '@/features/demo/store';
-import { usePreferences } from '@/features/preferences';
+import { useAppearance } from '@/theme/preferences';
+import { useLanguagePreferences } from '@/i18n/preferences';
 import { useTranslation } from '@/i18n';
 
 export const unstable_settings = { anchor: '(tabs)' };
 export default function RootLayout() {
   const { isDark, colors } = useTheme();
-  const appearanceReady = useDemo(s => s.hydrated);
-  const languageReady = usePreferences(s => s.hydrated);
+  const appearanceReady = useAppearance(s => s.hydrated);
+  const languageReady = useLanguagePreferences(s => s.hydrated);
   const { t } = useTranslation();
   const hydrated = useSubtextPreferences(s => s.hydrated); const onboarded = useSubtextPreferences(s => s.onboarded);
   const [loaded, error] = useFonts({

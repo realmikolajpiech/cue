@@ -1,5 +1,8 @@
 import { useState } from 'react';
+import { router } from 'expo-router';
+import EvidenceSources from './EvidenceSources';
 import { ActivityIndicator, Alert, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Copy, Icon, Row } from '@/components/ui';
 import { subtext } from '@/services/subtext';
@@ -30,7 +33,7 @@ function parseDate(value: string) {
   return match[4] ? date.toISOString() : `${year}-${month}-${day}`;
 }
 
-export default function ConversationReminders({ id, ready, busy, demo, hasMessages }: {
+export default function ConversationReminders({ id, ready, busy, hasMessages }: {
   id: string; ready: boolean; busy: boolean; demo?: boolean; hasMessages: boolean;
 }) {
   const { colors } = useTheme(); const client = useQueryClient(); const { t } = useTranslation();
@@ -60,25 +63,30 @@ export default function ConversationReminders({ id, ready, busy, demo, hasMessag
       <Icon name="chevron" size={15} color={colors.secondaryText} />
     </Pressable>;
   }
-  if (!items.length) return null;
+
 
   return <>
     <View style={styles.section}>
       <Row style={{ justifyContent: 'space-between', gap: 12 }}>
         <Copy accessibilityRole="header" style={[styles.title, { color: colors.text, flex: 1 }]}>{t('reminders.title')}</Copy>
-        {!demo && <Pressable accessibilityRole="button" accessibilityLabel={t('reminders.fillLabel')}
+        <Pressable accessibilityRole="button" accessibilityLabel={t('reminders.fillLabel')}
           accessibilityState={{ disabled: !ready || busy || !hasMessages || refresh.isPending, busy: refresh.isPending }}
           disabled={!ready || busy || !hasMessages || refresh.isPending} onPress={() => refresh.mutate()}
           style={({ pressed }) => [styles.refresh, { opacity: !ready || busy || !hasMessages ? .35 : pressed ? .6 : 1 }]}>
           {refresh.isPending ? <ActivityIndicator size="small" color={colors.accent} /> : <Copy style={[styles.refreshLabel, { color: colors.accent }]}>{t('reminders.fill')}</Copy>}
-        </Pressable>}
+        </Pressable>
       </Row>
+      {query.isPending ? <Copy accessibilityLiveRegion="polite" style={ui.small}>Odczytuję zapamiętane sprawy…</Copy> : !items.length && <View style={{ gap: 10, paddingVertical: 12 }}>
+        <Copy style={ui.small}>{hasMessages ? 'Tutaj pojawią się plany i zobowiązania z tej rozmowy. Uzupełnij listę, a potem sprawdź wiadomości źródłowe.' : 'Gdy pojawią się wiadomości, Cue pomoże wyłapać plany i zobowiązania.'}</Copy>
+        {!ready && <Button label="Ustawienia analizy AI" secondary onPress={() => router.push('/settings')} />}
+      </View>}
       <View>{active.map(renderItem)}</View>
       {!!history.length && <Disclosure label={t('reminders.history', { count: history.length })} small>{history.map(renderItem)}</Disclosure>}
       <ErrorText error={query.error ?? refresh.error ?? update.error} />
-      {!ready && !demo && <Copy style={ui.small}>{t('reminders.enableAI')}</Copy>}
+      {!ready && <Copy style={ui.small}>{t('reminders.enableAI')}</Copy>}
     </View>
     <Modal visible={!!editing} animationType="slide" onRequestClose={() => setEditing(null)}>
+      <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: colors.background }}>
       <Page>
         <Button label={t('common.close')} secondary onPress={() => setEditing(null)} />
         <Copy title style={ui.heading}>{t('reminders.editorTitle')}</Copy>
@@ -92,6 +100,7 @@ export default function ConversationReminders({ id, ready, busy, demo, hasMessag
           catch (error) { setEditError(error); }
         }} />
         {editing && <>
+          <EvidenceSources roomId={id} evidenceIds={editing.evidenceIds} sources={editing.sources} manualAt={editing.manualAt} />
           <Button label={archived.has(editing.effectiveStatus) ? t('reminders.reopen') : t('reminders.markDone')} secondary disabled={update.isPending}
             onPress={() => update.mutate({ item: editing, patch: { status: archived.has(editing.effectiveStatus) ? 'open' : 'done',
               ...(editing.effectiveStatus === 'expired' ? { dueDate: '' } : {}) } })} />
@@ -102,6 +111,7 @@ export default function ConversationReminders({ id, ready, busy, demo, hasMessag
           ])} />
         </>}
       </Page>
+      </SafeAreaView>
     </Modal>
   </>;
 }

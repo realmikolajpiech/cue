@@ -232,12 +232,12 @@ open class MessengerRepository(
         val connected = withTimeoutOrNull(CONNECTION_TIMEOUT_MS) {
             state.first { it.phase != MessengerPhase.CONNECTING }
         }
-        check(connected?.phase == MessengerPhase.CONNECTED) { "Messenger nie jest połączony. Połącz konto ponownie w ustawieniach." }
+        check(connected?.phase == MessengerPhase.CONNECTED) { "${service.displayName} nie jest połączony. Połącz konto ponownie w ustawieniach." }
         // Persisted inbox rows survive a process restart; bridge metadata does not.
         // Reload it before checking the private-chat classification.
         if (conversationKinds[conversationId] == null) refreshConversations()
         check(conversationKinds[conversationId] != ConversationKind.GROUP) { "Obsługiwane są tylko rozmowy prywatne." }
-        val active = checkNotNull(bridge) { "Trwa łączenie z Messengerem." }
+        val active = checkNotNull(bridge) { "Trwa łączenie z ${service.displayName}." }
         runCatching { active.fetchMessages(conversationId, limit.coerceIn(1, 100).toLong(), "") }
             .onSuccess(::mergeFetchedMessages)
             .onFailure { markOperationalFailure(it, "Message fetch failed") }
@@ -254,7 +254,7 @@ open class MessengerRepository(
     suspend fun downloadImage(mediaId: String): ByteArray = withContext(Dispatchers.IO) {
         restoreIfPossible()
         withTimeout(CONNECTION_TIMEOUT_MS) { state.first { it.phase != MessengerPhase.CONNECTING } }
-        checkNotNull(bridge) { "Messenger nie jest połączony." }.downloadImage(mediaId)
+        checkNotNull(bridge) { "${service.displayName} nie jest połączony." }.downloadImage(mediaId)
     }
 
     fun isEncrypted(conversationId: String): Boolean = e2eeByConversation.containsKey(conversationId)

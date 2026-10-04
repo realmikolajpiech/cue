@@ -50,7 +50,7 @@
           }
         }
       ],
-      "./plugins/withGuardianAndroid",
+      "./plugins/withCueAndroid",
       "./plugins/withSubtext",
       "expo-image",
       "expo-localization"

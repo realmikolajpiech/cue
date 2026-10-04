@@ -61,8 +61,12 @@ internal object ConversationReminders {
       val evidence = change.optJSONArray("evidenceIds") ?: continue
       val valid = (0 until evidence.length()).map { evidence.optString(it) }.distinct().filter { it in source }.take(8)
       if (valid.isEmpty()) continue
-      val text = change.optString("text").trim().take(400)
       val kind = change.optString("kind"); val owner = change.optString("owner"); val status = change.optString("status")
+      // Some providers omit the label when closing a known item. Preserve its stored label;
+      // a missing label on a new/open item still fails validation.
+      val text = change.optString("text").trim().take(400).ifBlank {
+        if (status in setOf("done", "cancelled")) entries[change.optString("replaceId")]?.optString("text").orEmpty() else ""
+      }
       val date = change.optString("dueDate").take(40)
       if (text.isBlank() || kind !in kinds || owner !in owners || status !in states ||
         runCatching { dueAt(date) }.isFailure) continue
@@ -85,6 +89,7 @@ internal object ConversationReminders {
       }
       val id = replace.ifBlank { UUID.randomUUID().toString() }
       entries[id] = candidate.put("id", id).put("evidenceIds", JSONArray(valid)).put("updatedAt", now)
+        .put("sources", MemoryEvidence.capture(valid, messages))
         .put("createdAt", existing?.optLong("createdAt") ?: now)
     }
     memory.put("reminders", JSONArray(entries.values))

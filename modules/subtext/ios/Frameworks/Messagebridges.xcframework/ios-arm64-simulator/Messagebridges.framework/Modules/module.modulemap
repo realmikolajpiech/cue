@@ -1,0 +1,9 @@
+framework module "Messagebridges" {
+	header "ref.h"
+    header "Fbmessagebridge.objc.h"
+    header "Whatsappbridge.objc.h"
+    header "Universe.objc.h"
+    header "Messagebridges.h"
+
+    export *
+}

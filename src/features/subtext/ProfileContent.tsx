@@ -8,6 +8,8 @@ import { networkName } from './conversationPresentation';
 import ConversationReminders from './ConversationReminders';
 import WritingStyleContent from './WritingStyleContent';
 import { useTranslation } from '@/i18n';
+import DemoConversation from './DemoConversation';
+import ConversationAI from './ConversationAI';
 
 export default function ProfileContent({ id }: { id: string }) {
   const query = useRoom(id);
@@ -48,7 +50,9 @@ export default function ProfileContent({ id }: { id: string }) {
     </View>}
     <ErrorText error={query.error} />
 
-    <ConversationReminders key={id} id={id} ready={!!status?.hasApiKey && !!status.cloudEnabled}
+    {room.demo && <DemoConversation room={room} ready={!!status?.cloudEnabled && !room.aiExcluded} busy={!!status?.analyzing} />}
+    <ConversationAI room={room} />
+    <ConversationReminders key={id} id={id} ready={!!status?.hasApiKey && !!status.cloudEnabled && !room.aiExcluded}
       busy={!!status?.analyzing} demo={room.demo} hasMessages={!!room.messages?.length} />
 
     <WritingStyleContent roomId={id} isExample={room.demo} />

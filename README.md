@@ -1,13 +1,15 @@
 # Cue
 
-Androidowy asystent komunikacji: Messenger i WhatsApp na urządzeniu, pamięć
-rozmów, profile oparte na wiadomościach i podpowiedzi DeepSeek V4.1 Flash.
+Klawiatura AI, która korzysta z kontekstu dostępnych rozmów i pomaga znaleźć własne słowa — w codziennej pogawędce, trudnej rozmowie czy flircie. Pamięta szczegóły i ustalenia, uwzględnia Twój styl i intencję; Ty sprawdzasz, edytujesz i wysyłasz odpowiedź.
+
+**HackYeah · Undefined · Mikołaj Piech i Marcel Chudyba.**
+[Opis produktu](docs/PRODUCT.md) · [Prezentacja PDF](artifacts/cue/Cue-HackYeah.pdf) · [Demo](docs/DEMO.md) · [Ewaluacja Cue](benchmarks/cue/README.md) · [Zasoby i autorstwo](docs/RESOURCES.md)
 Nie wymaga Matrixa, VPS-a ani włączonego Maca. Internet jest potrzebny do
 komunikatorów i AI. Wersja release zawiera JavaScript i nie wymaga Metro.
 
 ## Uruchomienie
 
-Wymagane: Node 22.13+, Android SDK, JDK 17 i telefon Android **arm64-v8a**.
+Wymagane: Node 22.13+, Android SDK, JDK 17 (lub sprawdzony lokalnie JDK 21) i telefon Android **arm64-v8a**.
 Na Macu `npm run android` wybiera zainstalowany Homebrew JDK 17 i wykrywa SDK
 w `~/Library/Android/sdk`, jeśli `ANDROID_HOME` nie jest ustawione.
 Repo zawiera AAR z projektu Arie. Szczegóły i źródła: [NOTICE](modules/subtext/NOTICE.md).
@@ -35,7 +37,7 @@ i `plugins/withSubtext.js`; nie edytuj wygenerowanego projektu ręcznie.
 3. WhatsApp: podaj numer z kodem kraju; w WhatsAppie użyj opcji połączenia
    urządzenia za pomocą numeru telefonu i wpisz wyświetlony kod.
 4. W **Ustawieniach** włącz analizę w chmurze. Klucz AI jest po stronie serwera.
-5. Otwórz rozmowę w **Osobach**, przejrzyj wiadomości i uruchom analizę.
+5. Otwórz czat w **Rozmowach**. Po globalnym włączeniu AI pamięć aktualizuje się automatycznie po nowych wiadomościach. W profilu Androida możesz wykluczyć czat z AI. „Uzupełnij” uruchamia analizę ręcznie; źródła i korekty są przy zapisanych sprawach.
 6. Opcjonalnie włącz klawiaturę Cue w ustawieniach Androida. Podczas
    pisania wybierz właściwą rozmowę, poproś o sugestię i dotknij jej, aby
    wstawić tekst. Aplikacja nie wysyła odpowiedzi automatycznie.
@@ -78,7 +80,7 @@ do płatnych analiz. Nie dodawaj sekretów do repozytorium ani APK.
 - Foreground service utrzymuje połączenia i próbuje je wznawiać. Android może
   ograniczyć działanie w tle; force-stop wymaga ponownego otwarcia aplikacji.
 - Każda rozmowa ma osobny identyfikator zawierający komunikator. Osób o tej
-  samej nazwie nie łączymy automatycznie. Grupę opisujemy jako rozmowę grupową.
+  samej nazwie nie łączymy automatycznie. Bieżący przepływ obsługuje rozmowy prywatne; grupy są pomijane.
 - Lokalnie: maks. 150 rozmów, po 200 wiadomości, do 4000 znaków na wiadomość
   i ostatni profil. Magazyn jest w prywatnym `noBackupFilesDir`; bez dodatkowej
   warstwy szyfrowania treści. Messenger szyfruje cookies w Keystore; WhatsApp
@@ -86,28 +88,24 @@ do płatnych analiz. Nie dodawaj sekretów do repozytorium ani APK.
 - Każdy prywatny czat ma trwałą pamięć w `subtext-person-memory.json`, osobną
   dla Messengera i WhatsAppa. Przeżywa restart, skrócenie historii do 200 wiadomości
   i usunięcie nieaktywnego czatu z cache 150 rozmów. Odłączenie konta lub
-  wyczyszczenie historii usuwa też pamięć. Rozmowy demo nie uczą pamięci.
+  wyczyszczenie historii usuwa też pamięć. Demo ma osobną pamięć syntetycznej rozmowy i nie wpływa na ogólny styl.
 - Synchronizacja dopisuje tylko nowe ID wiadomości: liczy własne próbki,
   częste zwroty (co najmniej 3 użycia), cechy stylu z ostatnich 60 próbek
   i zachowuje autentyczne przykłady, w tym dłuższe odpowiedzi. Okno deduplikacji
   obejmuje do 4096 skrótów ID; po jego skróceniu starsze wiadomości są pomijane
   według progu czasu, aby ponowna synchronizacja nie zawyżała statystyk.
-- Po włączeniu analizy AI kontekst pamięci uzupełnia się automatycznie po
-  8 wiadomościach na start, następnie po 20 nowych, nie częściej niż co 15 minut
-  dla czatu. Worker sprawdza kolejkę co 30 sekund podczas działania procesu,
-  wykonuje maks. 6 prób dziennie na urządzeniu, aby pozostawić część limitu
-  na sugestie. Błędy zachowują poprzednią pamięć; ponowienie podlega tym limitom.
+- Po włączeniu AI pamięć aktualizuje się po nowych wiadomościach i około 3 sekundach ciszy. Czat wykluczony z AI jest pomijany. Błąd zachowuje poprzednią pamięć; minimalny odstęp ponowienia wynosi minutę. Limity kosztu są po stronie backendu, a błąd limitu wstrzymuje próby do kolejnego dnia UTC.
 - Analiza odpowiedzi jest na żądanie. Do DeepSeek trafia do 80 ostatnich
-  zapisanych wiadomości, szkic i pamięć wyłącznie tego czatu. Zmiany kontekstu
+  zapisanych wiadomości, szkic i pamięć wyłącznie tego czatu; przy odpowiedzi także maks. 3 dostępne zdjęcia z ostatnich 12 wiadomości. Zmiany kontekstu
   są przyrostowe, z ID dowodów; brak zmian nie usuwa poprzednich wpisów.
   Model: `deepseek-flash`, JSON output, wyłączony tryb thinking.
 - Profile: podsumowanie, obserwacje i ustalenia z ID źródłowych wiadomości,
-  przypomnienie przed odpowiedzią, trzy warianty odpowiedzi. Nie są diagnozą
+  przypomnienie przed odpowiedzią, od jednego do trzech wariantów, w tym możliwość nieodpisywania. Źródła nowych wpisów zachowują cytat, autora i datę; ręczne korekty są oznaczone. Nie są diagnozą
   osobowości. Walidator odrzuca twierdzenia bez dostępnych źródeł; obecność
   źródła nie gwarantuje trafnej interpretacji.
 - Klawiatura wymaga jawnego wyboru rozmowy. Nie odczytuje ekranu Messengera
   przez accessibility. Sugestie są wyłączone w polach haseł i bez personalizacji.
-- iOS/web/Expo Go pokazują stan niedostępności zamiast fikcyjnych połączeń.
+- Ta iteracja ma odbiór Androida. Równolegle rozwijana implementacja iOS wymaga osobnej weryfikacji; web i Expo Go nie obsługują natywnych integracji.
 - Integracje są nieoficjalne, a dostępna historia zależy od usługi i sesji.
   Aplikacja nie gwarantuje pobrania całego archiwum ani ciągłości po force-stop.
 
@@ -116,6 +114,8 @@ do płatnych analiz. Nie dodawaj sekretów do repozytorium ani APK.
 ```sh
 npm run lint
 npm run typecheck
+npm run test:cue
+npm run benchmark:cue
 ./android/gradlew -p android :subtext:testDebugUnitTest
 ./android/gradlew -p android :subtext:connectedDebugAndroidTest
 ```
@@ -124,10 +124,11 @@ Pełny odbiór wymaga logowania użytkownika do obu komunikatorów i próby
 rzeczywistej synchronizacji, wygaśnięcia sesji, powrotu z tła oraz klawiatury.
 Testy nie wysyłają wiadomości do kontaktów.
 
-Stare pliki Guardiana w `src/features` i `docs` są materiałem historycznym.
-Jego moduł native ma wyłączone autolinkowanie; stary lokalny model nie jest
-częścią nowego przepływu. Kopia poprzedniego projektu jest na branchu
+Repo zawiera wyłącznie obecny produkt Cue. Poprzedni projekt, lokalny model
+i jego benchmarki można odtworzyć z historii Git oraz brancha
 `codex/backup-before-sync-20261003`.
+Techniczne identyfikatory `com.mikolajpiech.guardian`, slug i scheme `guardian`
+zachowano dla zgodności z zainstalowaną aplikacją i jej danymi.
 
 ### Klawiatura HeliBoard
 
