@@ -73,6 +73,8 @@ class SubtextKeyboard : LatinIME() {
   private var afterChoice: Mode? = null
   // Topic picked for the current replies; "other ideas" keeps it, a fresh suggestion drops it.
   private var activeTopic = ""
+  // Topic picked from the list, shown on the tile and used by the next suggestion.
+  private var pendingTopic = ""
   // A first message to someone without a conversation: the context the user gave, while composing it.
   private var openerContext: String? = null
   private var composingOpener = false
@@ -81,7 +83,7 @@ class SubtextKeyboard : LatinIME() {
   private data class Parked(val app: String, val mode: Mode, val selected: String?, val opener: String?,
     val composingOpener: Boolean, val afterChoice: Mode?, val generateAfterChoice: Boolean,
     val replies: List<JSONObject>, val index: Int, val draft: String, val editorText: String?, val error: String,
-    val at: Long, val token: Int?, val topic: String)
+    val at: Long, val token: Int?, val topic: String, val pendingTopic: String)
   private var parked: Parked? = null
   // A background generation the visible keyboard is waiting on again after being restored.
   private var adoptedToken = -1
@@ -94,7 +96,7 @@ class SubtextKeyboard : LatinIME() {
     if (loading && job?.isActive != true) return
     parked = Parked(currentInputEditorInfo?.packageName.orEmpty(), mode, selected, openerContext, composingOpener,
       afterChoice, generateAfterChoice, if (loading) emptyList() else replies, replyIndex, draft,
-      if (isEditing()) searchEditor?.text?.toString() else null, errorMessage, System.currentTimeMillis(), if (loading) revision else null, activeTopic)
+      if (isEditing()) searchEditor?.text?.toString() else null, errorMessage, System.currentTimeMillis(), if (loading) revision else null, activeTopic, pendingTopic)
   }
   private fun restoreParked(info: EditorInfo?): Boolean {
     val saved = parked ?: return false
@@ -104,14 +106,14 @@ class SubtextKeyboard : LatinIME() {
     val needsDraft = saved.mode == Mode.LOADING || saved.mode == Mode.REPLIES || saved.mode == Mode.ERROR
     if (needsDraft && readDraft() != saved.draft) return false
     selected = saved.selected; openerContext = saved.opener; composingOpener = saved.composingOpener
-    afterChoice = saved.afterChoice; generateAfterChoice = saved.generateAfterChoice; activeTopic = saved.topic
+    afterChoice = saved.afterChoice; generateAfterChoice = saved.generateAfterChoice; activeTopic = saved.topic; pendingTopic = saved.pendingTopic
     draft = saved.draft; undo = null; errorMessage = saved.error; restoredEditorText = saved.editorText
     when (saved.mode) {
       Mode.LOADING -> adoptedToken = saved.token ?: -1
       Mode.REPLIES -> { replies = saved.replies; replyIndex = saved.index.coerceIn(0, saved.replies.lastIndex) }
       Mode.SEARCH -> searchRooms = rooms()
       Mode.GOAL -> if (selected == null && !composingOpener) { restoredEditorText = null; return false }
-      Mode.TOPIC -> if (selected == null) { restoredEditorText = null; return false }
+      Mode.TOPIC -> if (selected == null) return false
       else -> Unit
     }
     open(saved.mode)
@@ -144,7 +146,7 @@ class SubtextKeyboard : LatinIME() {
     // A new editor is a new recipient decision, even inside the same messaging app.
     park()
     revision++; adoptedToken = -1; if (!backgroundLoading()) job?.cancel()
-    if (!restarting) { selected = null; undo = null; afterChoice = null; activeTopic = ""; openerContext = null; composingOpener = false }
+    if (!restarting) { selected = null; undo = null; afterChoice = null; activeTopic = ""; pendingTopic = ""; openerContext = null; composingOpener = false }
     endSearch(); restoreKeys()
     mode = Mode.TYPING
     available = attribute != null && KeyboardReplySession.available(attribute.packageName.orEmpty(), attribute.inputType, attribute.imeOptions)
@@ -194,10 +196,10 @@ class SubtextKeyboard : LatinIME() {
 
   private fun isEditing() = mode == Mode.SEARCH || isEditor(mode)
   // Goal and topic share one multi-line editor above the letter keys.
-  private fun isEditor(value: Mode) = value == Mode.GOAL || value == Mode.TOPIC
+  private fun isEditor(value: Mode) = value == Mode.GOAL
   private fun isPicker(value: Mode) = value == Mode.PEOPLE || value == Mode.STYLES
   // Suggestions don't need the letter keys, so they take over that space like the pickers.
-  private fun fullPanel(value: Mode) = isPicker(value) || value == Mode.LOADING || value == Mode.REPLIES || value == Mode.ERROR
+  private fun fullPanel(value: Mode) = isPicker(value) || value == Mode.TOPIC || value == Mode.LOADING || value == Mode.REPLIES || value == Mode.ERROR
 
   private fun open(next: Mode) {
     val toolbarBefore = toolbarMotion?.capture(panel.getChildAt(0))
@@ -461,6 +463,7 @@ class SubtextKeyboard : LatinIME() {
   private fun renderGoal() {
     if (composingOpener) { renderOpener(); return }
     val id = selected ?: return typing()
+    runtime.dismissFinishedGoal(id)
     val toolbar = brandToolbar()
     val hasGoal = runtime.conversationGoal(id).isNotBlank()
     toolbar.addView(editorBack { endSearch(); open(Mode.STYLES) }, LinearLayout.LayoutParams(dp(44), dp(44)))
@@ -486,25 +489,30 @@ class SubtextKeyboard : LatinIME() {
     panel.announceForAccessibility(s(R.string.cue_kb_goal_announcement))
   }
 
-  // One editor for a topic to open with; the replies bring it in naturally, it is not saved.
+  // A plain list of topics: tapping one picks it and goes back to the style panel, no typing.
   private fun renderTopic() {
     val id = selected ?: return typing()
     val toolbar = brandToolbar()
-    toolbar.addView(editorBack { endSearch(); open(Mode.STYLES) }, LinearLayout.LayoutParams(dp(44), dp(44)))
+    toolbar.addView(editorBack { open(Mode.STYLES) }.apply { contentDescription = s(R.string.cue_kb_back) }, LinearLayout.LayoutParams(dp(44), dp(44)))
     toolbar.addView(editorTitle(s(R.string.cue_kb_topics) + (person()?.optString("name")?.substringBefore(' ')?.let { " · $it" } ?: "")), LinearLayout.LayoutParams(0, dp(44), 1f))
-    toolbar.addView(button(s(R.string.cue_kb_write), true) { startTopic() }, LinearLayout.LayoutParams(dp(96), dp(44)))
-    finishToolbar(toolbar); panel.addView(toolbar, LinearLayout.LayoutParams(-1, dp(56)))
-    val body = editorPanel(s(R.string.cue_kb_topic_hint), s(R.string.cue_kb_topics), "", 300)
-    val ideas = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
-    ideasRow = ideas; fillTopicIdeas(ideas, id); prefetchIdeas(id)
-    body.addView(HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false; addView(ideas) },
-      LinearLayout.LayoutParams(-1, dp(44)).apply { topMargin = dp(4) })
+    panel.addView(toolbar, LinearLayout.LayoutParams(-1, dp(56)))
+    val navigation = ViewCompat.getRootWindowInsets(panel)?.getInsets(WindowInsetsCompat.Type.navigationBars())?.bottom ?: dp(24)
+    val list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(12), 0, dp(12), navigation + dp(8)) }
+    val ideas = runtime.topicIdeas(id).ifEmpty { CueLanguage.resources(this).getStringArray(R.array.cue_kb_topic_ideas).toList() }
+    ideas.forEach { idea ->
+      val chosen = idea == pendingTopic
+      list.addView(LinearLayout(this).apply {
+        gravity = Gravity.CENTER_VERTICAL; setPadding(dp(16), 0, dp(12), 0)
+        background = RippleDrawable(ColorStateList.valueOf(0x225F78B8), rounded(card, 14), null)
+        addView(label(idea, 15f, chosen).apply { maxLines = 2; ellipsize = TextUtils.TruncateAt.END }, LinearLayout.LayoutParams(0, -2, 1f))
+        if (chosen) addView(label("✓", 18f).apply { setTextColor(accent) })
+        contentDescription = idea + if (chosen) s(R.string.cue_kb_selected) else ""
+        setOnClickListener { pendingTopic = idea; replies = emptyList(); open(Mode.STYLES) }
+      }, LinearLayout.LayoutParams(-1, dp(52)).apply { bottomMargin = dp(8) })
+    }
+    panel.addView(ScrollView(this).apply { isVerticalScrollBarEnabled = true; addView(list) }, LinearLayout.LayoutParams(-1, pickerHeight))
+    prefetchIdeas(id)
     panel.announceForAccessibility(s(R.string.cue_kb_topic_announcement))
-  }
-  private fun startTopic() {
-    val topic = searchEditor?.text?.toString()?.trim().orEmpty()
-    if (topic.isEmpty()) return
-    undo = null; endSearch(); typing(); generate(topic = topic)
   }
   private fun planStatus(plan: JSONObject?): String {
     if (plan == null) return s(R.string.cue_kb_goal_planning)
@@ -519,6 +527,7 @@ class SubtextKeyboard : LatinIME() {
     "good" -> s(R.string.cue_kb_moment_good)
     "paused" -> s(R.string.cue_kb_moment_paused)
     "done" -> s(R.string.cue_kb_moment_done)
+    "dropped" -> s(R.string.cue_kb_moment_dropped)
     else -> s(R.string.cue_kb_moment_wait)
   }
 
@@ -594,8 +603,6 @@ class SubtextKeyboard : LatinIME() {
   private var ideasRow: LinearLayout? = null
   private fun fillGoalIdeas(row: LinearLayout, id: String) =
     fillIdeas(row, runtime.goalIdeas(id).ifEmpty { CueLanguage.resources(this).getStringArray(R.array.cue_kb_goal_ideas).toList() })
-  private fun fillTopicIdeas(row: LinearLayout, id: String) =
-    fillIdeas(row, runtime.topicIdeas(id).ifEmpty { CueLanguage.resources(this).getStringArray(R.array.cue_kb_topic_ideas).toList() })
   private fun fillIdeas(row: LinearLayout, ideas: List<String>) {
     row.removeAllViews()
     ideas.forEach { idea ->
@@ -617,7 +624,7 @@ class SubtextKeyboard : LatinIME() {
       if (!ok) ideasRequested.remove(id)
       if (selected != id) return@launch
       if (mode == Mode.GOAL) ideasRow?.let { fillGoalIdeas(it, id) }
-      if (mode == Mode.TOPIC) ideasRow?.let { fillTopicIdeas(it, id) }
+      if (mode == Mode.TOPIC) render()
       if (mode == Mode.STYLES) render()
     }
   }
@@ -660,14 +667,14 @@ class SubtextKeyboard : LatinIME() {
   }
 
   private fun choosePerson(room: JSONObject) {
-    selected = room.optString("id"); undo = null; openerContext = null; activeTopic = ""
+    selected = room.optString("id"); undo = null; openerContext = null; activeTopic = ""; pendingTopic = ""
     prefetchIdeas(room.optString("id"))
     val shouldGenerate = generateAfterChoice
     val editor = afterChoice; afterChoice = null
     typing()
     if (editor != null) open(editor) else if (shouldGenerate) generate()
   }
-  private fun submitEditor() { if (mode == Mode.GOAL) saveGoal() else if (mode == Mode.TOPIC) startTopic() else chooseOnlyResult() }
+  private fun submitEditor() { if (mode == Mode.GOAL) saveGoal() else chooseOnlyResult() }
   private fun chooseOnlyResult() { if (searchResults.size == 1) choosePerson(searchResults.single()) }
 
   override fun onEvent(event: Event) {
@@ -690,7 +697,9 @@ class SubtextKeyboard : LatinIME() {
   private var rejectedReplies = emptyList<String>()
   private fun generate(again: Boolean = false, topic: String? = null) {
     val id = selected
-    if (topic != null) activeTopic = topic else if (!again) activeTopic = ""
+    // A topic picked on the style panel goes with the next fresh suggestion, then the tile clears.
+    if (topic != null) activeTopic = topic else if (!again) activeTopic = pendingTopic
+    if (!again) pendingTopic = ""
     val opener = if (id == null) openerContext ?: return open(Mode.PEOPLE) else null
     // A generation left running for another editor must not block this one.
     if (job?.isActive == true && parked?.token != null && adoptedToken == -1) { job?.cancel(); parked = null }
@@ -986,18 +995,29 @@ class SubtextKeyboard : LatinIME() {
     val goalText = selected?.let(runtime::conversationGoal)?.ifBlank { null }
     val plan = selected?.let(runtime::goalPlan)
     val sections = LinearLayout(this)
-    val goalStage = when {
-      goalText == null -> null
-      plan == null -> s(R.string.cue_kb_goal)
-      plan.optString("moment") == "done" -> s(R.string.cue_kb_moment_done)
-      else -> "${plan.optInt("stage", 1)}/${plan.optJSONArray("steps")?.length() ?: 1} · ${momentLabel(plan)}"
+    val id = selected
+    val finished = if (goalText == null) id?.let(runtime::finishedGoal) else null
+    val goalSection = when {
+      goalText != null -> section(
+        if (plan == null) s(R.string.cue_kb_goal) else "${plan.optInt("stage", 1)}/${plan.optJSONArray("steps")?.length() ?: 1} · ${momentLabel(plan)}",
+        goalText, true, goalIndicator(dp(14)),
+        s(R.string.cue_kb_goal_description, goalText, planStatus(plan).substringBefore('\n')),
+        end = { if (id != null) { runtime.setConversationGoal(id, ""); replies = emptyList(); render(); panel.announceForAccessibility(s(R.string.cue_kb_goal_ended)) } }
+      ) { openEditor(Mode.GOAL) }
+      // Ended on its own: a short note instead of an active goal, gone once the user looks or after a day.
+      finished != null -> section(
+        s(if (finished.optString("outcome") == "done") R.string.cue_kb_moment_done else R.string.cue_kb_moment_dropped),
+        finished.optString("goal"), false, KeyboardGoalIndicator(muted, dp(14), "done", 1f),
+        s(R.string.cue_kb_goal_description, finished.optString("goal"), s(R.string.cue_kb_add_goal)), muted = true
+      ) { id?.let(runtime::dismissFinishedGoal); openEditor(Mode.GOAL) }
+      else -> section(s(R.string.cue_kb_goal), s(R.string.cue_kb_add_goal), false, null,
+        s(R.string.cue_kb_goal_description, s(R.string.cue_kb_not_set), s(R.string.cue_kb_add_goal))) { openEditor(Mode.GOAL) }
     }
-    sections.addView(section(goalStage ?: s(R.string.cue_kb_goal), goalText ?: s(R.string.cue_kb_add_goal), goalText != null,
-      if (goalText != null) goalIndicator(dp(14)) else null,
-      s(R.string.cue_kb_goal_description, goalText ?: s(R.string.cue_kb_not_set), planStatus(plan).substringBefore('\n'))) { openEditor(Mode.GOAL) },
-      LinearLayout.LayoutParams(0, -1, 1f).apply { marginEnd = dp(4) })
-    sections.addView(section(s(R.string.cue_kb_topics), selected?.let(runtime::topicIdeas)?.firstOrNull() ?: s(R.string.cue_kb_topic_empty), false, null,
-      s(R.string.cue_kb_topic_description)) { openEditor(Mode.TOPIC) },
+    sections.addView(goalSection, LinearLayout.LayoutParams(0, -1, 1f).apply { marginEnd = dp(4) })
+    // The picked topic waits here for the next suggestion; ✕ drops it.
+    val topic = pendingTopic.ifBlank { null }
+    sections.addView(section(s(R.string.cue_kb_topics), topic ?: s(R.string.cue_kb_topic_empty), topic != null, null,
+      s(R.string.cue_kb_topic_description), end = topic?.let { { pendingTopic = ""; render() } }) { openEditor(Mode.TOPIC) },
       LinearLayout.LayoutParams(0, -1, 1f).apply { marginStart = dp(4) })
     content.addView(sections, LinearLayout.LayoutParams(-1, dp(60)).apply { topMargin = dp(4) })
     val intensity = FrameLayout(this)
@@ -1029,19 +1049,25 @@ class SubtextKeyboard : LatinIME() {
     generateAfterChoice = false
     if (selected == null) { afterChoice = editor; open(Mode.PEOPLE) } else open(editor)
   }
-  private fun section(caption: String, value: String, filled: Boolean, icon: android.graphics.drawable.Drawable?, description: String, action: () -> Unit) =
-    LinearLayout(this).apply {
-      orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_VERTICAL; setPadding(dp(14), dp(8), dp(12), dp(8))
-      background = RippleDrawable(ColorStateList.valueOf(0x225F78B8), rounded(card, 16), null)
-      addView(label(caption, 12f).apply {
-        setTextColor(muted); maxLines = 1; ellipsize = TextUtils.TruncateAt.END
-        if (icon != null) { setCompoundDrawablesRelative(icon, null, null, null); compoundDrawablePadding = dp(6) }
-      })
-      addView(label(value, 14f, filled).apply {
-        setTextColor(if (filled) ink else accent); maxLines = 1; ellipsize = TextUtils.TruncateAt.END; setPadding(0, dp(4), 0, 0)
-      })
-      contentDescription = description; setOnClickListener { action() }
-    }
+  private fun section(caption: String, value: String, filled: Boolean, icon: android.graphics.drawable.Drawable?, description: String,
+    muted: Boolean = false, end: (() -> Unit)? = null, action: () -> Unit) = LinearLayout(this).apply {
+    gravity = Gravity.CENTER_VERTICAL; setPadding(dp(14), dp(8), if (end == null) dp(12) else dp(2), dp(8))
+    background = RippleDrawable(ColorStateList.valueOf(0x225F78B8), rounded(card, 16), null)
+    val texts = LinearLayout(this@SubtextKeyboard).apply { orientation = LinearLayout.VERTICAL }
+    texts.addView(label(caption, 12f).apply {
+      setTextColor(this@SubtextKeyboard.muted); maxLines = 1; ellipsize = TextUtils.TruncateAt.END
+      if (icon != null) { setCompoundDrawablesRelative(icon, null, null, null); compoundDrawablePadding = dp(6) }
+    })
+    texts.addView(label(value, 14f, filled).apply {
+      setTextColor(if (filled) ink else if (muted) this@SubtextKeyboard.muted else accent); maxLines = 1; ellipsize = TextUtils.TruncateAt.END; setPadding(0, dp(4), 0, 0)
+    })
+    addView(texts, LinearLayout.LayoutParams(0, -2, 1f))
+    // Ends the goal in one tap, without opening the editor.
+    if (end != null) addView(button("✕", false) { end() }.apply {
+      textSize = 13f; setTextColor(this@SubtextKeyboard.muted); contentDescription = s(R.string.cue_kb_end_goal)
+    }, LinearLayout.LayoutParams(dp(40), dp(40)))
+    contentDescription = description; setOnClickListener { action() }
+  }
   // Remembers what each conversation's arc last showed, so a new stage sweeps forward instead of jumping.
   private val shownProgress = mutableMapOf<String, Float>()
   private var progressBase = emptyMap<String, Float>()
@@ -1122,7 +1148,7 @@ class SubtextKeyboard : LatinIME() {
   }
 
   override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-    if (keyCode == KeyEvent.KEYCODE_BACK && mode != Mode.TYPING) { backHandled = true; if (mode == Mode.SEARCH) open(Mode.PEOPLE) else if (mode == Mode.GOAL) { endSearch(); if (composingOpener) { composingOpener = false; open(Mode.PEOPLE) } else open(Mode.STYLES) } else if (mode == Mode.TOPIC) { endSearch(); open(Mode.STYLES) } else typing(); return true }
+    if (keyCode == KeyEvent.KEYCODE_BACK && mode != Mode.TYPING) { backHandled = true; if (mode == Mode.SEARCH) open(Mode.PEOPLE) else if (mode == Mode.GOAL) { endSearch(); if (composingOpener) { composingOpener = false; open(Mode.PEOPLE) } else open(Mode.STYLES) } else if (mode == Mode.TOPIC) open(Mode.STYLES) else typing(); return true }
     if (isEditor(mode)) return searchEditor?.dispatchKeyEvent(event) ?: true
     if (mode == Mode.SEARCH) {
       consumedHardwareKeys.add(keyCode)

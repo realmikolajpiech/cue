@@ -64,9 +64,9 @@
   <string name="cue_kb_edit_goal">Edit goal</string>
   <string name="cue_kb_add_goal">Add goal</string>
   <string name="cue_kb_topics">Topics</string>
-  <string name="cue_kb_topic_hint">What do you want to talk about?</string>
-  <string name="cue_kb_topic_empty">Find a topic</string>
-  <string name="cue_kb_topic_announcement">Type or pick a topic. The keyboard is editing the topic, not the message.</string>
+  <string name="cue_kb_back">Back</string>
+  <string name="cue_kb_topic_empty">Start a chat about something</string>
+  <string name="cue_kb_topic_announcement">Pick a topic from the list. It will be used for the next suggestion.</string>
   <string name="cue_kb_topic_description">Conversation topics. Open to pick a topic</string>
   <string-array name="cue_kb_topic_ideas">
     <item>How the day went</item>
@@ -81,6 +81,9 @@
   <string name="cue_kb_moment_wait">waiting for the moment</string>
   <string name="cue_kb_moment_paused">paused</string>
   <string name="cue_kb_moment_done">Goal reached</string>
+  <string name="cue_kb_moment_dropped">Goal ended</string>
+  <string name="cue_kb_end_goal">End goal</string>
+  <string name="cue_kb_goal_ended">Goal ended</string>
   <string name="cue_kb_step_goal">Step toward the goal</string>
   <string name="cue_kb_step_keep">Keeps the conversation going</string>
   <string name="cue_kb_reply_style">Reply style: %1$s</string>

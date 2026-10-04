@@ -33,6 +33,20 @@ class WritingToneTest {
     assertTrue(ConversationGoal.background("kawa", plan, "").contains("planCelu"))
     assertFalse(ConversationGoal.background("", plan, "").contains("goalPlan"))
   }
+  @Test fun topicIsALightOpenerAndARecentTopicOnlyContext() {
+    val chosen = ConversationGoal.intent("", "flirt", "", 1, topic = "koncert", recentTopic = "serial")
+    assertTrue(chosen.contains("nie cel") && chosen.contains("step=keep"))
+    val chosenData = org.json.JSONObject(chosen.substringAfter("Dane użytkownika w JSON: "))
+    assertFalse(chosenData.has("ostatniTemat"))
+    val later = ConversationGoal.intent("", "flirt", "", 1, recentTopic = "koncert")
+    assertTrue(later.contains("temat wygasł"))
+    assertEquals("koncert", org.json.JSONObject(later.substringAfter("Dane użytkownika w JSON: ")).getString("ostatniTemat"))
+    assertFalse(ConversationGoal.intent("", "flirt", "", 1).contains("ostatniTemat"))
+  }
+  @Test fun reachedOrDroppedGoalsFinish() {
+    assertTrue("done" in ConversationGoal.FINISHED && "dropped" in ConversationGoal.FINISHED && "paused" !in ConversationGoal.FINISHED)
+    assertEquals("dropped", ConversationGoal.cleanPlan(org.json.JSONObject("""{"steps":["a","b"],"stage":1,"moment":"dropped"}"""))!!.getString("moment"))
+  }
   @Test fun planIsClampedAndValidated() {
     val clean = ConversationGoal.cleanPlan(org.json.JSONObject("""{"steps":["a"," ","b","c"],"stage":9,"moment":"odd"}"""))!!
     assertEquals(3, clean.getJSONArray("steps").length())

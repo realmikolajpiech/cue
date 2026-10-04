@@ -6,7 +6,9 @@ import org.json.JSONObject
 internal object ConversationGoal {
   // Must match the draft limit of the deepseek-analyze edge function.
   const val LIMIT = 6000
-  val MOMENTS = setOf("good", "wait", "paused", "done")
+  val MOMENTS = setOf("good", "wait", "paused", "done", "dropped")
+  /** Moments that end the goal: it leaves the keyboard instead of staying active. */
+  val FINISHED = setOf("done", "dropped")
   // Intensity sets the tempo through the plan's stages, not how pushy a single message is.
   private val tempo = listOf(
     "Tempo spokojne: na jednym etapie możesz zostać przez wiele wiadomości; krok dalej rób tylko, gdy rozmówca sam wyraźnie otworzy temat.",
@@ -18,13 +20,14 @@ internal object ConversationGoal {
     "Pole tone to nazwa podejścia, 1–2 słowa, np. Żartobliwie, Z propozycją, Krótko, Przeprosiny, Wyjaśnienie. " +
     "Nie używaj mechanicznie etykiet Naturalnie ani Stanowczo; jedna propozycja może być krótka, jeśli to pasuje."
   private const val REGENERATE = "Użytkownikowi nie pasowały poprzednie propozycje (pole odrzucone). Zaproponuj inne podejścia i inne sformułowania, nie parafrazuj ich."
-  private const val PLAN_SHAPE = "goalPlan: {\"steps\":[\"krótki etap, 2–6 słów\"], \"stage\":1, \"moment\":\"good|wait|paused|done\", \"note\":\"jedno krótkie zdanie dla użytkownika: co się teraz dzieje i na co czekamy\", \"change\":\"\"}"
+  private const val PLAN_SHAPE = "goalPlan: {\"steps\":[\"krótki etap, 2–6 słów\"], \"stage\":1, \"moment\":\"good|wait|paused|done|dropped\", \"note\":\"jedno krótkie zdanie dla użytkownika: co się teraz dzieje i na co czekamy\", \"change\":\"\"}"
   // A plan is a slow route: steps lead naturally from the current conversation to the goal.
   private const val PLAN = "Cel rozmowy (celRozmowy) to wynik, do którego właściciel aplikacji (isMe) chce stopniowo doprowadzić. " +
     "Prowadzisz do niego zapamiętaną strategią (planCelu), a nie pojedynczą wiadomością. Zwróć pole $PLAN_SHAPE. " +
     "steps to 3–5 etapów naturalnej drogi od obecnej rozmowy do celu, np. dla spotkania: Ocieplić rozmowę, Wybadać czas i chęć, Luźna aluzja, Konkretna propozycja, Potwierdzić szczegóły. " +
     "stage to numer obecnego etapu liczony od 1. moment: good gdy rozmowa teraz sama otwiera drogę do kolejnego kroku, wait gdy trzeba poczekać na lepszy moment i budować atmosferę, " +
-    "paused po odmowie, granicy, złym czasie lub trudnym temacie u rozmówcy, done gdy cel jest wyraźnie osiągnięty w messages. " +
+    "paused po miękkiej odmowie, wahaniu, złym czasie lub trudnym temacie u rozmówcy, done gdy cel jest wyraźnie osiągnięty w messages (np. potwierdzone spotkanie), " +
+    "dropped tylko przy jednoznacznej, stanowczej odmowie albo gdy cel stracił sens (np. termin minął). done i dropped kończą cel, więc nie ustawiaj ich na zapas ani z samego szkicu. " +
     "Gdy planCelu istnieje, trzymaj się go: zachowaj steps i zmieniaj stage tylko na podstawie nowych wiadomości. Drogę zmieniaj tylko, gdy rozmowa tego wymaga, i wtedy w change napisz krótko dlaczego; inaczej change=\"\". " +
     "Gdy planCelu nie istnieje, ułóż go od zera i ustal etap na podstawie messages. " +
     "Przekonuj wyłącznie uczciwie: wyczucie momentu, budowanie relacji, prawdziwe argumenty. Bez manipulacji, presji, wzbudzania winy, kłamstw i ponawiania po odmowie."
@@ -32,8 +35,13 @@ internal object ConversationGoal {
     "Do każdej sugestii action=reply dodaj pole step: \"goal\" gdy robi krok w stronę celu, \"keep\" gdy podtrzymuje rozmowę lub odpowiada na bieżący temat. " +
     "Przy moment=good co najmniej jedna sugestia ma step=goal; przy wait wszystkie mogą być keep, budując grunt pod kolejny etap; przy paused nie naciskaj na cel; przy done pomóż domknąć szczegóły. " +
     "W reason napisz konkretnie, na jakim etapie jesteś, dlaczego ten ruch pasuje teraz do wiadomości rozmówcy i co przygotowuje."
-  private const val TOPIC = "Użytkownik chce poruszyć temat z pola tematRozmowy. Propozycje mają naturalnie go wprowadzić, z płynnym przejściem od bieżącej rozmowy, w wybranym tonie. " +
-    "Nie wymyślaj wspólnych wspomnień ani faktów o rozmówcy; temat to intencja, nie fakt."
+  // A topic is a light excuse to chat, never a route to anything.
+  private const val TOPIC = "Użytkownik chce zagadać o temacie z pola tematRozmowy. To lekki pretekst do pogadania, nie cel: nie prowadź nim do niczego, nie proponuj spotkań ani próśb, których nie ma w szkicu. " +
+    "Każda propozycja to krótka, luźna wiadomość w wybranym tonie, która naturalnie wprowadza temat (płynnie od bieżącej rozmowy, a gdy rozmowa ucichła, jako swobodne zagajenie) i daje rozmówcy łatwą okazję do odpowiedzi, bez wypytywania. " +
+    "Wszystkie sugestie mają step=keep. Nie wymyślaj wspólnych wspomnień ani faktów o rozmówcy; temat to intencja, nie fakt."
+  // A topic started earlier is context, not an obligation: once it fades, it stays gone.
+  private const val RECENT_TOPIC = "Pole ostatniTemat to temat, który użytkownik niedawno sam zagaił. Wiesz o nim jako o kontekście, ale go nie ciągniesz: " +
+    "odnieś się do niego tylko, gdy rozmówca go podjął i nadal o nim pisze. Gdy rozmówca go nie podjął, odpowiedział zdawkowo albo rozmowa poszła gdzie indziej, temat wygasł: nie wracaj do niego i nie dopytuj na siłę."
   // Asked alongside every analysis so ideas are ready before the user opens either editor.
   const val IDEAS = "Dodatkowo zwróć dwa pola. goalIdeas: 3–4 propozycje celu rozmowy (2–5 słów, bezokolicznik), czyli wyniku, do którego właściciel (isMe) może chcieć doprowadzić, " +
     "np. Umówić się na kawę, Przekonać do wspólnego wyjazdu, Załagodzić kłótnię, Odzyskać pożyczone pieniądze; nie tematy rozmowy. " +
@@ -42,7 +50,7 @@ internal object ConversationGoal {
 
   fun intent(draft: String, tone: String, goal: String, intensity: Int = WritingTone.DEFAULT_INTENSITY,
     rejected: List<String> = emptyList(), languageNote: String = "", situation: String = "", personContext: String = "",
-    plan: JSONObject? = null, topic: String = ""): String {
+    plan: JSONObject? = null, topic: String = "", recentTopic: String = ""): String {
     val hasGoal = goal.isNotBlank()
     val instruction = WritingTone.instruction(tone, intensity) +
     " Wszystkie propozycje uwzględniają wybrany ton. Do każdej sugestii, także action=reply, dodaj pole reason: " +
@@ -51,7 +59,7 @@ internal object ConversationGoal {
     "Uwzględnij konkretne informacje, pytania, preferencje, odmowy i granice drugiej osoby. " +
     "Nie ponawiaj odrzuconych próśb. Nie traktuj celu ani szkicu jako faktów o relacji. " +
     (if (hasGoal) "$PLAN $PLAN_REPLIES ${tempo.getOrElse(WritingTone.clampIntensity(tone, intensity)) { tempo[WritingTone.DEFAULT_INTENSITY] }} " else "") +
-    (if (topic.isBlank()) "" else "$TOPIC ") +
+    (if (topic.isBlank()) "" else "$TOPIC ") + (if (topic.isBlank() && recentTopic.isNotBlank()) "$RECENT_TOPIC " else "") +
     TYPES + (if (situation.isBlank()) "" else " $situation") + (if (rejected.isEmpty()) "" else " $REGENERATE") + " $IDEAS$languageNote Dane użytkownika w JSON: "
     var boundedGoal = goal.take(1000)
     var boundedDraft = draft.take(1500)
@@ -60,6 +68,7 @@ internal object ConversationGoal {
       val data = JSONObject().put("celRozmowy", boundedGoal).put("szkic", boundedDraft)
       if (hasGoal && plan != null) data.put("planCelu", planInput(plan))
       if (topic.isNotBlank()) data.put("tematRozmowy", topic.take(300))
+      else if (recentTopic.isNotBlank()) data.put("ostatniTemat", recentTopic.take(300))
       if (personContext.isNotBlank()) data.put("kontekstOsoby", personContext.take(500))
       if (boundedRejected.isNotEmpty()) data.put("odrzucone", JSONArray(boundedRejected))
       val result = instruction + data.toString()
