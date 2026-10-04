@@ -137,6 +137,14 @@
     }
   },
   "memory": {
+    "resetSection": "Start from scratch",
+    "reset": "Reset this person",
+    "resetting": "Resetting…",
+    "resetTitle": "Reset {{name}}?",
+    "resetMessage": "This clears Cue’s saved messages, AI memory, reminders, analysis, writing samples and conversation goals for this person. Other people stay unchanged. Messages in your messenger are not deleted. Only messages sent after this reset will be remembered.",
+    "resetConfirm": "Reset person",
+    "resetHint": "Clears saved history and everything learned about this person. Old messages will not be imported again.",
+    "resetSuccess": "Reset complete. Cue will learn from new messages.",
     "eyebrow": "DEV · conversation memory",
     "aiMemory": "AI memory",
     "storedMemory": "Saved on phone",

@@ -1,0 +1,67 @@
+1
+00:00:00,350 --> 00:00:04,140
+You care. But sometimes, you don’t know what to say.
+
+2
+00:00:04,750 --> 00:00:11,360
+Meet Cue. An AI keyboard that uses your conversation’s context to help you reply in your own voice.
+
+3
+00:00:11,650 --> 00:00:12,800
+Tap Suggest.
+
+4
+00:00:13,180 --> 00:00:15,620
+No copying chats into another assistant.
+
+5
+00:00:15,900 --> 00:00:18,050
+No explaining the background from scratch.
+
+6
+00:00:22,200 --> 00:00:24,800
+A week ago, Marcel mentioned his exams.
+
+7
+00:00:25,150 --> 00:00:28,240
+Cue connects that earlier message to what he’s saying now.
+
+8
+00:00:28,700 --> 00:00:32,250
+Open the source to see the message behind what Cue remembers.
+
+9
+00:00:33,300 --> 00:00:34,500
+Have something in mind?
+
+10
+00:00:35,700 --> 00:00:36,550
+Set a goal.
+
+11
+00:00:38,200 --> 00:00:39,300
+Choose your tone.
+
+12
+00:00:40,000 --> 00:00:42,720
+And keep it subtle—or make it bolder.
+
+13
+00:00:46,200 --> 00:00:47,400
+Choose a suggestion.
+
+14
+00:00:47,600 --> 00:00:48,100
+Review it.
+
+15
+00:00:48,450 --> 00:00:50,070
+You decide what to send.
+
+16
+00:00:51,450 --> 00:00:55,160
+Built from scratch at HackYeah by two eighteen-year-olds.
+
+17
+00:00:57,000 --> 00:00:59,930
+Cue. The context behind your words.

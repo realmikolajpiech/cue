@@ -37,6 +37,7 @@ class SubtextModule : Module() {
       subtextRuntime.store.editReminder(id, reminderId, org.json.JSONObject(patch))
       subtextRuntime.changed()
     }
+    AsyncFunction("resetConversation") Coroutine { id: String -> subtextRuntime.resetConversation(id) }
     AsyncFunction("conversationMemory") { id: String ->
       requireNotNull(subtextRuntime.store.room(id)) { "Nie znaleziono rozmowy." }
       val memory = subtextRuntime.store.memory(id)

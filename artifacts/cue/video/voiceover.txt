@@ -1,16 +1,16 @@
 You care. But sometimes, you don’t know what to say.
 
-Meet Cue. An AI keyboard for the moments when you care, but can’t find the words.
+Meet Cue. An AI keyboard that uses your conversation’s context to help you reply in your own voice.
 
-Yesterday, Marcel was nervous about his exam. Today, he says he’s finally done.
+Tap Suggest. No copying chats into another assistant. No explaining the background from scratch.
 
-Cue brings that context into your keyboard. Tap Suggest, and get a reply that fits the conversation—and the way you write.
+A week ago, Marcel mentioned his exams. Cue connects that earlier message to what he’s saying now.
 
-See why a reply fits, and check the original messages behind what Cue remembers.
+Open the source to see the message behind what Cue remembers.
 
-Have something in mind? Set a goal and choose your tone. A little flirting. Coffee to celebrate.
+Have something in mind? Set a goal. Choose your tone. And keep it subtle—or make it bolder.
 
-Choose a suggestion. Make it yours. You decide what to send.
+Choose a suggestion. Review it. You decide what to send.
 
 Built from scratch at HackYeah by two eighteen-year-olds.
 

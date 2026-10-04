@@ -75,3 +75,4 @@ modules/subtext/.build/
 
 # Cue artifact build intermediates
 .cue-artifacts/
+.cue-video/

@@ -13,6 +13,34 @@ import java.util.UUID
 
 @RunWith(AndroidJUnit4::class)
 class PersonMemoryStoreTest {
+  @Test fun resetClearsOnlySelectedPersonAndPreventsHistoryReimportAfterRestart() {
+    val target = InstrumentationRegistry.getInstrumentation().targetContext
+    val directory = File(target.cacheDir, "reset-test-${UUID.randomUUID()}").apply { mkdirs() }
+    val isolated = object : ContextWrapper(target) { override fun getNoBackupFilesDir() = directory }
+    fun message(id: String, time: Long) = JSONObject().put("id", id).put("text", "spoko $id")
+      .put("timestamp", time).put("isMe", true)
+    try {
+      val store = SubtextStore(isolated)
+      val old = message("old", 1000)
+      store.merge("messenger", "person", "Osoba", "PRIVATE", listOf(old))
+      store.merge("whatsapp", "other", "Inna", "PRIVATE", listOf(old))
+      store.profile("messenger:person", JSONObject().put("summary", "old context"))
+      store.resetConversation("messenger:person", 2000)
+      val restored = SubtextStore(isolated)
+      assertEquals(0, restored.room("messenger:person")!!.getJSONArray("messages").length())
+      assertTrue(restored.room("messenger:person")!!.isNull("profile"))
+      assertEquals("", restored.room("messenger:person")!!.getString("snippet"))
+      assertFalse(restored.memory("messenger:person").has("sampleCount"))
+      assertFalse(restored.memory("messenger:person").has("seen"))
+      assertEquals(1, restored.memory("whatsapp:other").getInt("sampleCount"))
+      restored.merge("messenger", "person", "Osoba", "PRIVATE", listOf(old, message("boundary", 2000), message("new", 2001)))
+      restored.flush()
+      val afterSync = SubtextStore(isolated)
+      assertEquals(1, afterSync.room("messenger:person")!!.getJSONArray("messages").length())
+      assertEquals("new", afterSync.room("messenger:person")!!.getJSONArray("messages").getJSONObject(0).getString("id"))
+      assertEquals(1, afterSync.memory("messenger:person").getInt("sampleCount"))
+    } finally { directory.deleteRecursively() }
+  }
   @Test fun remindersAndManualDecisionsSurviveRestartAndRemainInAiMemory() {
     val target = InstrumentationRegistry.getInstrumentation().targetContext
     val directory = File(target.cacheDir, "reminder-test-${UUID.randomUUID()}").apply { mkdirs() }

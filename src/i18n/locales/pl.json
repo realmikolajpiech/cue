@@ -137,6 +137,14 @@
     }
   },
   "memory": {
+    "resetSection": "Zacznij od zera",
+    "reset": "Zresetuj tę osobę",
+    "resetting": "Resetowanie…",
+    "resetTitle": "Zresetować {{name}}?",
+    "resetMessage": "Usuniesz zapisane w Cue wiadomości, pamięć AI, ustalenia, analizę, próbki stylu i cele rozmowy tej osoby. Inne osoby pozostaną bez zmian. Wiadomości w komunikatorze nie zostaną usunięte. Cue zapamięta tylko wiadomości wysłane po tym resecie.",
+    "resetConfirm": "Zresetuj osobę",
+    "resetHint": "Usuwa zapisaną historię i wszystko zapamiętane o tej osobie. Stare wiadomości nie zostaną ponownie zaimportowane.",
+    "resetSuccess": "Reset zakończony. Cue będzie uczyć się z nowych wiadomości.",
     "eyebrow": "DEV · pamięć konwersacji",
     "aiMemory": "Pamięć do AI",
     "storedMemory": "Zapis na telefonie",

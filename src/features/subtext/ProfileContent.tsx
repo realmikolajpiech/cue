@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { Copy, Icon, Row } from '@/components/ui';
 import { useRoom, useSubtextStatus, useSyncRoom } from '@/services/subtext';
@@ -17,6 +18,7 @@ export default function ProfileContent({ id }: { id: string }) {
   const query = useRoom(id);
   const room = query.data;
   const { data: status } = useSubtextStatus();
+  const developerMode = usePreferences(s => s.developerMode);
   const demoMode = usePreferences(s => s.demoMode);
   const { colors } = useTheme(); const { t } = useTranslation();
   const phase = room ? status?.[room.network].phase : undefined;
@@ -60,6 +62,8 @@ export default function ProfileContent({ id }: { id: string }) {
       busy={!!status?.analyzing} demo={room.demo} hasMessages={!!room.messages?.length} />
 
     <WritingStyleContent roomId={id} isExample={room.demo} />
+    {developerMode && <Button label={t('nav.memoryDev')} secondary
+      onPress={() => router.push({ pathname: '/person-style/[id]', params: { id, memory: 'true' } })} />}
   </View>;
 }
 

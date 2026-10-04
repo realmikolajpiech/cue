@@ -54,7 +54,9 @@ class SubtextStore(context: Context) {
     val all = linkedMapOf<String, JSONObject>()
     val previous = room.getJSONArray("messages")
     for (i in 0 until previous.length()) previous.getJSONObject(i).let { all[it.getString("id")] = it }
-    messages.filter { it.optString("id").isNotBlank() && it.optString("text").isNotBlank() }.forEach { all[it.getString("id")] = it }
+    val resetBefore = memories.optJSONObject(key)?.optLong("resetBefore") ?: 0
+    messages.filter { it.optString("id").isNotBlank() && it.optString("text").isNotBlank() &&
+      (resetBefore == 0L || it.optLong("timestamp") > resetBefore) }.forEach { all[it.getString("id")] = it }
     if (!room.optBoolean("demo") && id != "subtext-demo") updateMemory(key, all.values.toList())
     val retained = all.values.sortedBy { it.optLong("timestamp") }.takeLast(200)
     room.put("messages", JSONArray(retained))
@@ -120,6 +122,14 @@ class SubtextStore(context: Context) {
   @Synchronized fun forget(network: String, id: String) {
     val key = "$network:$id"
     if (data.has(key)) { data.remove(key); memories.remove(key); save(); saveMemories() }
+  }
+  /** Keep the identity, but never relearn messages from before this reset. */
+  @Synchronized fun resetConversation(key: String, now: Long = System.currentTimeMillis()) {
+    val room = requireNotNull(data.optJSONObject(key)) { "Nie znaleziono rozmowy." }
+    val excluded = memories.optJSONObject(key)?.optBoolean("aiExcluded") ?: false
+    room.put("messages", JSONArray()).put("profile", JSONObject.NULL).put("snippet", "").put("updatedAt", now)
+    memories.put(key, JSONObject().put("resetBefore", now).put("aiExcluded", excluded))
+    save(); saveMemories()
   }
   @Synchronized fun clear(network: String? = null) {
     if (network == null) { data = JSONObject(); memories = JSONObject() }

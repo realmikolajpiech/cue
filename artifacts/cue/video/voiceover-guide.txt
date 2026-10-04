@@ -1,0 +1,64 @@
+CUE — VOICEOVER / 60 SECONDS
+
+JĘZYK: angielski.
+GŁOS: młody dorosły, ciepły, swobodny, z lekkim uśmiechem.
+DOSTARCZENIE: naturalna rozmowa; bez patosu i bez głosu reklamowego.
+WYMOWA: Cue = queue /kjuː/.
+
+Wszystkie dziewięć nagrań ElevenLabs jest osadzonych w HTML i dopasowanych do scen.
+Oryginalne tempo głosu zostało zachowane. Fragment 6 rozdzielono w pauzach między zdaniami.
+voiceover.txt zawiera tekst narracji; poniżej znajdują się zsynchronizowane napisy.
+
+18.5–22 s: chwila na pierwszą odpowiedź. 42.5–46 s: chwila na propozycję dla Marty.
+
+00.35–04.14 s
+You care. But sometimes, you don’t know what to say.
+
+04.75–11.36 s
+Meet Cue. An AI keyboard that uses your conversation’s context to help you reply in your own voice.
+
+11.65–12.80 s
+Tap Suggest.
+
+13.18–15.62 s
+No copying chats into another assistant.
+
+15.90–18.05 s
+No explaining the background from scratch.
+
+22.20–24.80 s
+A week ago, Marcel mentioned his exams.
+
+25.15–28.24 s
+Cue connects that earlier message to what he’s saying now.
+
+28.70–32.25 s
+Open the source to see the message behind what Cue remembers.
+
+33.30–34.50 s
+Have something in mind?
+
+35.70–36.55 s
+Set a goal.
+
+38.20–39.30 s
+Choose your tone.
+
+40.00–42.72 s
+And keep it subtle—or make it bolder.
+
+46.20–47.40 s
+Choose a suggestion.
+
+47.60–48.10 s
+Review it.
+
+48.45–50.07 s
+You decide what to send.
+
+51.45–55.16 s
+Built from scratch at HackYeah by two eighteen-year-olds.
+
+57.00–59.93 s
+Cue. The context behind your words.
+

@@ -1,17 +1,17 @@
 {
   "title": "Cue hackathon video",
   "language": "English",
-  "durationSeconds": 85,
+  "durationSeconds": 60,
   "format": "1920x1080, 30 fps, H.264 MP4",
-  "status": "Revised storyboard and narration. Final footage, ElevenLabs audio, and rendered film are pending.",
-  "creativeDirection": "One main exam story with Marcel, followed by a clearly separate Marta scene for optional goals and tones. Real product footage and stills, framed with restrained motion design, large typography, generous space, and purposeful reveals. Hold the actual replies and sources long enough to read.",
+  "status": "Playable 60-second HTML prototype with all nine supplied ElevenLabs takes embedded and aligned. Real screen captures and MP4 export are pending.",
+  "creativeDirection": "Friendly minimalism: warm off-white, lavender, large Manrope typography, restrained transitions, and the original Cue mascot in reading, writing and waving poses. Marcel’s week-old context is revealed after the reply. Marta’s everyday weekend exchange demonstrates the saved coffee goal, Flirty tone and Subtle intensity.",
   "voiceDirection": "Warm, conversational English with restrained delivery. Cue is pronounced like cue/queue. Leave a pause during the opening and silence during the first reply reveal. Use voiceover.txt as spoken text; generate a clean WAV or high-quality MP3 in ElevenLabs. Align the edit to the finished audio.",
   "audioDirection": "Voice first. A quiet licensed instrumental bed and subtle interaction sounds are optional.",
   "evidence": "The exam and flirting scenarios are staged product examples. Record real Cue actions and actual AI outputs. Marta is the on-screen alias in the second conversation; omit the real Messenger header there. Existing English stills are translated presentation assets, and the existing source recording concerns a different debt scenario. These are reference material, not fresh footage for this revised storyboard.",
   "shots": [
     {
       "start": 0,
-      "end": 6,
+      "end": 4.5,
       "type": "hook",
       "headline": "finally done 😮‍💨",
       "support": "What do you say?",
@@ -20,31 +20,21 @@
       "purpose": "A familiar moment before the product reveal."
     },
     {
-      "start": 6,
-      "end": 14,
+      "start": 4.5,
+      "end": 11.5,
       "type": "brand",
       "headline": "Cue",
-      "support": "Find the words.",
-      "voice": "Meet Cue. An AI keyboard for the moments when you care, but can’t find the words.",
+      "support": "Your context. Your voice.",
+      "voice": "Meet Cue. An AI keyboard that uses your conversation’s context to help you reply in your own voice.",
       "visual": "Clean Cue logo and a readable view of the real keyboard.",
       "purpose": "Introduce the product and audience."
     },
     {
-      "start": 14,
-      "end": 23,
-      "type": "context",
-      "headline": "The context matters.",
-      "quote": "got my exam tomorrow. kinda stressed 😬",
-      "voice": "Yesterday, Marcel was nervous about his exam. Today, he says he’s finally done.",
-      "visual": "Reveal Marcel’s earlier staged message and visually connect it to “finally done”. Use the actual captured message or a faithful animated quote card.",
-      "purpose": "Show why the latest message needs the earlier conversation."
-    },
-    {
-      "start": 23,
-      "end": 34,
+      "start": 11.5,
+      "end": 18.5,
       "type": "suggest",
-      "headline": "A reply that fits.",
-      "voice": "Cue brings that context into your keyboard. Tap Suggest, and get a reply that fits the conversation—and the way you write.",
+      "headline": "Right where you chat.",
+      "voice": "Tap Suggest. No copying chats into another assistant. No explaining the background from scratch.",
       "visual": "Real screen recording in Marcel’s Messenger compose field: Cue has Marcel selected; tap Suggest with Natural tone and no saved goal.",
       "purpose": "Show the default context-aware flow without asking the user to explain an obvious intention.",
       "captureRequirements": [
@@ -54,55 +44,77 @@
       ]
     },
     {
-      "start": 34,
-      "end": 42,
+      "start": 18.5,
+      "end": 22,
       "type": "reply",
       "headline": "Words that fit.",
       "voice": "",
-      "illustrativeReply": "so how did it go? 😊",
-      "visual": "Enlarge and hold the actual generated reply. Briefly reveal its explanation referring to Marcel’s exam.",
+      "illustrativeReply": "how did the exams go? less stressful than you expected?",
+      "visual": "Enlarge and hold the actual generated reply, ideally one that visibly uses Marcel’s exam context. Keep the earlier source message unrevealed until the next scene.",
       "purpose": "A quiet, readable product payoff. The illustrative reply is not a promised model output."
     },
     {
-      "start": 42,
-      "end": 52,
+      "start": 22,
+      "end": 28.5,
+      "type": "context",
+      "headline": "A week earlier.",
+      "quote": "got exams next week. already stressing 😬",
+      "voice": "A week ago, Marcel mentioned his exams. Cue connects that earlier message to what he’s saying now.",
+      "visual": "After the reply payoff, reveal Marcel’s earlier staged message about exams next week. An animated “A week earlier” quote card connects it to “finally done”. The story chronology is staged; keep source timestamps consistent with the prepared scenario.",
+      "purpose": "Reveal the remembered context after the result, making the week-old connection the payoff."
+    },
+    {
+      "start": 28.5,
+      "end": 33,
       "type": "sources",
       "headline": "See the context.",
-      "voice": "See why a reply fits, and check the original messages behind what Cue remembers.",
-      "visual": "Show Marcel’s remembered exam detail, then open its source and the original message.",
+      "voice": "Open the source to see the message behind what Cue remembers.",
+      "visual": "Show Marcel’s remembered exam detail, then open its source and the earlier message about exams next week.",
       "purpose": "Show verifiable conversation memory in the same exam story."
     },
     {
-      "start": 52,
-      "end": 64,
+      "start": 33,
+      "end": 46,
       "type": "direction",
       "headline": "Your direction.",
-      "voice": "Have something in mind? Set a goal and choose your tone. A little flirting. Coffee to celebrate.",
+      "voice": "Have something in mind? Set a goal. Choose your tone. And keep it subtle—or make it bolder.",
       "conversationAlias": "Marta",
       "goal": "ask her out for coffee",
       "tone": "Flirty",
-      "illustrativeReply": "you survived 😄 coffee to celebrate?",
-      "visual": "A clear transition to a separate staged conversation labelled Marta in Cue. Crop out the Messenger header and its real contact name. Show the optional goal and Flirty tone, generate, and hold the actual new suggestion.",
-      "purpose": "Show goals and tones as optional controls in a separate conversation, without implying Marcel’s conversation became Marta’s.",
+      "illustrativeReply": "then coffee with me on saturday? 😊",
+      "visual": "Clearly transition to the separate conversation labelled Marta in Cue. Show the normal weekend exchange, with the real Messenger header cropped out. Enter the optional coffee goal, open the tone control, swipe Natural to Flirty, select Subtle, and tap Suggest. Hold the actual generated invitation.",
+      "purpose": "Show how context, a saved conversation goal, tone and intensity combine to suggest a fitting next reply. The goal remains saved for later replies; this film shows one moment rather than a multi-message goal montage.",
       "captureRequirements": [
-        "Use a separate staged conversation with coherent exam context for the coffee invitation.",
-        "Marta is the on-screen alias in Cue for this scene.",
-        "Frame the compose field and Cue keyboard; omit the Messenger contact header.",
-        "Use the actual generated reply; example wording may vary."
+        "Use a separate staged ordinary conversation about weekend plans, with the latest message giving Saturday availability.",
+        "Marta is the on-screen alias in Cue; crop out the real Messenger contact header.",
+        "Show entering the goal once, swiping the tone carousel from Natural to Flirty, selecting Subtle on the intensity control, then pressing Suggest.",
+        "Use actual generated output. The illustrative invitation is a placeholder, not a promised AI response.",
+        "Ensure the prepared conversation dates make the proposed Saturday a future day."
+      ],
+      "intensity": "Subtle",
+      "setupMessages": [
+        {
+          "isMe": true,
+          "text": "got any plans for next weekend?"
+        },
+        {
+          "isMe": false,
+          "text": "not really, saturday's still free"
+        }
       ]
     },
     {
-      "start": 64,
-      "end": 73,
+      "start": 46,
+      "end": 51,
       "type": "control",
-      "headline": "Review. Edit. Send.",
-      "voice": "Choose a suggestion. Make it yours. You decide what to send.",
-      "visual": "Continue the Marta scene. Insert the selected reply into the compose field and make a small natural edit. End on the draft.",
-      "purpose": "Show the user’s control over the final wording."
+      "headline": "Choose. Review. Send.",
+      "voice": "Choose a suggestion. Review it. You decide what to send.",
+      "visual": "Insert the selected suggestion unchanged, review it, and hold on the send control. Editing remains optional.",
+      "purpose": "Show a ready-to-use suggestion and the user’s final decision."
     },
     {
-      "start": 73,
-      "end": 81,
+      "start": 51,
+      "end": 56.5,
       "type": "team",
       "headline": "Undefined",
       "support": "Mikołaj Piech, 18 · Marcel Chudyba, 18",
@@ -111,8 +123,8 @@
       "purpose": "Team and implementation details after the product story."
     },
     {
-      "start": 81,
-      "end": 85,
+      "start": 56.5,
+      "end": 60,
       "type": "end",
       "headline": "Cue",
       "support": "The context behind your words.",
@@ -122,17 +134,44 @@
     }
   ],
   "captureList": [
-    "Marcel: earlier exam message and latest “finally done 😮‍💨” message.",
-    "Marcel: Suggest with no saved goal and Natural tone, plus reply and explanation stills.",
-    "Marcel: remembered exam detail and source expansion, plus a legible source still.",
-    "Separate conversation aliased Marta in Cue: optional coffee goal and Flirty tone, actual generation and result. Messenger header stays outside the crop.",
-    "Marta: insertion into the compose field and a small edit.",
-    "Capture short separate clips and stills for readable holds."
+    "Marcel: an earlier staged message “got exams next week. already stressing 😬” and the latest “finally done 😮‍💨”, with a coherent one-week story timeline.",
+    "Marcel: Suggest with no saved goal and Natural tone; actual reply and explanation stills.",
+    "Marcel: remembered exam detail and source expansion, plus a readable source still.",
+    "Separate conversation aliased Marta: ordinary weekend plans, latest “not really, saturday's still free”. Messenger header stays outside the crop.",
+    "Marta: enter “ask her out for coffee”, swipe Natural to Flirty, select Subtle, generate and hold the actual suggestion.",
+    "Marta: insertion into the compose field and review of the unchanged suggestion.",
+    "Short separate clips and stills for readable holds."
   ],
   "finishing": [
     "Replace reference assets with fresh captures matching the revised conversations.",
     "Use actual generated wording; the illustrative replies in this plan are placeholders.",
     "Fit the edit to the final ElevenLabs audio and verify subtitles against it.",
     "Review the full export with audio on and off; keep runtime comfortably below two minutes."
-  ]
+  ],
+  "htmlPrototype": {
+    "file": "cue-film.html",
+    "resolution": "1920x1080",
+    "durationSeconds": 60,
+    "controls": "Play, pause, seek, chapters, subtitles, optional browser narration and local audio import.",
+    "cleanPreview": "cue-film.html?clean=1&t=22",
+    "deterministicSeek": "window.CueFilm.seek(seconds)",
+    "prototypeAssets": "Illustrated conversations, keyboard interactions and example replies. Replace capture slots with actual footage after review."
+  },
+  "audio": {
+    "alignment": "audio/alignment.json",
+    "previewTrack": "audio/narration-preview.mp3",
+    "connectedBlocks": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "missingBlocks": [],
+    "note": "Numbered script order. Takes 1–5 and 7–9 are intact; take 6 is split at detected pauses to follow the goal, tone and intensity controls. No voice speed or pitch changes."
+  }
 }

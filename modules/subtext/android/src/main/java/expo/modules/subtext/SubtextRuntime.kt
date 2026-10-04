@@ -143,7 +143,7 @@ class SubtextRuntime private constructor(private val context: Context) {
   fun cachedConversation(id: String): String {
     val room = requireNotNull(store.room(id)) { "Nie znaleziono rozmowy." }
     check(room.optString("kind") == "PRIVATE") { "Obsługiwane są tylko rozmowy prywatne." }
-    if (room.getJSONArray("messages").length() == 0 && !room.optBoolean("demo")) {
+    if (room.getJSONArray("messages").length() == 0 && !room.optBoolean("demo") && store.memory(id).optLong("resetBefore") == 0L) {
       room.put("historyNotice", if (room.optString("network") == "messenger" && messenger.isEncrypted(room.getString("remoteId")))
         "Messenger nie udostępnił historii tego szyfrowanego czatu. Cue może zapisywać nowe wiadomości odebrane po połączeniu konta."
       else "Nie ma jeszcze zapisanych wiadomości. Zsynchronizuj rozmowę, aby Cue mógł przygotować podsumowanie i odpowiedzi.")
@@ -165,7 +165,7 @@ class SubtextRuntime private constructor(private val context: Context) {
     store.flush()
     memoryRequests.trySend(Unit)
     val result = requireNotNull(store.room(id))
-    if (result.getJSONArray("messages").length() == 0) {
+    if (result.getJSONArray("messages").length() == 0 && store.memory(id).optLong("resetBefore") == 0L) {
       result.put("historyNotice", if (network == "messenger" && messenger.isEncrypted(remote))
         "Messenger nie udostępnił historii tego szyfrowanego czatu. Cue może zapisywać nowe wiadomości odebrane po połączeniu konta."
       else "Komunikator nie udostępnił jeszcze wiadomości. Spróbuj odświeżyć po synchronizacji.")
@@ -531,6 +531,20 @@ class SubtextRuntime private constructor(private val context: Context) {
   }
   suspend fun demoStage(stage: Int): String = analysisMutex.withLock {
     store.demoStage(stage).also { changed() }
+  }
+  suspend fun resetConversation(id: String) = analysisMutex.withLock {
+    synchronized(photoLifecycleLock) {
+      generation.incrementAndGet()
+      store.resetConversation(id)
+      val editor = prefs.edit()
+      listOf("conversation-goal", "goal-ideas", "topic-ideas", "goal-plan", "goal-finished", "recent-topic", "open-question")
+        .forEach { editor.remove("$it:$id") }
+      // General previews can contain samples from this person, too.
+      prefs.all.keys.filter { it.startsWith("writing-style-preview") }.forEach { editor.remove(it) }
+      editor.apply()
+      images.clear()
+      changed()
+    }
   }
   private fun clearStylePreviews() {
     val editor = prefs.edit()

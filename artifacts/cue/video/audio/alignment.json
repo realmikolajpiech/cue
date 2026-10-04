@@ -1,0 +1,140 @@
+{
+  "durationSeconds": 60,
+  "alignment": "Numbered script order. Takes 1–5 and 7–9 are intact; take 6 is split at detected pauses to follow the goal, tone and intensity controls. No voice speed or pitch changes.",
+  "connectedBlocks": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "missingBlocks": [],
+  "clips": [
+    {
+      "source": "01-hook.mp3",
+      "in": 0,
+      "out": 3.78775,
+      "at": 0.35,
+      "block": 1
+    },
+    {
+      "source": "02-brand.mp3",
+      "in": 0,
+      "out": 6.608938,
+      "at": 4.75,
+      "block": 2
+    },
+    {
+      "source": "03-keyboard.mp3",
+      "in": 0,
+      "out": 6.530563,
+      "at": 11.65,
+      "block": 3
+    },
+    {
+      "source": "04-context.mp3",
+      "in": 0,
+      "out": 6.03425,
+      "at": 22.2,
+      "block": 4
+    },
+    {
+      "source": "05-source.mp3",
+      "in": 0,
+      "out": 3.552625,
+      "at": 28.7,
+      "block": 5
+    },
+    {
+      "source": "06-goal-tone.mp3",
+      "in": 0,
+      "out": 1.20686,
+      "at": 33.3,
+      "block": 6
+    },
+    {
+      "source": "06-goal-tone.mp3",
+      "in": 1.20686,
+      "out": 2.29373,
+      "at": 35.46788,
+      "block": 6
+    },
+    {
+      "source": "06-goal-tone.mp3",
+      "in": 2.29373,
+      "out": 3.605114,
+      "at": 37.97983,
+      "block": 6
+    },
+    {
+      "source": "06-goal-tone.mp3",
+      "in": 3.605114,
+      "out": 6.530563,
+      "at": 39.794547,
+      "block": 6
+    },
+    {
+      "source": "07-review.mp3",
+      "in": 0,
+      "out": 3.866063,
+      "at": 46.2,
+      "block": 7
+    },
+    {
+      "source": "08-team.mp3",
+      "in": 0,
+      "out": 3.709375,
+      "at": 51.45,
+      "block": 8
+    },
+    {
+      "source": "09-end.mp3",
+      "in": 0,
+      "out": 2.925688,
+      "at": 57,
+      "block": 9
+    }
+  ],
+  "sources": [
+    {
+      "name": "01-hook.mp3",
+      "sha256": "72e05c2bc0e5ee4a3177377c651200409abdfeb755bf02f4213b5a51f1d517c7"
+    },
+    {
+      "name": "02-brand.mp3",
+      "sha256": "f042678b3aec5da35fb69c1ff74f362d58ef8bebba02d9bf469fb29e3faac0f0"
+    },
+    {
+      "name": "03-keyboard.mp3",
+      "sha256": "394b0010c84a5cc73a8d82f03da13492cedc663f8340b1c32d239044ef795b6a"
+    },
+    {
+      "name": "04-context.mp3",
+      "sha256": "f2058df4012d20d21f22bd89c6b25606e0f3fc19668e9f97c96e365381be2c27"
+    },
+    {
+      "name": "05-source.mp3",
+      "sha256": "c172fefff926ada89479f5caf47fe36fac8e28b0415202e2949a6c829a031b2b"
+    },
+    {
+      "name": "06-goal-tone.mp3",
+      "sha256": "454120e847265d563300a612c6fb61b43daad9a9b278d201e9a8837ab96a2b34"
+    },
+    {
+      "name": "07-review.mp3",
+      "sha256": "e8770b3391278542de31b43c95973cd68c673293e55d08f04697909f92a20130"
+    },
+    {
+      "name": "08-team.mp3",
+      "sha256": "d45d57fd806070806841dba3cf37961fc574717752d4da43762fb48128c890d2"
+    },
+    {
+      "name": "09-end.mp3",
+      "sha256": "52de98ed972cf7d0713d96b4560a3b3d31b5be0c8e430e7f2472a50ebea1d3ba"
+    }
+  ]
+}
