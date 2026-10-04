@@ -3,8 +3,10 @@ import { QueryClient, QueryClientProvider, focusManager, useQuery, useMutation, 
 import { useEffect, type ReactNode } from 'react';
 import { AppState } from 'react-native';
 import { z } from 'zod';
-import { profileSchema, roomSchema, subtextStatusSchema, writingStyleSchema, reminderSchema, type Network, type WritingTone } from '@/types/subtext';
+import { profileSchema, roomSchema, subtextStatusSchema, writingStyleSchema, reminderSchema, type Network, type Room, type WritingTone } from '@/types/subtext';
 import { withDeadline } from './deadline';
+import { usePreferences } from '@/features/preferences';
+import { isDemoPerson } from '@/features/subtext/conversationPresentation';
 import { t } from '@/i18n';
 
 declare class SubtextModule extends NativeModule<{ onChanged: () => void }> {
@@ -105,7 +107,11 @@ export function SubtextProvider({ children }: { children: ReactNode }) {
   return <QueryClientProvider client={subtextCache}>{children}</QueryClientProvider>;
 }
 export function useSubtextStatus() { return useQuery({ queryKey: ['subtext', 'status'], queryFn: subtext.status, refetchInterval: 10000 }); }
-export function useRooms() { return useQuery({ queryKey: ['subtext', 'rooms'], queryFn: subtext.rooms }); }
+const demoRooms = (rooms: Room[]) => rooms.filter(isDemoPerson);
+export function useRooms() {
+  const demoMode = usePreferences(s => s.demoMode);
+  return useQuery({ queryKey: ['subtext', 'rooms'], queryFn: subtext.rooms, select: demoMode ? demoRooms : undefined });
+}
 export function useRoom(id: string) { return useQuery({ queryKey: ['subtext', 'room', id], queryFn: () => subtext.room(id), enabled: !!id, staleTime: 0, retry: false }); }
 export function useSyncRoom(id: string, enabled: boolean, updatedAt = 0) {
   return useQuery({ // A new inbox timestamp requests recent messages while the saved room stays visible.

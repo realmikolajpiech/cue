@@ -279,9 +279,14 @@ class WhatsAppRepository(
     }
 
     private fun installAndConnect(candidate: Bridge, token: Long, pairing: Boolean) {
-        connectionJob?.cancel()
-        timeoutJob?.cancel()
         synchronized(bridgeLock) {
+            // A newer attempt owns the connection; this bridge's events would be ignored anyway.
+            if (generation.get() != token) {
+                runCatching { candidate.close() }
+                return
+            }
+            connectionJob?.cancel()
+            timeoutJob?.cancel()
             runCatching { bridge?.close() }
             bridge = candidate
         }

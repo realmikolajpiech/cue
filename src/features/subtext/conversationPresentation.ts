@@ -6,6 +6,12 @@ export const networkName = (network: Network) => ({ messenger: 'Messenger', what
 export function normalizeSearch(value: string) {
   return value.toLocaleLowerCase('pl-PL').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ł/g, 'l').trim();
 }
+// Demo mode hides every conversation except these people, so the app can be shown publicly.
+const demoPeople = [['marcel', 'chudyba'], ['mikolaj', 'piech']];
+export function isDemoPerson(room: Room) {
+  const name = normalizeSearch(room.name);
+  return demoPeople.some(words => words.every(word => name.includes(word)));
+}
 export function filterConversations(rooms: Room[], search: string, network: InboxFilter) {
   const words = normalizeSearch(search).split(/\s+/).filter(Boolean);
   return rooms.filter(room => (network === 'all' || room.network === network) &&

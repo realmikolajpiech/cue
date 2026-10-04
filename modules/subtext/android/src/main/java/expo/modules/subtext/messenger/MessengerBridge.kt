@@ -300,19 +300,28 @@ open class MessengerRepository(
     }
 
     private fun connect(session: String) {
-        if (mutableState.value.phase == MessengerPhase.CONNECTING) return
+        // Several callers restore at startup; claim the attempt synchronously so only one bridge is built.
+        val token = synchronized(bridgeLock) {
+            if (mutableState.value.phase == MessengerPhase.CONNECTING) return
+            mutableState.value = MessengerState(MessengerPhase.CONNECTING, "Connecting to ${service.displayName}")
+            generation.incrementAndGet()
+        }
         scope.launch {
-            val token = generation.incrementAndGet()
             runCatching { newBridge(session, token) }
                 .onSuccess { installAndConnect(it, token) }
-                .onFailure(::markConnectionFailure)
+                .onFailure { if (generation.get() == token) markConnectionFailure(it) }
         }
     }
 
     private fun installAndConnect(candidate: NativeMessagingBridge, token: Long) {
-        connectionJob?.cancel()
-        connectionTimeoutJob?.cancel()
         synchronized(bridgeLock) {
+            // A newer attempt owns the connection; this bridge's events would be ignored anyway.
+            if (generation.get() != token) {
+                runCatching { candidate.disconnect() }
+                return
+            }
+            connectionJob?.cancel()
+            connectionTimeoutJob?.cancel()
             runCatching { bridge?.disconnect() }
             bridge = candidate
         }

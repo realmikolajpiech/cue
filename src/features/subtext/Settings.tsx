@@ -19,6 +19,7 @@ export default function Settings() {
   const dark = useAppearance(s => s.dark); const toggleTheme = useAppearance(s => s.toggleTheme);
   const developerMode = usePreferences(s => s.developerMode);
   const toggleDeveloperMode = usePreferences(s => s.toggleDeveloperMode);
+  const demoMode = usePreferences(s => s.demoMode); const toggleDemoMode = usePreferences(s => s.toggleDemoMode);
   const [advanced, setAdvanced] = useState(false);
   const selectPerson = useSubtextPreferences(s => s.selectPerson);
   const connected = [status?.messenger.phase === 'CONNECTED' && 'Messenger', status?.whatsapp.phase === 'CONNECTED' && 'WhatsApp', status?.instagram.phase === 'CONNECTED' && 'Instagram'].filter(Boolean);
@@ -55,6 +56,8 @@ export default function Settings() {
       <SettingsDivider />
       <SettingsRow icon="message" title={t('common.exampleConversation')} subtitle={demo.isPending ? t('settings.openingExample') : undefined} disabled={!status?.available} busy={demo.isPending}
         onPress={() => demo.mutate(async () => { const id = await subtext.demo(); selectPerson(id); router.push({ pathname: '/person/[id]', params: { id } }); })} />
+      <SettingsDivider />
+      <SettingsToggle icon="accounts" title={t('settings.demoMode')} subtitle={t('settings.demoModeSubtitle')} value={demoMode} onValueChange={toggleDemoMode} />
       <SettingsDivider />
       <SettingsRow icon="lock" title={t('settings.privacy')} onPress={() => router.push('/settings-privacy')} />
       <SettingsDivider />

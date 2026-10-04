@@ -217,7 +217,9 @@
     "privacy": "Data & privacy",
     "advanced": "Advanced",
     "developerMode": "Developer mode",
-    "developerModeSubtitle": "Show diagnostic tools"
+    "developerModeSubtitle": "Show diagnostic tools",
+    "demoMode": "Demo mode",
+    "demoModeSubtitle": "Show only Marcel Chudyba and Mikołaj Piech"
   },
   "keyboard": {
     "intro": "Use Cue suggestions without leaving your messenger.",

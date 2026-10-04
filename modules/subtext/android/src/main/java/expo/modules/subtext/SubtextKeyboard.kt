@@ -73,10 +73,52 @@ class SubtextKeyboard : LatinIME() {
   // A first message to someone without a conversation: the context the user gave, while composing it.
   private var openerContext: String? = null
   private var composingOpener = false
+  // Whatever the user had open survives the keyboard hiding (app switch, minimise) until they leave it on purpose.
+  // For LOADING, replies stay empty while the generation behind [token] keeps running in the background.
+  private data class Parked(val app: String, val mode: Mode, val selected: String?, val opener: String?,
+    val composingOpener: Boolean, val goalAfterChoice: Boolean, val generateAfterChoice: Boolean,
+    val replies: List<JSONObject>, val index: Int, val draft: String, val editorText: String?, val error: String,
+    val at: Long, val token: Int?)
+  private var parked: Parked? = null
+  // A background generation the visible keyboard is waiting on again after being restored.
+  private var adoptedToken = -1
+  // Text the user had typed into the search or goal field, put back when that editor is rebuilt.
+  private var restoredEditorText: String? = null
+  private fun backgroundLoading() = parked?.token != null && job?.isActive == true
+  private fun park() {
+    if (mode == Mode.TYPING || (mode == Mode.REPLIES && replies.isEmpty())) return
+    val loading = mode == Mode.LOADING
+    if (loading && job?.isActive != true) return
+    parked = Parked(currentInputEditorInfo?.packageName.orEmpty(), mode, selected, openerContext, composingOpener,
+      goalAfterChoice, generateAfterChoice, if (loading) emptyList() else replies, replyIndex, draft,
+      if (isEditing()) searchEditor?.text?.toString() else null, errorMessage, System.currentTimeMillis(), if (loading) revision else null)
+  }
+  private fun restoreParked(info: EditorInfo?): Boolean {
+    val saved = parked ?: return false
+    if (!available || info?.packageName.orEmpty() != saved.app || mode != Mode.TYPING) return false
+    if (System.currentTimeMillis() - saved.at > PARKED_TTL_MS || (saved.token != null && job?.isActive != true)) { parked = null; return false }
+    // Replies only make sense against the text they were written for.
+    val needsDraft = saved.mode == Mode.LOADING || saved.mode == Mode.REPLIES || saved.mode == Mode.ERROR
+    if (needsDraft && readDraft() != saved.draft) return false
+    selected = saved.selected; openerContext = saved.opener; composingOpener = saved.composingOpener
+    goalAfterChoice = saved.goalAfterChoice; generateAfterChoice = saved.generateAfterChoice
+    draft = saved.draft; undo = null; errorMessage = saved.error; restoredEditorText = saved.editorText
+    when (saved.mode) {
+      Mode.LOADING -> adoptedToken = saved.token ?: -1
+      Mode.REPLIES -> { replies = saved.replies; replyIndex = saved.index.coerceIn(0, saved.replies.lastIndex) }
+      Mode.SEARCH -> searchRooms = rooms()
+      Mode.GOAL -> if (selected == null && !composingOpener) { restoredEditorText = null; return false }
+      else -> Unit
+    }
+    open(saved.mode)
+    return true
+  }
+
   private var goalSelectionStart = -1
   private var goalSelectionEnd = -1
   private val consumedHardwareKeys = mutableSetOf<Int>()
   private val runtime get() = SubtextRuntime.get(this)
+  private companion object { const val PARKED_TTL_MS = 15 * 60_000L }
   private val surface get() = Settings.getValues()?.mColors?.get(ColorType.MAIN_BACKGROUND) ?: getColor(R.color.cue_login_background)
   private val ink get() = Settings.getValues()?.mColors?.get(ColorType.KEY_TEXT) ?: getColor(R.color.cue_login_text)
   private val dark get() = Color.luminance(surface) < 0.3
@@ -96,7 +138,8 @@ class SubtextKeyboard : LatinIME() {
   override fun onStartInput(attribute: EditorInfo?, restarting: Boolean) {
     pickerMotion?.cancel(); toolbarMotion?.cancel(); panelMotion.cancel()
     // A new editor is a new recipient decision, even inside the same messaging app.
-    revision++; job?.cancel()
+    park()
+    revision++; adoptedToken = -1; if (!backgroundLoading()) job?.cancel()
     if (!restarting) { selected = null; undo = null; goalAfterChoice = false; openerContext = null; composingOpener = false }
     endSearch(); restoreKeys()
     mode = Mode.TYPING
@@ -106,7 +149,7 @@ class SubtextKeyboard : LatinIME() {
 
   override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
     super.onStartInputView(info, restarting)
-    if (::panel.isInitialized) render()
+    if (::panel.isInitialized && !restoreParked(info)) render()
   }
 
   override fun onCreateInputView(): View = super.onCreateInputView().also(::attach)
@@ -187,6 +230,7 @@ class SubtextKeyboard : LatinIME() {
     val returningKeys = fullPanel(mode)
     pickerMotion?.cancel(); toolbarMotion?.cancel(); panelMotion.cancel()
     val toolbarBefore = toolbarMotion?.capture(panel.getChildAt(0))
+    parked = null; adoptedToken = -1
     revision++; job?.cancel(); goalAfterChoice = false; composingOpener = false; endSearch(); restoreKeys(); mode = Mode.TYPING; render(animate = !returningKeys)
     toolbarMotion?.change(toolbarBefore, panel.getChildAt(0))
     if (returningKeys) pickerMotion?.appear()
@@ -331,7 +375,8 @@ class SubtextKeyboard : LatinIME() {
   }
 
   private fun renderPeople() {
-    val oldQuery = searchEditor?.text?.toString().orEmpty()
+    val oldQuery = searchEditor?.text?.toString() ?: restoredEditorText.orEmpty()
+    restoredEditorText = null
     val toolbar = brandToolbar()
     val editor = EditText(this).apply {
       setSingleLine(); textSize = 15f; setTextColor(ink); setHintTextColor(muted)
@@ -471,8 +516,9 @@ class SubtextKeyboard : LatinIME() {
       isCursorVisible = true; showSoftInputOnFocus = false
       gravity = Gravity.TOP or Gravity.START; background = rounded(card, 12)
       setPadding(dp(12), dp(10), dp(12), dp(10)); minLines = 2; maxLines = 3
-      setText(initial); setSelection(text.length)
+      setText(restoredEditorText ?: initial); setSelection(text.length)
     }
+    restoredEditorText = null
     searchEditor = editor
     val body = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(12), 0, dp(12), dp(4)) }
     body.addView(editor, LinearLayout.LayoutParams(-1, dp(68)))
@@ -580,12 +626,14 @@ class SubtextKeyboard : LatinIME() {
   private fun generate(again: Boolean = false) {
     val id = selected
     val opener = if (id == null) openerContext ?: return open(Mode.PEOPLE) else null
+    // A generation left running for another editor must not block this one.
+    if (job?.isActive == true && parked?.token != null && adoptedToken == -1) { job?.cancel(); parked = null }
     if (job?.isActive == true || !available) return
     // Everything shown so far was not good enough; the next round should go elsewhere.
     rejectedReplies = if (again) (rejectedReplies + replies.map { it.optString("text") }.filter(String::isNotBlank)).takeLast(6) else emptyList()
     val snapshot = readDraft()
     if (snapshot == null) { errorMessage = s(R.string.cue_kb_draft_unreadable); open(Mode.ERROR); return }
-    draft = snapshot; undo = null
+    draft = snapshot; undo = null; parked = null; adoptedToken = -1
     val token = revision
     val tone = runtime.selectedTone(id)
     open(Mode.LOADING)
@@ -594,17 +642,29 @@ class SubtextKeyboard : LatinIME() {
         val profile = withContext(Dispatchers.IO) { JSONObject(
           if (id != null) runtime.analyze(id, snapshot, tone, rejected = rejectedReplies)
           else runtime.openNewPerson("", opener.orEmpty(), snapshot, rejectedReplies)) }
-        if (token != revision) return@launch
         val suggestions = profile.getJSONArray("suggestions")
-        replies = (0 until suggestions.length()).map { suggestions.getJSONObject(it) }
+        val fresh = (0 until suggestions.length()).map { suggestions.getJSONObject(it) }
           .filter { it.optString("action") == "no_reply" || it.optString("text").isNotBlank() }
+        val waiting = parked?.takeIf { it.token == token }
+        if (token != revision && token != adoptedToken) {
+          // Finished while the keyboard was hidden: keep the replies for when the user comes back.
+          if (waiting != null) parked = if (fresh.isEmpty()) null else waiting.copy(mode = Mode.REPLIES, replies = fresh, index = 0, at = System.currentTimeMillis(), token = null)
+          return@launch
+        }
+        parked = null; adoptedToken = -1
+        replies = fresh
         if (replies.isEmpty()) throw IllegalStateException("Brak propozycji")
         replyIndex = 0; open(Mode.REPLIES)
       } catch (error: Exception) {
         if (error is CancellationException) throw error
-        if (token == revision) {
-          errorMessage = if (!runtime.prefs.getBoolean("cloud", false)) s(R.string.cue_kb_enable_ai) else s(R.string.cue_kb_generate_failed)
+        val message = if (!runtime.prefs.getBoolean("cloud", false)) s(R.string.cue_kb_enable_ai) else s(R.string.cue_kb_generate_failed)
+        if (token == revision || token == adoptedToken) {
+          parked = null; adoptedToken = -1
+          errorMessage = message
           open(Mode.ERROR)
+        } else parked?.takeIf { it.token == token }?.let {
+          // Failed while hidden: the user sees the error on return instead of a silently reset keyboard.
+          parked = it.copy(mode = Mode.ERROR, error = message, at = System.currentTimeMillis(), token = null)
         }
       }
     }
@@ -612,6 +672,7 @@ class SubtextKeyboard : LatinIME() {
 
   private var replyIndex = 0
   private var bubbleEnter = 0
+  private var tabFrom = -1
   private fun showReplies(body: LinearLayout) {
     replyIndex = replyIndex.coerceIn(0, replies.lastIndex)
     val suggestion = replies[replyIndex]
@@ -620,11 +681,17 @@ class SubtextKeyboard : LatinIME() {
       if (index == replyIndex || index !in replies.indices) return
       val toolbarBefore = toolbarMotion?.capture(panel.getChildAt(0))
       bubbleEnter = if (index > replyIndex) 1 else -1
+      tabFrom = replyIndex
       replyIndex = index; render()
       toolbarMotion?.change(toolbarBefore, panel.getChildAt(0))
     }
+    // One accent bar slides between the tabs; it is null when there is only one reply.
+    var indicator: View? = null
+    val tabViews = mutableListOf<View>()
+    fun tabX(index: Int, bar: View) = tabViews.getOrNull(index)?.let { it.left + (it.width - bar.width) / 2f } ?: 0f
     if (replies.size > 1) {
       // Text tabs like the style picker: the chosen one is bold with a short accent bar underneath.
+      val frame = FrameLayout(this)
       val tabs = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
       replies.forEachIndexed { index, reply ->
         val active = index == replyIndex
@@ -632,57 +699,138 @@ class SubtextKeyboard : LatinIME() {
           textSize = if (active) 15f else 14f; maxLines = 1; ellipsize = TextUtils.TruncateAt.END; setPadding(dp(6), 0, dp(6), dp(4))
           typeface = Typeface.create(Typeface.DEFAULT, if (active) Typeface.BOLD else Typeface.NORMAL)
           setTextColor(if (active) accent else muted)
-          val bar = android.graphics.drawable.LayerDrawable(arrayOf(rounded(if (active) accent else Color.TRANSPARENT, 2))).apply {
-            setLayerSize(0, dp(22), dp(3)); setLayerGravity(0, Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL); setLayerInsetBottom(0, dp(2))
-          }
-          background = RippleDrawable(ColorStateList.valueOf(0x225F78B8), bar, rounded(Color.WHITE, 12))
+          background = RippleDrawable(ColorStateList.valueOf(0x225F78B8), null, rounded(Color.WHITE, 12))
           contentDescription = s(R.string.cue_kb_suggestion_description, index + 1, replies.size, text) + if (active) s(R.string.cue_kb_selected) else ""
-        }, LinearLayout.LayoutParams(0, dp(40), 1f))
+        }.also(tabViews::add), LinearLayout.LayoutParams(0, dp(40), 1f))
       }
-      body.addView(tabs, LinearLayout.LayoutParams(-1, dp(44)).apply { topMargin = dp(2) })
-    }
-    val scroll = ScrollView(this).apply { isVerticalScrollBarEnabled = true }
-    val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-    // The reply sits in a soft outgoing chat bubble, tail at the bottom right like a sent message.
-    val bubble = label(if (noReply) s(R.string.cue_kb_no_reply_needed) else suggestion.getString("text"), if (noReply) 17f else 19f, noReply).apply {
-      setLineSpacing(dp(4).toFloat(), 1f); setTextIsSelectable(false); setPadding(dp(18), dp(14), dp(18), dp(14))
-      val big = dp(22).toFloat(); val tail = dp(6).toFloat()
-      background = GradientDrawable().apply {
-        setColor(androidx.core.graphics.ColorUtils.blendARGB(card, accent, if (dark) 0.18f else 0.12f))
-        cornerRadii = floatArrayOf(big, big, big, big, tail, tail, big, big)
+      frame.addView(tabs, FrameLayout.LayoutParams(-1, -1))
+      val bar = View(this).apply { background = rounded(accent, 2) }
+      frame.addView(bar, FrameLayout.LayoutParams(dp(22), dp(3), Gravity.BOTTOM or Gravity.START).apply { bottomMargin = dp(4) })
+      indicator = bar
+      body.addView(frame, LinearLayout.LayoutParams(-1, dp(44)).apply { topMargin = dp(2) })
+      val from = tabFrom; tabFrom = -1
+      bar.doOnPreDraw {
+        val target = tabX(replyIndex, bar)
+        if (from !in replies.indices || !android.animation.ValueAnimator.areAnimatorsEnabled()) { bar.translationX = target; return@doOnPreDraw }
+        // The bar slides over, stretching mid-flight like a drop, while the tabs it passes ripple upward.
+        val origin = tabX(from, bar)
+        val settle = android.view.animation.OvershootInterpolator(1.2f)
+        android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
+          duration = 420
+          addUpdateListener { animator ->
+            val f = animator.animatedFraction
+            bar.translationX = origin + (target - origin) * settle.getInterpolation(f)
+            bar.scaleX = 1f + 1.4f * kotlin.math.sin(Math.PI * (f * 1.5f).coerceAtMost(1f)).toFloat()
+          }
+          start()
+        }
+        val low = minOf(from, replyIndex); val high = maxOf(from, replyIndex)
+        for (i in low..high) {
+          val tab = tabViews[i]; val step = kotlin.math.abs(i - from)
+          tab.animate().translationY(-dp(4).toFloat()).setStartDelay(step * 55L).setDuration(130)
+            .setInterpolator(android.view.animation.DecelerateInterpolator())
+            .withEndAction { tab.animate().translationY(0f).setStartDelay(0).setDuration(320).setInterpolator(android.view.animation.OvershootInterpolator(2.2f)).start() }
+            .start()
+        }
       }
-      elevation = dp(1).toFloat()
     }
-    content.addView(bubble, LinearLayout.LayoutParams(-2, -2).apply { gravity = Gravity.END; setMargins(dp(24), dp(10), dp(4), dp(2)) })
+    val scroll = ScrollView(this).apply { isVerticalScrollBarEnabled = true; clipChildren = false; clipToPadding = false }
+    val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; clipChildren = false }
+    // The reply sits in a full-width card leaning right, its corners softened.
+    val bubble = label(if (noReply) s(R.string.cue_kb_no_reply_needed) else suggestion.getString("text"), 15f, noReply).apply {
+      setLineSpacing(dp(3).toFloat(), 1f); setTextIsSelectable(false); setPadding(dp(30), dp(16), dp(30), dp(16))
+      background = KeyboardSlantBubble(
+        androidx.core.graphics.ColorUtils.blendARGB(card, accent, if (dark) 0.18f else 0.12f),
+        androidx.core.graphics.ColorUtils.setAlphaComponent(accent, if (dark) 0x38 else 0x28),
+        dp(16).toFloat(), dp(14).toFloat(), dp(1).toFloat())
+    }
+    content.addView(bubble, LinearLayout.LayoutParams(-1, -2).apply { setMargins(0, dp(4), 0, 0) })
     if (bubbleEnter != 0) {
-      // A small plush settle: the new bubble drifts in from the swipe side and gently overshoots.
+      // The next cloud glides in from the side it was swiped from and settles with a soft overshoot.
       val direction = bubbleEnter; bubbleEnter = 0
-      bubble.alpha = 0.3f; bubble.scaleX = 0.93f; bubble.scaleY = 0.95f; bubble.translationX = direction * dp(18).toFloat()
+      bubble.alpha = 0f
       bubble.doOnPreDraw {
-        it.pivotX = it.width.toFloat(); it.pivotY = it.height.toFloat()
-        it.animate().alpha(1f).scaleX(1f).scaleY(1f).translationX(0f).setDuration(360)
-          .setInterpolator(android.view.animation.OvershootInterpolator(1.5f)).start()
+        it.translationX = direction * it.width * 0.45f; it.rotation = direction * 3f; it.scaleX = 0.95f; it.scaleY = 0.95f; it.alpha = 0.2f
+        it.animate().alpha(1f).scaleX(1f).scaleY(1f).translationX(0f).rotation(0f).setDuration(420)
+          .setInterpolator(android.view.animation.OvershootInterpolator(1.1f)).start()
       }
     }
     val reason = suggestion.optString("reason").ifBlank { if (noReply) s(R.string.cue_kb_come_back_later) else "" }
     if (reason.isNotBlank()) {
-      content.addView(label(s(R.string.cue_kb_why), 12f, true).apply { setTextColor(accent); setPadding(dp(4), dp(16), dp(4), dp(4)) })
-      content.addView(label(reason, 14f).apply { setTextColor(muted); setLineSpacing(dp(2).toFloat(), 1f); setPadding(dp(4), 0, dp(4), 0) })
+      content.addView(label(s(R.string.cue_kb_why), 12f, true).apply { setTextColor(accent); setPadding(dp(4), dp(12), dp(4), dp(4)) })
+      content.addView(label(reason, 13f).apply { setTextColor(muted); setLineSpacing(dp(2).toFloat(), 1f); setPadding(dp(4), 0, dp(4), 0) })
     }
     scroll.addView(content)
-    // Swipe across the suggestion to move between reply types.
-    var downX = 0f; var downY = 0f
-    scroll.setOnTouchListener { _, event ->
+    // Drag the cloud sideways like a carousel card; past a third of the width it flies off to the next reply.
+    var downX = 0f; var downY = 0f; var dragging = false
+    val slop = android.view.ViewConfiguration.get(this).scaledTouchSlop
+    fun follow(shift: Float) {
+      val width = bubble.width.coerceAtLeast(1).toFloat()
+      bubble.translationX = shift; bubble.rotation = shift / width * 4f
+      bubble.alpha = 1f - (kotlin.math.abs(shift) / width).coerceAtMost(0.5f)
+      val bar = indicator ?: return
+      val neighbour = replyIndex + if (shift < 0) 1 else -1
+      if (neighbour !in replies.indices) return
+      val progress = (kotlin.math.abs(shift) / width).coerceAtMost(1f)
+      bar.translationX = tabX(replyIndex, bar) + (tabX(neighbour, bar) - tabX(replyIndex, bar)) * progress * 0.6f
+    }
+    // Tapping the reply inserts it. Handled here rather than with a click listener so the drag keeps working.
+    val tappable = !noReply
+    var pressed = false
+    fun press(down: Boolean) {
+      pressed = down
+      bubble.animate().scaleX(if (down) 0.97f else 1f).scaleY(if (down) 0.97f else 1f).setDuration(if (down) 90 else 240)
+        .setInterpolator(if (down) android.view.animation.DecelerateInterpolator() else android.view.animation.OvershootInterpolator(2.5f)).start()
+    }
+    if (tappable) {
+      bubble.contentDescription = s(R.string.cue_kb_insert) + ": " + bubble.text
+      ViewCompat.addAccessibilityAction(bubble, s(R.string.cue_kb_insert)) { _, _ -> insert(suggestion.getString("text")); true }
+    }
+    scroll.setOnTouchListener { view, event ->
       when (event.actionMasked) {
-        android.view.MotionEvent.ACTION_DOWN -> { downX = event.x; downY = event.y }
-        android.view.MotionEvent.ACTION_UP -> {
+        android.view.MotionEvent.ACTION_DOWN -> {
+          downX = event.x; downY = event.y; dragging = false
+          val y = event.y + scroll.scrollY
+          if (tappable && event.x >= bubble.left && event.x <= bubble.right && y >= bubble.top && y <= bubble.bottom) press(true)
+        }
+        android.view.MotionEvent.ACTION_MOVE -> {
           val dx = event.x - downX
-          if (kotlin.math.abs(dx) > dp(60) && kotlin.math.abs(dx) > 2 * kotlin.math.abs(event.y - downY)) { pick(replyIndex + if (dx < 0) 1 else -1); return@setOnTouchListener true }
+          if (pressed && (kotlin.math.abs(dx) > slop || kotlin.math.abs(event.y - downY) > slop)) press(false)
+          if (!dragging && kotlin.math.abs(dx) > slop && kotlin.math.abs(dx) > 1.5f * kotlin.math.abs(event.y - downY)) {
+            dragging = true; view.parent?.requestDisallowInterceptTouchEvent(true); bubble.animate().cancel()
+          }
+          if (dragging) {
+            val open = (replyIndex + if (dx < 0) 1 else -1) in replies.indices
+            follow(if (open) dx else dx * 0.25f)
+            return@setOnTouchListener true
+          }
+        }
+        android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> if (pressed) {
+          press(false)
+          if (event.actionMasked == android.view.MotionEvent.ACTION_UP) {
+            val text = suggestion.getString("text")
+            bubble.postDelayed({ if (mode == Mode.REPLIES) insert(text) }, 140)
+            return@setOnTouchListener true
+          }
+        } else if (dragging) {
+          dragging = false
+          val dx = event.x - downX
+          val target = replyIndex + if (dx < 0) 1 else -1
+          if (event.actionMasked == android.view.MotionEvent.ACTION_UP && target in replies.indices && kotlin.math.abs(dx) > bubble.width / 3.5f) {
+            val side = if (dx < 0) -1f else 1f
+            bubble.animate().translationX(side * bubble.width).rotation(side * 7f).alpha(0f).setDuration(160)
+              .setInterpolator(android.view.animation.AccelerateInterpolator()).withEndAction { pick(target) }.start()
+          } else {
+            bubble.animate().translationX(0f).rotation(0f).alpha(1f).setDuration(380)
+              .setInterpolator(android.view.animation.OvershootInterpolator(2f)).start()
+            indicator?.let { bar -> bar.animate().translationX(tabX(replyIndex, bar)).setDuration(320).setInterpolator(android.view.animation.OvershootInterpolator(2f)).start() }
+          }
+          return@setOnTouchListener true
         }
       }
       false
     }
-    body.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f).apply { topMargin = dp(10) })
+    body.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f).apply { topMargin = dp(6) })
     val footer = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
     footer.addView(button(s(R.string.cue_kb_other_ideas), false) { generate(again = true) }.apply {
       textSize = 14f; setTextColor(accent); contentDescription = s(R.string.cue_kb_other_ideas_description)
@@ -893,9 +1041,10 @@ class SubtextKeyboard : LatinIME() {
   }
   override fun onFinishInputView(finishingInput: Boolean) {
     pickerMotion?.cancel(); toolbarMotion?.cancel(); panelMotion.cancel()
-    revision++; job?.cancel(); endSearch(); restoreKeys(); mode = Mode.TYPING
+    park()
+    revision++; adoptedToken = -1; if (!backgroundLoading()) job?.cancel(); endSearch(); restoreKeys(); mode = Mode.TYPING
     super.onFinishInputView(finishingInput)
   }
-  override fun onFinishInput() { pickerMotion?.cancel(); toolbarMotion?.cancel(); panelMotion.cancel(); revision++; job?.cancel(); selected = null; undo = null; openerContext = null; composingOpener = false; endSearch(); restoreKeys(); mode = Mode.TYPING; super.onFinishInput() }
+  override fun onFinishInput() { pickerMotion?.cancel(); toolbarMotion?.cancel(); panelMotion.cancel(); park(); revision++; adoptedToken = -1; if (!backgroundLoading()) job?.cancel(); selected = null; undo = null; openerContext = null; composingOpener = false; endSearch(); restoreKeys(); mode = Mode.TYPING; super.onFinishInput() }
   override fun onDestroy() { chevronAnimator?.cancel(); pickerMotion?.cancel(); toolbarMotion?.cancel(); panelMotion.cancel(); scope.cancel(); super.onDestroy() }
 }

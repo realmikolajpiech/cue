@@ -219,7 +219,9 @@
     "privacy": "Dane i prywatność",
     "advanced": "Zaawansowane",
     "developerMode": "Tryb deweloperski",
-    "developerModeSubtitle": "Pokaż narzędzia diagnostyczne"
+    "developerModeSubtitle": "Pokaż narzędzia diagnostyczne",
+    "demoMode": "Tryb demo",
+    "demoModeSubtitle": "Pokazuj tylko Marcela Chudybę i Mikołaja Piecha"
   },
   "keyboard": {
     "intro": "Korzystaj z podpowiedzi Cue bez wychodzenia z komunikatora.",
