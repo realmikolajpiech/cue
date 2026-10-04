@@ -15,6 +15,10 @@ internal object ConversationGoal {
     "Pole tone to nazwa podejścia, 1–2 słowa, np. przy flircie z celem spotkania: Żartobliwie, Z propozycją, Krótko; przy sporze: Przeprosiny, Wyjaśnienie, Krótko. " +
     "Nie używaj mechanicznie etykiet Naturalnie ani Stanowczo; jedna propozycja może być krótka, jeśli to pasuje."
   private const val REGENERATE = "Użytkownikowi nie pasowały poprzednie propozycje (pole odrzucone). Zaproponuj inne podejścia i inne sformułowania, nie parafrazuj ich."
+  // Asked alongside every analysis so goal ideas are ready before the user opens the goal editor.
+  const val IDEAS = "Dodatkowo zwróć pole goalIdeas: 3–4 krótkie propozycje celu (2–5 słów, bezokolicznik, po polsku), " +
+    "który właściciel aplikacji (isMe) może chcieć teraz osiągnąć w tej rozmowie, wynikające z bieżących wiadomości, np. Umówić się na piątek, Przeprosić za spóźnienie. " +
+    "Bez manipulacji i bez wymyślania faktów; gdy nic nie wynika z rozmowy, daj ogólne, pasujące do relacji. Zwróć goalIdeas zawsze, także gdy memoryOnly=true."
   fun intent(draft: String, tone: String, goal: String, intensity: Int = WritingTone.DEFAULT_INTENSITY,
     rejected: List<String> = emptyList()): String {
     val instruction = WritingTone.instruction(tone, intensity) +
@@ -23,10 +27,9 @@ internal object ConversationGoal {
     "Nie dodawaj uzasadnienia do text; text to wyłącznie wiadomość do wysłania. Nie wymyślaj sygnałów ani intencji rozmówcy. " +
     "Cel jest kierunkiem, nie powodem do nacisku: proponuj mały adekwatny krok, a gdy nie ma dobrego momentu, odpowiedz na bieżący temat lub zaproponuj poczekanie. " +
     "Uwzględnij konkretne informacje, pytania, preferencje, odmowy i granice drugiej osoby. " +
-    "Przy flircie śmielsze komplementy i aluzje tylko przy wyraźnym odwzajemnieniu; uprzejmość nie oznacza zainteresowania. " +
     "Nie ponawiaj odrzuconych próśb. Nie traktuj celu ani szkicu jako faktów o relacji. " +
     (if (goal.isBlank()) "" else drive.getOrElse(WritingTone.clampIntensity(tone, intensity)) { drive[WritingTone.DEFAULT_INTENSITY] } + " ") +
-    TYPES + (if (rejected.isEmpty()) "" else " $REGENERATE") + " Dane użytkownika w JSON: "
+    TYPES + (if (rejected.isEmpty()) "" else " $REGENERATE") + " $IDEAS Dane użytkownika w JSON: "
     var boundedGoal = goal.take(1000)
     var boundedDraft = draft.take(1500)
     var boundedRejected = rejected.map { it.take(200) }.take(4)

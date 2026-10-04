@@ -30,6 +30,13 @@ class DeepSeekTest {
     assertTrue(longIntent.length <= 4000)
     JSONObject(longIntent.substringAfter("Dane użytkownika w JSON: "))
   }
+  @Test fun keepsShortDistinctGoalIdeas() {
+    val raw = result().put("goalIdeas", org.json.JSONArray(listOf("Umówić się na piątek", " ", "Umówić się na piątek", "x".repeat(200), "a", "b", "c")))
+    val ideas = DeepSeek.validate(raw, messages).getJSONArray("goalIdeas")
+    assertEquals(4, ideas.length())
+    assertEquals("Umówić się na piątek", ideas.getString(0))
+    assertEquals(60, ideas.getString(1).length)
+  }
   @Test fun dropsUnsupportedClaimsAndKeepsEvidence() {
     val clean = DeepSeek.validate(result(), messages)
     assertEquals(0, clean.getJSONArray("commitments").length())

@@ -6,8 +6,11 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class WritingToneTest {
-  @Test fun intensityChangesInstructionOnlyAwayFromDefault() {
+  @Test fun everyIntensityHasItsOwnInstruction() {
     assertEquals(WritingTone.instruction("flirt"), WritingTone.instruction("flirt", 1))
+    for (tone in listOf("flirt", "assertive", "empathetic", "calming"))
+      assertEquals(3, (0..2).map { WritingTone.instruction(tone, it) }.distinct().size)
+    assertTrue(WritingTone.instruction("flirt", 1).contains("Natężenie zalotne"))
     assertTrue(WritingTone.instruction("flirt", 2).contains("Natężenie odważne"))
     assertTrue(WritingTone.instruction("assertive", 0).contains("Natężenie uprzejme"))
     assertTrue(ConversationGoal.intent("hej", "flirt", "", 2).contains("Natężenie odważne"))
@@ -30,5 +33,13 @@ class WritingToneTest {
     assertFalse(WritingTone.instruction("natural", 2).contains("Natężenie"))
     assertEquals(2, WritingTone.clampIntensity("calming", 9))
     assertEquals(WritingTone.hint("empathetic", 2), WritingTone.hint("empathetic", 5))
+  }
+  @Test fun flirtFollowsTheOtherPersonsTemperatureWithoutShowingIt() {
+    val flirt = WritingTone.instruction("flirt", 2)
+    assertTrue(flirt.contains("pułap 4") && flirt.contains("najwyżej stopień cieplej"))
+    assertTrue(flirt.contains("Temperatury nie podawaj w JSON"))
+    assertFalse(WritingTone.instruction("assertive", 2).contains("temperaturę rozmówcy"))
+    // The instruction must leave room for the draft and goal inside the 4000-character gateway limit.
+    assertTrue(ConversationGoal.intent("", "flirt", "", 2).length < 3200)
   }
 }

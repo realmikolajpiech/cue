@@ -236,6 +236,7 @@ class SubtextRuntime private constructor(private val context: Context) {
       val profile = DeepSeek.analyze(gateway, recent, intent, memory, images = analysisImages(id, recent))
       check(token == generation.get() && prefs.getBoolean("cloud", false)) { "Analiza anulowana po zmianie ustawień." }
       profile.put("replyDraft", draft)
+      saveGoalIdeas(id, profile)
       store.profile(id, profile)
       if (!room.optBoolean("demo")) store.updateContext(id, profile.getJSONArray("memoryUpdates"), recent, memory.optLong("revision"),
         profile.getJSONArray("reminderUpdates"), memory.optJSONArray("reminders") ?: JSONArray())
@@ -280,8 +281,9 @@ class SubtextRuntime private constructor(private val context: Context) {
       if (recent.length() == 0) return@withLock
       analyzing = id; changed()
       try {
-        val profile = DeepSeek.analyze(gateway, recent, "", memory, memoryOnly = true)
+        val profile = DeepSeek.analyze(gateway, recent, ConversationGoal.IDEAS, memory, memoryOnly = true)
         if (token == generation.get() && prefs.getBoolean("cloud", false)) {
+          saveGoalIdeas(id, profile)
           store.updateContext(id, profile.getJSONArray("memoryUpdates"), recent, memory.optLong("revision"),
             profile.getJSONArray("reminderUpdates"), memory.optJSONArray("reminders") ?: JSONArray())
         }
@@ -295,6 +297,32 @@ class SubtextRuntime private constructor(private val context: Context) {
   }
   private fun styleRooms(id: String?): List<JSONObject> = if (id == null) store.rooms()
     else listOf(requireNotNull(store.room(id)) { "Nie znaleziono rozmowy." })
+  // First-time ideas for a conversation that has had no new message since goal ideas existed.
+  suspend fun prefetchGoalIdeas(id: String) = analysisMutex.withLock {
+    if (goalIdeas(id).isNotEmpty() || !prefs.getBoolean("cloud", false)) return@withLock
+    if (System.currentTimeMillis() < prefs.getLong("memoryQuotaRetryAt", 0)) return@withLock
+    val token = generation.get()
+    val room = store.room(id) ?: return@withLock
+    val all = room.getJSONArray("messages")
+    val recent = JSONArray((maxOf(0, all.length() - 80) until all.length()).map { all.getJSONObject(it) })
+    if (recent.length() == 0) return@withLock
+    val memory = store.memory(id)
+    analyzing = id; changed()
+    try {
+      val profile = DeepSeek.analyze(gateway, recent, ConversationGoal.IDEAS, memory, memoryOnly = true)
+      if (token != generation.get() || !prefs.getBoolean("cloud", false)) return@withLock
+      saveGoalIdeas(id, profile)
+      if (!room.optBoolean("demo")) store.updateContext(id, profile.getJSONArray("memoryUpdates"), recent, memory.optLong("revision"),
+        profile.getJSONArray("reminderUpdates"), memory.optJSONArray("reminders") ?: JSONArray())
+    } finally { analyzing = null; changed() }
+  }
+  fun goalIdeas(id: String): List<String> = runCatching {
+    JSONArray(prefs.getString("goal-ideas:$id", "[]")).let { array -> (0 until array.length()).map(array::getString) }
+  }.getOrDefault(emptyList())
+  private fun saveGoalIdeas(id: String, profile: JSONObject) {
+    val ideas = profile.optJSONArray("goalIdeas") ?: return
+    if (ideas.length() > 0) prefs.edit().putString("goal-ideas:$id", ideas.toString()).apply()
+  }
   fun conversationGoal(id: String): String = prefs.getString("conversation-goal:$id", "") ?: ""
   fun setConversationGoal(id: String, goal: String) {
     requireNotNull(store.room(id)) { "Nie znaleziono rozmowy." }
@@ -315,7 +343,7 @@ class SubtextRuntime private constructor(private val context: Context) {
     prefs.edit().putInt(styleIntensityKey(id, tone), WritingTone.clampIntensity(tone, intensity)).apply()
     changed()
   }
-  private fun styleCacheKey(id: String?, tone: String) = "writing-style-preview:v3:" + (id ?: "general") + ":" + tone
+  private fun styleCacheKey(id: String?, tone: String) = "writing-style-preview:v4:" + (id ?: "general") + ":" + tone
   fun setWritingTone(id: String?, tone: String): String {
     WritingTone.requireValid(tone)
     if (id != null) requireNotNull(store.room(id)) { "Nie znaleziono rozmowy." }

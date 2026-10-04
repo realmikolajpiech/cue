@@ -99,6 +99,10 @@ object DeepSeek {
       output.put(suggestion)
     }
     require(memoryOnly || output.length() > 0) { "AI nie zwróciło podpowiedzi." }
+    raw.optJSONArray("goalIdeas")?.let { ideas ->
+      clean.put("goalIdeas", JSONArray((0 until minOf(ideas.length(), 8)).map { ideas.optString(it).trim().take(60) }
+        .filter { it.isNotBlank() }.distinct().take(4)))
+    }
     return clean.put("suggestions", output).put("createdAt", System.currentTimeMillis()).put("model", MODEL).put("messageCount", messages.length())
   }
 }

@@ -433,14 +433,7 @@ class SubtextKeyboard : LatinIME() {
     body.addView(editor, LinearLayout.LayoutParams(-1, dp(68)))
     // Quick starts fill the field; the user can then add details like the day or time.
     val ideas = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
-    listOf("Umówić się", "Przeprosić", "Postawić granicę", "Wyjaśnić nieporozumienie", "Pogodzić się").forEach { idea ->
-      ideas.addView(button(idea, false) {
-        editor.setText(idea + " "); editor.setSelection(editor.text.length); editor.requestFocus(); syncGoalSelection(editor)
-      }.apply {
-        textSize = 13f; setTextColor(ink); setPadding(dp(12), 0, dp(12), 0)
-        background = RippleDrawable(ColorStateList.valueOf(0x225F78B8), rounded(card, 14), null)
-      }, LinearLayout.LayoutParams(-2, dp(34)).apply { marginEnd = dp(6) })
-    }
+    goalIdeasRow = ideas; fillGoalIdeas(ideas, id); prefetchGoalIdeas(id)
     body.addView(HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false; addView(ideas) },
       LinearLayout.LayoutParams(-1, dp(44)).apply { topMargin = dp(4) })
     panel.addView(body)
@@ -458,6 +451,31 @@ class SubtextKeyboard : LatinIME() {
       }
     }
     panel.announceForAccessibility("Wpisz cel rozmowy. Klawiatura edytuje cel, nie wiadomość.")
+  }
+
+  private val ideasRequested = mutableSetOf<String>()
+  private var goalIdeasRow: LinearLayout? = null
+  private fun fillGoalIdeas(row: LinearLayout, id: String) {
+    row.removeAllViews()
+    runtime.goalIdeas(id).ifEmpty { listOf("Umówić się", "Przeprosić", "Postawić granicę", "Wyjaśnić nieporozumienie") }.forEach { idea ->
+      row.addView(button(idea, false) {
+        val editor = searchEditor ?: return@button
+        editor.setText(idea + " "); editor.setSelection(editor.text.length); editor.requestFocus(); syncGoalSelection(editor)
+      }.apply {
+        textSize = 13f; setTextColor(ink); setPadding(dp(12), 0, dp(12), 0)
+        background = RippleDrawable(ColorStateList.valueOf(0x225F78B8), rounded(card, 14), null)
+      }, LinearLayout.LayoutParams(-2, dp(34)).apply { marginEnd = dp(6) })
+    }
+  }
+  // Conversations analysed before goal ideas existed get them once, as soon as the person is picked.
+  private fun prefetchGoalIdeas(id: String) {
+    if (runtime.goalIdeas(id).isNotEmpty() || !ideasRequested.add(id)) return
+    scope.launch {
+      val ok = try { withContext(Dispatchers.IO) { runtime.prefetchGoalIdeas(id) }; true }
+        catch (error: CancellationException) { throw error } catch (error: Exception) { false }
+      if (!ok) ideasRequested.remove(id)
+      if (mode == Mode.GOAL && selected == id) goalIdeasRow?.let { fillGoalIdeas(it, id) }
+    }
   }
 
   private fun syncGoalSelection(editor: EditText) {
@@ -489,6 +507,7 @@ class SubtextKeyboard : LatinIME() {
 
   private fun choosePerson(room: JSONObject) {
     selected = room.optString("id"); undo = null
+    prefetchGoalIdeas(room.optString("id"))
     val shouldGenerate = generateAfterChoice
     val editGoal = goalAfterChoice; goalAfterChoice = false
     typing()
@@ -677,6 +696,7 @@ class SubtextKeyboard : LatinIME() {
   }
 
   private fun renderTones() {
+    selected?.let(::prefetchGoalIdeas)
     val keys = WritingTone.labels.keys.toList()
     var tone = runtime.selectedTone(selected)
     val navigation = ViewCompat.getRootWindowInsets(panel)?.getInsets(WindowInsetsCompat.Type.navigationBars())?.bottom ?: dp(24)
