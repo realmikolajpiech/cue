@@ -10,58 +10,22 @@ messengers and AI. The release build bundles the JavaScript and does not need Me
 
 ## Getting started
 
-### Requirements
+**Requirements:** Node.js 22.13+, JDK 17 and Android Studio with Android SDK.
 
-- Node.js 22.13 or newer and npm.
-- Android Studio with Android SDK installed.
-- JDK 17.
-- An Android phone or emulator running Android 8.0 or newer, using ARM64 (`arm64-v8a`).
-
-### Setup
-
-1. Clone this GitHub repository.
-2. Open a terminal in the project's root directory.
-3. Install dependencies:
+1. Clone the repository and open a terminal in its folder.
+2. Connect an **ARM64** Android phone with USB debugging enabled, or start an ARM64 emulator.
+3. Install dependencies and launch the app:
 
    ```sh
    npm ci
-   ```
-
-4. Prepare your device:
-   - **Phone:** enable USB debugging, connect it via USB and accept the debugging authorization.
-   - **Emulator:** create an ARM64 virtual device in Android Studio's Device Manager and start it.
-5. Build and launch the app:
-
-   ```sh
    npm run android
    ```
 
-6. Select your phone or emulator if prompted. Leave the development server running in the terminal.
+4. Select your device if prompted.
+5. Follow the onboarding to enable AI, configure the Cue keyboard and connect a messenger.
 
-To build and install a version that runs without the development server:
-
-```sh
-npm run android -- --variant release --no-bundler
-```
-
-### First use
-
-1. Follow the onboarding.
-2. Optionally enable cloud AI analysis using the onboarding switch.
-3. Set up the Cue keyboard directly from onboarding:
-   - Open keyboard settings and enable Cue.
-   - Return to the app and select Cue for typing.
-   - Try it in the test field.
-4. Choose **“Connect a messenger”** and connect Messenger, WhatsApp or Instagram.
-
-AI and keyboard setup can also be completed later in the app's settings.
-
-### Notes
-
-- Expo Go is not supported because the app uses custom native modules.
-- x86/x86_64 emulators are not supported by the bundled native libraries.
-- Internet access is required for messaging connections and AI.
-- The AI provider key is stored on the backend; reviewers do not need to enter it.
+> [!NOTE]
+> Keep the terminal open while testing. Expo Go is not supported.
 
 In Android Studio, open the generated `android/` directory, not the repo root.
 Custom native code lives in `modules/subtext`, configuration in `app.json`
