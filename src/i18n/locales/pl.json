@@ -33,11 +33,11 @@
     "REAUTH_REQUIRED": "Zaloguj się ponownie"
   },
   "connections": {
-    "intro": "Połącz komunikator, aby zobaczyć swoje rozmowy w Cue.",
+    "intro": "Wybierz konto, które chcesz połączyć.",
     "androidOnly": "Połączenie kont wymaga natywnego buildu Cue na telefonie.",
     "refresh": "Odśwież rozmowy",
     "connectInstagram": "Połącz Instagram",
-    "instagramHint": "Zaloguj się na Instagramie, aby pobrać prywatne rozmowy DM. Jeśli Instagram poprosi o potwierdzenie, zatwierdź logowanie w jego aplikacji i wróć do Cue.",
+    "instagramHint": "Zaloguj się na Instagramie. Jeśli poprosi o potwierdzenie, zatwierdź je w jego aplikacji.",
     "instagramBuildRequired": "Zainstaluj aktualną wersję aplikacji, aby połączyć Instagram.",
     "connectMessenger": "Połącz Messengera",
     "manage": "Zarządzaj kontem",
@@ -47,7 +47,12 @@
     "preparingCode": "Przygotowuję kod…",
     "getPairingCode": "Pobierz kod parowania",
     "disconnectTitle": "Odłączyć komunikator?",
-    "disconnectMessage": "Usuniesz sesję oraz zachowane w Cue rozmowy i profile z tego komunikatora."
+    "disconnectMessage": "Usuniesz sesję oraz zachowane w Cue rozmowy i profile z tego komunikatora.",
+    "connect": "Połącz",
+    "manageShort": "Zarządzaj",
+    "countryCode": "Podaj numer z kodem kraju.",
+    "pairingCode": "Twój kod parowania",
+    "messengerHint": "Zaloguj się kontem Facebooka."
   },
   "inbox": {
     "title": "Rozmowy",
@@ -204,8 +209,6 @@
     "connected_many": "{{networks}} · połączone",
     "connectionInterrupted": "Połączenie przerwane",
     "addAccount": "Dodaj Messenger, WhatsApp lub Instagram",
-    "enableAITitle": "Włączyć analizę AI?",
-    "enableAIMessage": "Do DeepSeek przez Supabase trafi do 80 ostatnich wiadomości, nazwy nadawców, szkic, pamięć czatu i do 3 ostatnich zdjęć podczas tworzenia odpowiedzi. Pamięć i lista „Warto pamiętać” aktualizują się po nowych wiadomościach wysłanych i odebranych. Wiadomości wysłane jedna po drugiej analizujemy razem. Automatyczna analiza pamięci obejmuje zsynchronizowane czaty; możesz wyłączyć AI osobno w profilu rozmowy. Cechy stylu liczymy na telefonie.",
     "conversations": "Rozmowy",
     "connectedAccounts": "Połączone konta",
     "keyboard": "Klawiatura Cue",
@@ -270,22 +273,30 @@
     "earlier": "Wcześniej w rozmowie",
     "sampleSuggestion": "Przykładowa podpowiedź Cue",
     "profileHint": "Ważne szczegóły znajdziesz też w profilu rozmowy.",
-    "decide": "Ty decydujesz, co wysyłasz. Analizę AI włączysz osobno w ustawieniach.",
+    "decide": "Możesz też skonfigurować klawiaturę później.",
+    "cloudAnalysis": "Analiza w chmurze",
+    "cloudOptional": "Opcjonalnie. Zmienisz to w ustawieniach.",
+    "cloudData": "Wiadomości i kontekst rozmowy trafiają do DeepSeek.",
     "lookAround": "Na razie rozejrzę się",
     "steps": [
       {
-        "title": "Mniej rozkmin. Więcej rozmowy.",
-        "body": "Chcesz podtrzymać rozmowę, poflirtować albo kogoś wesprzeć. Tylko co odpisać?",
+        "title": "Łatwiej znaleźć słowa.",
+        "body": "Na co dzień, we flircie i gdy ktoś potrzebuje wsparcia.",
         "cta": "Zobacz podpowiedź"
       },
       {
-        "title": "Dobre słowa zaczynają się od kontekstu.",
-        "body": "Cue łączy dostępne wiadomości i ważne szczegóły, żeby podpowiedź pasowała do Waszej rozmowy.",
+        "title": "Odpowiedź z kontekstem.",
+        "body": "Cue pamięta szczegóły Waszej rozmowy.",
         "cta": "Chcę spróbować"
       },
       {
-        "title": "Twoje rozmowy. Twoje słowa.",
-        "body": "Podpowiedzi AI prosto w klawiaturze, tam, gdzie już piszesz.",
+        "title": "Włącz AI.",
+        "body": "Pamięć rozmów i podpowiedzi dopasowane do Ciebie.",
+        "cta": "Dalej"
+      },
+      {
+        "title": "Włącz klawiaturę Cue.",
+        "body": "Włącz, wybierz i wypróbuj. Potem połącz komunikator.",
         "cta": "Połącz komunikator"
       }
     ],
@@ -310,7 +321,7 @@
         "message": "To co robimy w sobotę?",
         "context": "Ostatnio mówiła: „Chcę w końcu spróbować tej włoskiej na Kazimierzu”.",
         "reply": "Może ta włoska na Kazimierzu, o której mówiłaś? Pasuje Ci 18?",
-        "desire": "Zaproponuj coś, co nawiązuje do Waszej rozmowy."
+        "desire": "Nawiąż do Waszych planów."
       },
       "flirt": {
         "label": "Flirt",
@@ -318,7 +329,7 @@
         "message": "Całkiem miło było wczoraj :)",
         "context": "Po spotkaniu żartowaliście, że rewanż w bilard jest obowiązkowy.",
         "reply": "Mi też :) Ale ten rewanż w bilard nadal aktualny. Kiedy dajesz mi szansę?",
-        "desire": "Okaż zainteresowanie bez wymuszonego tekstu."
+        "desire": "Okaż zainteresowanie po swojemu."
       },
       "support": {
         "label": "Wsparcie",
@@ -326,7 +337,7 @@
         "message": "No i nie wyszło…",
         "context": "Kuba wcześniej pisał o rozmowie rekrutacyjnej, na której mu zależało.",
         "reply": "Kurczę, wiem, że zależało Ci na tej pracy. Chcesz pogadać czy wyjść się przewietrzyć?",
-        "desire": "Pokaż, że słuchasz, nawet gdy trudno znaleźć słowa."
+        "desire": "Pokaż, że jesteś obok."
       }
     }
   },

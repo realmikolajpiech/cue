@@ -1,0 +1,442 @@
+{
+  "kind": "preserved-live-analysis-result",
+  "room": {
+    "id": "messenger:subtext-demo",
+    "remoteId": "subtext-demo",
+    "network": "messenger",
+    "messages": [
+      {
+        "id": "cue-demo-1",
+        "sender": "Marta",
+        "isMe": false,
+        "text": "Dzięki za bilet! Wiszę Ci 50 zł. Oddam jutro.",
+        "timestamp": 1791070441083
+      },
+      {
+        "id": "cue-demo-2",
+        "sender": "Ty",
+        "isMe": true,
+        "text": "spoko, dzięki za wspólny wieczór :)",
+        "timestamp": 1791070471083
+      },
+      {
+        "id": "cue-demo-3",
+        "sender": "Marta",
+        "isMe": false,
+        "text": "Było super, musimy to powtórzyć!",
+        "timestamp": 1791070501083
+      },
+      {
+        "id": "cue-demo-4",
+        "sender": "Ty",
+        "isMe": true,
+        "text": "no pewnie, daj znać jak będziesz miała czas",
+        "timestamp": 1791070531083
+      },
+      {
+        "id": "cue-demo-5",
+        "sender": "Marta",
+        "isMe": false,
+        "text": "Jednak przeleję pojutrze, pasuje?",
+        "timestamp": 1791070561083
+      },
+      {
+        "id": "cue-demo-6",
+        "sender": "Ty",
+        "isMe": true,
+        "text": "jasne, bez pośpiechu",
+        "timestamp": 1791070591083
+      },
+      {
+        "id": "cue-demo-7",
+        "sender": "Marta",
+        "isMe": false,
+        "text": "Przelałam teraz 20 zł z tych 50 zł. Resztę oddam pojutrze.",
+        "timestamp": 1791070621083
+      },
+      {
+        "id": "cue-demo-8",
+        "sender": "Ty",
+        "isMe": true,
+        "text": "mam te 20, dzięki!",
+        "timestamp": 1791070651083
+      },
+      {
+        "id": "cue-demo-9",
+        "sender": "Marta",
+        "isMe": false,
+        "text": "Wysłałam też pozostałe 30 zł.",
+        "timestamp": 1791070681083
+      },
+      {
+        "id": "cue-demo-10",
+        "sender": "Ty",
+        "isMe": true,
+        "text": "dotarło, jesteśmy rozliczeni :)",
+        "timestamp": 1791070711083
+      }
+    ],
+    "profile": {
+      "summary": "Krótka, luźna relacja towarzyska. Świeży wspólny wieczór, Marta oddała cały dług za bilet, oboje deklarują chęć powtórzenia spotkania.",
+      "beforeReply": "Rozmowa jest domknięta: dług rozliczony, podziękowania wymienione. Ostatnia wiadomość Marty to potwierdzenie przelewu, na które właściciel już zareagował. Szkoła tylko, czy jest sens cokolwiek dopisywać — ewentualnie krótkie podsumowanie, bez ponawiania ustaleń.",
+      "memoryUpdates": [
+        {
+          "replaceId": "47f24ec815ce96d566d55998",
+          "text": "",
+          "evidenceIds": [
+            "cue-demo-7",
+            "cue-demo-9",
+            "cue-demo-10"
+          ]
+        },
+        {
+          "replaceId": "",
+          "text": "Marta rozliczyła się w całości z 50 zł za bilet (2026-10-04).",
+          "evidenceIds": [
+            "cue-demo-7",
+            "cue-demo-9",
+            "cue-demo-10"
+          ]
+        }
+      ],
+      "reminderUpdates": [
+        {
+          "replaceId": "6726e98b-7792-4eef-b2ae-d2d256927760",
+          "text": "Marta oddała Ci 50 zł za bilet — rozliczone w całości.",
+          "kind": "commitment",
+          "owner": "other",
+          "status": "done",
+          "dueDate": "",
+          "evidenceIds": [
+            "cue-demo-7",
+            "cue-demo-9",
+            "cue-demo-10"
+          ]
+        }
+      ],
+      "observations": [
+        {
+          "text": "Marta oddała cały dług 50 zł w dwóch przelewach i potwierdziła resztę, a właściciel potwierdził odbiór.",
+          "evidenceIds": [
+            "cue-demo-7",
+            "cue-demo-8",
+            "cue-demo-9",
+            "cue-demo-10"
+          ]
+        },
+        {
+          "text": "Oboje dobrze wspominają wspólny wieczór i deklarują chęć powtórzenia spotkania.",
+          "evidenceIds": [
+            "cue-demo-2",
+            "cue-demo-3",
+            "cue-demo-4"
+          ]
+        }
+      ],
+      "commitments": [
+        {
+          "text": "Marta zobowiązała się oddać 50 zł za bilet — najpierw do pojutrza, potem przelewem części 20 zł, a na końcu pozostałe 30 zł; całość rozliczona (2026-10-04).",
+          "evidenceIds": [
+            "cue-demo-1",
+            "cue-demo-5",
+            "cue-demo-7",
+            "cue-demo-9",
+            "cue-demo-10"
+          ]
+        }
+      ],
+      "suggestions": [
+        {
+          "action": "reply",
+          "tone": "Naturalnie",
+          "text": "super, dzięki za wieczór i za przelew :))",
+          "reason": "Domknięcie wątku i podziękowanie za rozliczenie, w stylu krótkich wiadomości z małymi literami i emoji."
+        },
+        {
+          "action": "reply",
+          "tone": "Krótko",
+          "text": "dzięki, do następnego!",
+          "reason": "Krótkie i naturalne zakończenie, które nie ponawia ustaleń ani nie naciska na termin."
+        },
+        {
+          "action": "no_reply",
+          "tone": "Nie odpisuj",
+          "text": "",
+          "reason": "Sprawa jest już zamknięta, a ostatnia wymiana to potwierdzenie przelewu — nic nie wymaga odpowiedzi."
+        }
+      ],
+      "createdAt": 1791071565430,
+      "model": "deepseek-flash",
+      "messageCount": 10,
+      "replyDraft": "Podziękuj i zaproponuj następne wspólne wyjście, bez ustalania daty."
+    },
+    "name": "Marta · demo",
+    "kind": "PRIVATE",
+    "updatedAt": 1791070711083,
+    "snippet": "dotarło, jesteśmy rozliczeni :)",
+    "demo": true,
+    "demoStage": 3,
+    "demoBase": 1791071041083
+  },
+  "memory": {
+    "seen": {
+      "1f334914f703b902c42b86840435d700a09999000e936c62d65768143ae011d9": 1791070441083,
+      "5b10bd081adeab4431df2b007a43fb013d07755c3f677afdd85309aa7a3defd1": 1791070471083,
+      "b44ad4da89e91446c281d80d2a2ab7b673d073877d077873e3136fed7122e578": 1791070501083,
+      "d47dd507a8893dc81a9726f6283e9025e711aedb065de4db9f63bdf483fee0a7": 1791070531083,
+      "7cda46e9edff37e38680d855d9e244113601056310c9df57093f9f2618e9084c": 1791070561083,
+      "75d4198da2e98489dc01a979796d355c60f1e5562f5bb0ff81a04b8772ee2843": 1791070591083,
+      "6866d7157b376aef0b3db265b51e94e350189031cfc6ee1261967e23e9e14426": 1791070621083,
+      "e32d317e9ef5ef6141da0aa33a563d4f7da08fb02fc483d094c09cde664c1505": 1791070651083,
+      "0a5489404ae2256ce74bea1bbc89c8936b84571b56772a7a18ff63e1ce99c5c4": 1791070681083,
+      "106676ff77634a1be73f7dfe95855a2a21ec56c7bc2d3d3c59340d269ca04f50": 1791070711083
+    },
+    "sampleCount": 5,
+    "revision": 10,
+    "updatedAt": 1791071560733,
+    "recent": [
+      {
+        "text": "spoko, dzięki za wspólny wieczór :)",
+        "timestamp": 1791070471083
+      },
+      {
+        "text": "no pewnie, daj znać jak będziesz miała czas",
+        "timestamp": 1791070531083
+      },
+      {
+        "text": "jasne, bez pośpiechu",
+        "timestamp": 1791070591083
+      },
+      {
+        "text": "mam te 20, dzięki!",
+        "timestamp": 1791070651083
+      },
+      {
+        "text": "dotarło, jesteśmy rozliczeni :)",
+        "timestamp": 1791070711083
+      }
+    ],
+    "phraseCounts": {
+      "spoko, dzięki za wspólny wieczór :)": 1,
+      "spoko dzięki": 1,
+      "dzięki za": 1,
+      "za wspólny": 1,
+      "wspólny wieczór": 1,
+      "spoko dzięki za": 1,
+      "dzięki za wspólny": 1,
+      "za wspólny wieczór": 1,
+      "no pewnie, daj znać jak będziesz miała czas": 1,
+      "no pewnie": 1,
+      "pewnie daj": 1,
+      "daj znać": 1,
+      "znać jak": 1,
+      "jak będziesz": 1,
+      "będziesz miała": 1,
+      "miała czas": 1,
+      "no pewnie daj": 1,
+      "pewnie daj znać": 1,
+      "daj znać jak": 1,
+      "znać jak będziesz": 1,
+      "jak będziesz miała": 1,
+      "będziesz miała czas": 1,
+      "jasne, bez pośpiechu": 1,
+      "jasne bez": 1,
+      "bez pośpiechu": 1,
+      "jasne bez pośpiechu": 1,
+      "mam te 20, dzięki!": 1,
+      "mam te": 1,
+      "te dzięki": 1,
+      "mam te dzięki": 1,
+      "dotarło, jesteśmy rozliczeni :)": 1,
+      "dotarło jesteśmy": 1,
+      "jesteśmy rozliczeni": 1,
+      "dotarło jesteśmy rozliczeni": 1
+    },
+    "examples": [
+      {
+        "id": "cue-demo-4",
+        "incoming": "Było super, musimy to powtórzyć!",
+        "reply": "no pewnie, daj znać jak będziesz miała czas",
+        "timestamp": 1791070531083
+      },
+      {
+        "id": "cue-demo-2",
+        "incoming": "Dzięki za bilet! Wiszę Ci 50 zł. Oddam jutro.",
+        "reply": "spoko, dzięki za wspólny wieczór :)",
+        "timestamp": 1791070471083
+      },
+      {
+        "id": "cue-demo-10",
+        "incoming": "Wysłałam też pozostałe 30 zł.",
+        "reply": "dotarło, jesteśmy rozliczeni :)",
+        "timestamp": 1791070711083
+      },
+      {
+        "id": "cue-demo-6",
+        "incoming": "Jednak przeleję pojutrze, pasuje?",
+        "reply": "jasne, bez pośpiechu",
+        "timestamp": 1791070591083
+      },
+      {
+        "id": "cue-demo-8",
+        "incoming": "Przelałam teraz 20 zł z tych 50 zł. Resztę oddam pojutrze.",
+        "reply": "mam te 20, dzięki!",
+        "timestamp": 1791070651083
+      }
+    ],
+    "relationship": [
+      {
+        "id": "c75753bb10f1577d44740a91",
+        "text": "Marta rozliczyła się w całości z 50 zł za bilet (2026-10-04).",
+        "evidenceIds": [
+          "cue-demo-7",
+          "cue-demo-9",
+          "cue-demo-10"
+        ],
+        "updatedAt": 1791071565449,
+        "sources": [
+          {
+            "id": "cue-demo-7",
+            "text": "Przelałam teraz 20 zł z tych 50 zł. Resztę oddam pojutrze.",
+            "sender": "Marta",
+            "timestamp": 1791070621083,
+            "isMe": false
+          },
+          {
+            "id": "cue-demo-9",
+            "text": "Wysłałam też pozostałe 30 zł.",
+            "sender": "Marta",
+            "timestamp": 1791070681083,
+            "isMe": false
+          },
+          {
+            "id": "cue-demo-10",
+            "text": "dotarło, jesteśmy rozliczeni :)",
+            "sender": "Ty",
+            "timestamp": 1791070711083,
+            "isMe": true
+          }
+        ]
+      },
+      {
+        "id": "707f4c463415b0863d749b25",
+        "text": "Właściciel pisze krótko, swobodnie, z małymi literami i okazjonalnym emoji (np. „spoko”, „jasne, bez pośpiechu”).",
+        "evidenceIds": [
+          "cue-demo-2",
+          "cue-demo-4",
+          "cue-demo-6"
+        ],
+        "updatedAt": 1791071541497,
+        "sources": [
+          {
+            "id": "cue-demo-2",
+            "text": "spoko, dzięki za wspólny wieczór :)",
+            "sender": "Ty",
+            "timestamp": 1791070471083,
+            "isMe": true
+          },
+          {
+            "id": "cue-demo-4",
+            "text": "no pewnie, daj znać jak będziesz miała czas",
+            "sender": "Ty",
+            "timestamp": 1791070531083,
+            "isMe": true
+          },
+          {
+            "id": "cue-demo-6",
+            "text": "jasne, bez pośpiechu",
+            "sender": "Ty",
+            "timestamp": 1791070591083,
+            "isMe": true
+          }
+        ]
+      },
+      {
+        "id": "ea43d976809234dd085c9149",
+        "text": "Właściciel zaprosił Martę na kolejne spotkanie: ma dać znać, gdy będzie miała czas.",
+        "evidenceIds": [
+          "cue-demo-4"
+        ],
+        "updatedAt": 1791071087642,
+        "sources": [
+          {
+            "id": "cue-demo-4",
+            "text": "no pewnie, daj znać jak będziesz miała czas",
+            "sender": "Ty",
+            "timestamp": 1791070531083,
+            "isMe": true
+          }
+        ]
+      },
+      {
+        "id": "0ff2853d2060d8e535299bae",
+        "text": "Oboje dobrze wspominają wspólny wieczór.",
+        "evidenceIds": [
+          "cue-demo-2",
+          "cue-demo-3"
+        ],
+        "updatedAt": 1791071087642,
+        "sources": [
+          {
+            "id": "cue-demo-2",
+            "text": "spoko, dzięki za wspólny wieczór :)",
+            "sender": "Ty",
+            "timestamp": 1791070471083,
+            "isMe": true
+          },
+          {
+            "id": "cue-demo-3",
+            "text": "Było super, musimy to powtórzyć!",
+            "sender": "Marta",
+            "timestamp": 1791070501083,
+            "isMe": false
+          }
+        ]
+      }
+    ],
+    "analyzedRevision": 10,
+    "contextUpdatedAt": 1791071565449,
+    "contextError": "",
+    "reminders": [
+      {
+        "text": "Marta oddała Ci 50 zł za bilet — rozliczone w całości.",
+        "kind": "commitment",
+        "owner": "other",
+        "status": "done",
+        "dueDate": "",
+        "id": "6726e98b-7792-4eef-b2ae-d2d256927760",
+        "evidenceIds": [
+          "cue-demo-7",
+          "cue-demo-9",
+          "cue-demo-10"
+        ],
+        "updatedAt": 1791071565450,
+        "sources": [
+          {
+            "id": "cue-demo-7",
+            "text": "Przelałam teraz 20 zł z tych 50 zł. Resztę oddam pojutrze.",
+            "sender": "Marta",
+            "timestamp": 1791070621083,
+            "isMe": false
+          },
+          {
+            "id": "cue-demo-9",
+            "text": "Wysłałam też pozostałe 30 zł.",
+            "sender": "Marta",
+            "timestamp": 1791070681083,
+            "isMe": false
+          },
+          {
+            "id": "cue-demo-10",
+            "text": "dotarło, jesteśmy rozliczeni :)",
+            "sender": "Ty",
+            "timestamp": 1791070711083,
+            "isMe": true
+          }
+        ],
+        "createdAt": 1791071087644
+      }
+    ],
+    "reminderVersion": 1
+  }
+}

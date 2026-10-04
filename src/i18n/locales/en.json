@@ -33,11 +33,11 @@
     "REAUTH_REQUIRED": "Sign in again"
   },
   "connections": {
-    "intro": "Connect a messenger to see your conversations in Cue.",
+    "intro": "Choose an account to connect.",
     "androidOnly": "Connecting accounts requires a native Cue build on your phone.",
     "refresh": "Refresh chats",
     "connectInstagram": "Connect Instagram",
-    "instagramHint": "Sign in to Instagram to sync private DMs. If Instagram asks for approval, confirm in its app and return to Cue.",
+    "instagramHint": "Sign in to Instagram. If it asks for approval, confirm in its app.",
     "instagramBuildRequired": "Install the latest app build to connect Instagram.",
     "connectMessenger": "Connect Messenger",
     "manage": "Manage account",
@@ -47,7 +47,12 @@
     "preparingCode": "Preparing code…",
     "getPairingCode": "Get pairing code",
     "disconnectTitle": "Disconnect messenger?",
-    "disconnectMessage": "This removes the session and the conversations and profiles from this messenger saved in Cue."
+    "disconnectMessage": "This removes the session and the conversations and profiles from this messenger saved in Cue.",
+    "connect": "Connect",
+    "manageShort": "Manage",
+    "countryCode": "Include your country code.",
+    "pairingCode": "Your pairing code",
+    "messengerHint": "Sign in with your Facebook account."
   },
   "inbox": {
     "title": "Chats",
@@ -202,8 +207,6 @@
     "connected_other": "{{networks}} · connected",
     "connectionInterrupted": "Connection interrupted",
     "addAccount": "Add Messenger, WhatsApp or Instagram",
-    "enableAITitle": "Turn on AI analysis?",
-    "enableAIMessage": "Up to 80 recent messages, sender names, your draft, conversation memory and up to 3 recent photos used for replies will be sent to DeepSeek through Supabase. Memory and reminders update after new sent and received messages. Consecutive messages are analyzed together. Automatic memory analysis covers synced chats; you can disable AI for each conversation in its profile. Writing style features are computed on your phone.",
     "conversations": "Chats",
     "connectedAccounts": "Connected accounts",
     "keyboard": "Cue keyboard",
@@ -268,22 +271,30 @@
     "earlier": "Earlier in the conversation",
     "sampleSuggestion": "Sample Cue suggestion",
     "profileHint": "You'll also find important details in the conversation profile.",
-    "decide": "You decide what to send. You can turn on AI analysis separately in settings.",
+    "decide": "You can also set up the keyboard later.",
+    "cloudAnalysis": "Cloud analysis",
+    "cloudOptional": "Optional. You can change this in settings.",
+    "cloudData": "Messages and conversation context are sent to DeepSeek.",
     "lookAround": "I'll look around first",
     "steps": [
       {
-        "title": "Less overthinking. More talking.",
-        "body": "You want to keep the conversation going, flirt or support someone. But what do you reply?",
+        "title": "Find the words more easily.",
+        "body": "For everyday chats, flirting and being there for someone.",
         "cta": "See a suggestion"
       },
       {
-        "title": "Good words start with context.",
-        "body": "Cue combines available messages and key details so the suggestion fits your conversation.",
+        "title": "A reply with context.",
+        "body": "Cue remembers the details of your conversation.",
         "cta": "I want to try"
       },
       {
-        "title": "Your conversations. Your words.",
-        "body": "AI suggestions right in your keyboard, where you already type.",
+        "title": "Enable AI.",
+        "body": "Chat memory and suggestions that fit your voice.",
+        "cta": "Continue"
+      },
+      {
+        "title": "Enable the Cue keyboard.",
+        "body": "Enable, select and try it. Then connect a messenger.",
         "cta": "Connect a messenger"
       }
     ],
@@ -308,7 +319,7 @@
         "message": "So what are we doing on Saturday?",
         "context": "She recently said: “I finally want to try that Italian place in the old town.”",
         "reply": "Maybe that Italian place in the old town you mentioned? Does 6 pm work for you?",
-        "desire": "Suggest something that ties back to your conversation."
+        "desire": "Build on your plans together."
       },
       "flirt": {
         "label": "Flirt",
@@ -316,7 +327,7 @@
         "message": "Yesterday was pretty nice :)",
         "context": "After meeting up you joked that a pool rematch is mandatory.",
         "reply": "For me too :) But that pool rematch is still on. When are you giving me a chance?",
-        "desire": "Show interest without a forced line."
+        "desire": "Show interest in your own way."
       },
       "support": {
         "label": "Support",
@@ -324,7 +335,7 @@
         "message": "Well, it didn't work out…",
         "context": "Jake had written earlier about a job interview he really cared about.",
         "reply": "Damn, I know you really wanted that job. Want to talk or go get some fresh air?",
-        "desire": "Show you're listening, even when it's hard to find the words."
+        "desire": "Show you're there for them."
       }
     }
   },

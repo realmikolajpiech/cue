@@ -10,8 +10,10 @@ The AAR embeds the MirrorMsg Go wrappers from
 `mautrix-meta v0.2609.0`. Its Messenger implementation uses
 [mautrix-meta/messagix](https://github.com/mautrix/meta) and its WhatsApp
 implementation uses [whatsmeow](https://github.com/tulir/whatsmeow).
-This is the combined Arie artifact; it also contains unused Instagram/Telegram
-bindings. Subtext exposes only Messenger and WhatsApp.
+The Android integration exposes Messenger, WhatsApp and Instagram DMs. Instagram
+uses the bundled mautrix-meta/instameow bridge and a separate encrypted session.
+Telegram bindings remain unused. The iOS framework currently contains Messenger
+and WhatsApp only.
 
 Rebuild sources and patches: `scripts/bridges/build-messaging-bridges.sh`.
 The checked-in Java bindings source archive is alongside the AAR.

@@ -6,6 +6,7 @@ import ts from 'typescript';
 
 const require = createRequire(import.meta.url);
 function load(file, entries, mocks = {}) {
+  mocks = { '@/services/subtext': { syncNativeLanguage: () => {} }, ...mocks };
   const items = new Map(entries);
   const storage = {
     getItem: async key => items.get(key) ?? null,
@@ -39,7 +40,7 @@ test('developer preference upgrades without carrying over old onboarding or lang
   assert.equal('onboarded' in usePreferences.getState(), false);
   assert.equal('language' in usePreferences.getState(), false);
   usePreferences.getState().toggleDeveloperMode();
-  assert.deepEqual(JSON.parse(items.get('cue-preferences-v1')).state, { developerMode: false });
+  assert.deepEqual(JSON.parse(items.get('cue-preferences-v1')).state, { developerMode: false, demoMode: false, demoNames: {} });
 });
 
 test('the current Cue developer preference takes priority over the upgrade fallback', async () => {

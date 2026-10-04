@@ -1,15 +1,20 @@
 import { useCallback, useRef, useState } from 'react';
-import { BackHandler, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { BackHandler, Pressable, StyleSheet, View } from 'react-native';
+import { KeyboardAwareScrollView, type KeyboardAwareScrollViewRef } from 'react-native-keyboard-controller';
 import { router, useFocusEffect } from 'expo-router';
+import { useMutation } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Copy, Icon } from '@/components/ui';
 import { CueMark, CueMascot } from '@/components/CueBrand';
 import { useTheme } from '@/theme/useTheme';
-import { Button, ui } from './components';
+import { Button, ErrorText, ui } from './components';
+import { subtext, subtextCache, useSubtextStatus } from '@/services/subtext';
+import { SettingsToggle } from './SettingsRows';
+import { KeyboardSetup } from './KeyboardSettings';
 import { useSubtextPreferences } from './preferences';
 import { useTranslation } from '@/i18n';
 
-// Deliberately fictional examples: onboarding never reads or uploads messages.
+// Deliberately fictional examples; cloud analysis is an explicit opt-in.
 const examples = ['everyday', 'flirt', 'support'] as const;
 const exampleFields = ['label', 'name', 'message', 'context', 'reply', 'desire'] as const;
 
@@ -17,12 +22,14 @@ export default function Onboarding({ replay = false }: { replay?: boolean }) {
   const { colors } = useTheme(); const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const finish = useSubtextPreferences(s => s.finish);
+  const statusQuery = useSubtextStatus();
+  const status = statusQuery.data;
+  const ai = useMutation({ mutationFn: subtext.cloud, onSuccess: () => subtextCache.invalidateQueries({ queryKey: ['subtext', 'status'] }) });
   const [step, setStep] = useState(0);
   const [exampleIndex, setExampleIndex] = useState(0);
-  const scroll = useRef<ScrollView>(null);
+  const scroll = useRef<KeyboardAwareScrollViewRef>(null);
   const leaving = useRef(false);
   const example = Object.fromEntries(exampleFields.map(field => [field, t(`onboarding.examples.${examples[exampleIndex]}.${field}`)])) as Record<typeof exampleFields[number], string>;
-
   function move(next: number) {
     setStep(next);
     scroll.current?.scrollTo({ y: 0, animated: false });
@@ -38,7 +45,7 @@ export default function Onboarding({ replay = false }: { replay?: boolean }) {
   }, [step]));
 
   function complete(connect: boolean) {
-    if (leaving.current) return;
+    if (leaving.current || ai.isPending) return;
     leaving.current = true;
     finish();
     router.replace(connect ? '/connections' : '/');
@@ -49,19 +56,20 @@ export default function Onboarding({ replay = false }: { replay?: boolean }) {
   }
 
   return <View style={[styles.screen, { backgroundColor: colors.background }]}>
-    <ScrollView ref={scroll} contentInsetAdjustmentBehavior="automatic"
+    <KeyboardAwareScrollView ref={scroll} style={{ flex: 1 }} bottomOffset={24} contentInsetAdjustmentBehavior="automatic"
+      keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
       contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 12 }]}>
       <View style={styles.top}>
         {step > 0 ? <Pressable accessibilityRole="button" accessibilityLabel={t('onboarding.previous')} onPress={() => move(step - 1)}
           style={({ pressed }) => [styles.textAction, { opacity: pressed ? 0.5 : 1 }]}>
           <Icon name="back" /><Copy style={[ui.body, { color: colors.text }]}>{t('onboarding.back')}</Copy>
         </Pressable> : <CueMark size={32} />}
-        <Pressable accessibilityRole="button" onPress={dismiss} style={({ pressed }) => [styles.textAction, { opacity: pressed ? 0.5 : 1 }]}>
+        <Pressable accessibilityRole="button" onPress={dismiss} disabled={ai.isPending} accessibilityState={{ disabled: ai.isPending }} style={({ pressed }) => [styles.textAction, { opacity: pressed || ai.isPending ? 0.5 : 1 }]}>
           <Copy style={ui.small}>{replay ? t('common.close') : t('onboarding.skip')}</Copy>
         </Pressable>
       </View>
-      <View accessible accessibilityLabel={t('onboarding.step', { step: step + 1, total: 3 })} style={styles.progress}>
-        {[0, 1, 2].map(index => <View key={index} style={[styles.track, { backgroundColor: index <= step ? colors.accent : colors.border }]} />)}
+      <View accessible accessibilityLabel={t('onboarding.step', { step: step + 1, total: 4 })} style={styles.progress}>
+        {[0, 1, 2, 3].map(index => <View key={index} style={[styles.track, { backgroundColor: index <= step ? colors.accent : colors.border }]} />)}
       </View>
 
       <View style={styles.main}>
@@ -100,27 +108,35 @@ export default function Onboarding({ replay = false }: { replay?: boolean }) {
             <Copy style={[ui.small, { color: colors.accent, fontFamily: 'DMSansSemiBold' }]}>{t('onboarding.sampleSuggestion')}</Copy>
             <Copy style={[styles.message, { color: colors.text }]}>{example.reply}</Copy>
           </View>
-          <Copy style={ui.small}>{t('onboarding.profileHint')}</Copy>
         </View>}
 
         {step === 2 && <View style={styles.example}>
-          <CueMascot pose="wave" size={80} />
-          {[0, 1, 2].map(index => <View key={index} style={styles.setupRow}>
-            <View style={[styles.number, { backgroundColor: colors.secondary }]}><Copy style={[ui.body, { color: colors.accent }]}>{index + 1}</Copy></View>
-            <View style={styles.setupText}><Copy style={[ui.body, { color: colors.text, fontFamily: 'DMSansSemiBold' }]}>{t(`onboarding.setup.${index}.title`)}</Copy><Copy style={ui.small}>{t(`onboarding.setup.${index}.detail`)}</Copy></View>
-          </View>)}
+          <View style={[styles.setting, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <SettingsToggle icon="message" title={t('onboarding.cloudAnalysis')}
+              subtitle={!status ? t('privacy.checking') : !status.available ? t('settings.aiAndroidOnly') : status.cloudEnabled ? t('privacy.enabled') : t('settings.aiSubtitle')}
+              value={ai.isPending ? ai.variables : status?.cloudEnabled ?? false}
+              disabled={!status?.available} busy={ai.isPending} onValueChange={enabled => ai.mutate(enabled)} />
+          </View>
+          <Copy style={ui.small}>{t('onboarding.cloudOptional')}</Copy>
+          <Copy style={ui.small}>{t('onboarding.cloudData')}</Copy>
+          <ErrorText error={ai.error ?? statusQuery.error} />
+          {statusQuery.isError && <Button label={t('common.retry')} secondary onPress={() => { void statusQuery.refetch(); }} />}
+        </View>}
+
+        {step === 3 && <View style={styles.example}>
+          <KeyboardSetup />
           <Copy style={ui.small}>{t('onboarding.decide')}</Copy>
         </View>}
       </View>
 
       <View style={styles.footer}>
         <Button label={t(`onboarding.steps.${step}.cta`)}
-          onPress={() => step < 2 ? move(step + 1) : complete(true)} />
-        {step === 2 && <Pressable accessibilityRole="button" onPress={() => complete(false)} style={styles.later}>
+          disabled={ai.isPending} onPress={() => step < 3 ? move(step + 1) : complete(true)} />
+        {step === 3 && <Pressable accessibilityRole="button" onPress={() => complete(false)} style={styles.later}>
           <Copy style={ui.small}>{t('onboarding.lookAround')}</Copy>
         </Pressable>}
       </View>
-    </ScrollView>
+    </KeyboardAwareScrollView>
   </View>;
 }
 
@@ -137,12 +153,10 @@ const styles = StyleSheet.create({
   choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   choice: { minHeight: 44, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 28, borderCurve: 'continuous', justifyContent: 'center' },
   bubble: { padding: 20, borderRadius: 16, borderCurve: 'continuous', gap: 8 },
+  setting: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 20, borderCurve: 'continuous', overflow: 'hidden' },
   context: { borderLeftWidth: 2, paddingLeft: 16, gap: 8 },
   inline: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   message: { fontSize: 18, lineHeight: 28 },
-  setupRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  setupText: { flex: 1, gap: 4 },
-  number: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   footer: { gap: 4, paddingTop: 12 },
   later: { minHeight: 44, justifyContent: 'center', alignItems: 'center' },
 });

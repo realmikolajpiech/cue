@@ -1,0 +1,105 @@
+{
+  "kind": "live-ai-result-on-synthetic-conversation",
+  "name": "Marta",
+  "profile": {
+    "summary": "Krótka, luźna znajomość — Marta dzieli się codziennością i stresem związanym z nauką (anatomia), Ty odpowiadasz krótko i wspierająco. Ostatnio Marta poinformowała, że egzamin ustny ma już za sobą.",
+    "beforeReply": "Marta napisała „już po wszystkim 😮‍💨” po egzaminie ustnym z anatomii, na który się stresowała. Cel: zapytać, jak jej poszło. Trzymaj styl krótkich, małych liter, bez końcowej kropki, z emoji gdzie pasuje.",
+    "memoryUpdates": [
+      {
+        "replaceId": "",
+        "text": "Marta zdawała ustny egzamin z anatomii 2.10 i napisała, że jest już po nim.",
+        "evidenceIds": [
+          "cue-exam-17",
+          "cue-exam-21"
+        ]
+      },
+      {
+        "replaceId": "",
+        "text": "Marta zapowiedziała, że odezwie się po egzaminie i tak zrobiła.",
+        "evidenceIds": [
+          "cue-exam-19",
+          "cue-exam-21"
+        ]
+      }
+    ],
+    "reminderUpdates": [
+      {
+        "replaceId": "",
+        "text": "Marta ma przesłać Ci notatki (zapowiedź z 26.09, brak potwierdzenia wysłania).",
+        "kind": "waiting",
+        "owner": "other",
+        "status": "open",
+        "dueDate": "",
+        "evidenceIds": [
+          "cue-exam-5",
+          "cue-exam-6"
+        ]
+      }
+    ],
+    "observations": [
+      {
+        "text": "Marta dzieli się stresem związanym z nauką i egzaminami (anatomia) i szuka wsparcia.",
+        "evidenceIds": [
+          "cue-exam-9",
+          "cue-exam-13",
+          "cue-exam-17"
+        ]
+      },
+      {
+        "text": "Odpowiadasz krótko, wspierająco i często z emoji.",
+        "evidenceIds": [
+          "cue-exam-10",
+          "cue-exam-14",
+          "cue-exam-18"
+        ]
+      },
+      {
+        "text": "Marta zapowiedziała, że odezwie się po egzaminie i napisała „już po wszystkim”.",
+        "evidenceIds": [
+          "cue-exam-19",
+          "cue-exam-21"
+        ]
+      },
+      {
+        "text": "Marta proponowała wspólne wyjścia (spacer, kawiarnia, coś dobrego).",
+        "evidenceIds": [
+          "cue-exam-3",
+          "cue-exam-11"
+        ]
+      }
+    ],
+    "commitments": [
+      {
+        "text": "Marta miała przesłać notatki wieczorem (26.09) — brak potwierdzenia w wiadomościach, czy je wysłała.",
+        "evidenceIds": [
+          "cue-exam-5",
+          "cue-exam-6"
+        ]
+      }
+    ],
+    "suggestions": [
+      {
+        "action": "reply",
+        "tone": "Naturalnie",
+        "text": "no i jak poszło? 😊",
+        "reason": "Marta właśnie napisała, że egzamin jest za nią, więc pytanie o wynik to naturalny, życzliwy odzew i realizuje twój cel."
+      },
+      {
+        "action": "reply",
+        "tone": "Z ulgą",
+        "text": "ooo super, że już po! jak wrażenia?",
+        "reason": "Nawiązuje do jej ulgi po stresującym egzaminie i zachęca do podzielenia się wrażeniami."
+      },
+      {
+        "action": "reply",
+        "tone": "Krótko",
+        "text": "no w końcu! i jak?",
+        "reason": "Krótka forma w twoim stylu, bez narzucania tematu, ale nadal dopytuje o wynik."
+      }
+    ],
+    "createdAt": 1791076099758,
+    "model": "deepseek-flash",
+    "messageCount": 21,
+    "replyDraft": ""
+  }
+}

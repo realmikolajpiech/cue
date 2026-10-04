@@ -18,6 +18,18 @@ class KeyboardReplySessionTest {
     assertFalse(KeyboardReplySession.available("com.android.chrome", InputType.TYPE_CLASS_TEXT, 0))
   }
 
+  @Test fun instagramOnlyOffersItsOwnPrivateContextAndNeverPasswordOrSearchTools() {
+    assertTrue(KeyboardReplySession.available("com.instagram.android", InputType.TYPE_CLASS_TEXT, 0))
+    assertFalse(KeyboardReplySession.available("com.instagram.android", InputType.TYPE_CLASS_TEXT, EditorInfo.IME_ACTION_SEARCH))
+    assertFalse(KeyboardReplySession.available("com.instagram.android", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD, 0))
+    val rooms = listOf(
+      JSONObject().put("id", "ig").put("network", "instagram"),
+      JSONObject().put("id", "m").put("network", "messenger"),
+      JSONObject().put("id", "w").put("network", "whatsapp"),
+      JSONObject().put("id", "demo").put("network", "instagram").put("demo", true))
+    assertEquals(listOf("ig"), KeyboardReplySession.rooms(rooms, "com.instagram.android").map { it.getString("id") })
+  }
+
   @Test fun aMessengerEditorNeverOffersWhatsappOrExampleContext() {
     val rooms = listOf(
       JSONObject().put("id", "m").put("network", "messenger"),

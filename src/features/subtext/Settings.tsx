@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Alert } from 'react-native';
 import { router } from 'expo-router';
 import { useMutation } from '@tanstack/react-query';
 import { usePreferences } from '@/features/preferences';
@@ -29,12 +28,6 @@ export default function Settings() {
     : phases.includes('CONNECTING') ? t('settings.connectingAccounts')
     : connected.length ? plural('settings.connected', connected.length, { networks: connected.join(t('common.listSeparator')) })
     : phases.includes('DISCONNECTED') ? t('settings.connectionInterrupted') : t('settings.addAccount');
-  function changeAI(enabled: boolean) {
-    if (!enabled) { ai.mutate(false); return; }
-    Alert.alert(t('settings.enableAITitle'), t('settings.enableAIMessage'), [
-      { text: t('common.cancel'), style: 'cancel' }, { text: t('common.enable'), onPress: () => ai.mutate(true) },
-    ]);
-  }
   return <Page compact>
     {statusQuery.isError && <><ErrorText error={statusQuery.error} /><Button label={t('common.retry')} secondary onPress={() => { void statusQuery.refetch(); }} /></>}
     <SettingsGroup title={t('settings.conversations')}>
@@ -44,7 +37,7 @@ export default function Settings() {
     </SettingsGroup>
     <SettingsGroup title={t('settings.preferences')}>
       <SettingsToggle icon="message" title={t('settings.ai')} subtitle={status && !status.available ? t('settings.aiAndroidOnly') : t('settings.aiSubtitle')}
-        value={ai.isPending ? ai.variables : status?.cloudEnabled ?? false} disabled={!status?.available} busy={ai.isPending} onValueChange={changeAI} />
+        value={ai.isPending ? ai.variables : status?.cloudEnabled ?? false} disabled={!status?.available} busy={ai.isPending} onValueChange={enabled => ai.mutate(enabled)} />
       <SettingsDivider />
       <SettingsToggle icon="moon" title={t('settings.darkTheme')} value={dark} onValueChange={toggleTheme} />
       <SettingsDivider />

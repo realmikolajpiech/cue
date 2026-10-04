@@ -33,7 +33,7 @@ function InboxControls({ search, filter, setSearch, setFilter }: {
           style={[styles.searchInput, { color: colors.text }]} />
         {!!search && <Pressable accessibilityRole="button" accessibilityLabel={t('inbox.clearSearch')} onPress={() => { input.current?.clear(); setSearch(''); }} style={styles.clear}><Icon name="close" size={18} color={colors.secondaryText} /></Pressable>}
       </View>
-      <Row style={{ gap: 6 }}>{filters.map(item => <Pressable key={item.id} accessibilityRole="button" accessibilityState={{ selected: filter === item.id }}
+      <Row style={{ gap: 6, flexWrap: 'wrap' }}>{filters.map(item => <Pressable key={item.id} accessibilityRole="button" accessibilityState={{ selected: filter === item.id }}
         onPress={() => setFilter(item.id)} style={({ pressed }) => [styles.filter, { opacity: pressed ? .6 : 1 }]}>
         <View style={[styles.filterPill, { backgroundColor: filter === item.id ? colors.secondary : 'transparent', borderColor: filter === item.id ? colors.secondary : colors.border }]}>
           {item.id === 'all' ? <Icon name="message" size={14} color={filter === item.id ? colors.accent : colors.secondaryText} /> : <ConversationPlatformIcon network={item.id} size={16} />}
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
   search: { minHeight: 44, paddingLeft: 12, paddingRight: 4, gap: 8, flexDirection: 'row', alignItems: 'center', borderRadius: 12, borderCurve: 'continuous' },
   searchInput: { flex: 1, minHeight: 44, fontSize: 15, fontFamily: 'DMSans', paddingVertical: 8 },
   clear: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  filter: { flex: 1, minWidth: 0, minHeight: 44, justifyContent: 'center', paddingVertical: 6 },
+  filter: { flexBasis: '45%', flexGrow: 1, minWidth: 0, minHeight: 44, justifyContent: 'center', paddingVertical: 6 },
   filterPill: { minHeight: 32, paddingHorizontal: 8, paddingVertical: 6, gap: 6, flexDirection: 'row', alignItems: 'center', borderWidth: StyleSheet.hairlineWidth, borderRadius: 16, borderCurve: 'continuous', justifyContent: 'center' },
   empty: { gap: 16, padding: 24, paddingTop: 36 },
 });

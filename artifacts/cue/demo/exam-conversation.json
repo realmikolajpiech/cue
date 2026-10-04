@@ -1,0 +1,154 @@
+{
+  "kind": "synthetic-conversation",
+  "name": "Marta",
+  "goal": "chcę zapytać jak jej poszło",
+  "messages": [
+    {
+      "id": "cue-exam-1",
+      "sender": "Marta",
+      "isMe": false,
+      "text": "hej, kawa w sobotę?",
+      "timestamp": 1790335200000
+    },
+    {
+      "id": "cue-exam-2",
+      "sender": "Ty",
+      "isMe": true,
+      "text": "jasne, po 17?",
+      "timestamp": 1790335440000
+    },
+    {
+      "id": "cue-exam-3",
+      "sender": "Marta",
+      "isMe": false,
+      "text": "może najpierw spacer?",
+      "timestamp": 1790335680000
+    },
+    {
+      "id": "cue-exam-4",
+      "sender": "Ty",
+      "isMe": true,
+      "text": "spoko, park też pasuje :)",
+      "timestamp": 1790335800000
+    },
+    {
+      "id": "cue-exam-5",
+      "sender": "Marta",
+      "isMe": false,
+      "text": "podeślę ci te notatki wieczorem",
+      "timestamp": 1790421600000
+    },
+    {
+      "id": "cue-exam-6",
+      "sender": "Ty",
+      "isMe": true,
+      "text": "super, dzięki!",
+      "timestamp": 1790421720000
+    },
+    {
+      "id": "cue-exam-7",
+      "sender": "Marta",
+      "isMe": false,
+      "text": "widziałeś już nowy sezon?",
+      "timestamp": 1790508000000
+    },
+    {
+      "id": "cue-exam-8",
+      "sender": "Ty",
+      "isMe": true,
+      "text": "jeszcze nie, tylko bez spoilerów xd",
+      "timestamp": 1790508180000
+    },
+    {
+      "id": "cue-exam-9",
+      "sender": "Marta",
+      "isMe": false,
+      "text": "ta nauka mnie dzisiaj wykańcza",
+      "timestamp": 1790594400000
+    },
+    {
+      "id": "cue-exam-10",
+      "sender": "Ty",
+      "isMe": true,
+      "text": "zrób sobie chwilę przerwy :)",
+      "timestamp": 1790594640000
+    },
+    {
+      "id": "cue-exam-11",
+      "sender": "Marta",
+      "isMe": false,
+      "text": "idziemy potem po coś dobrego?",
+      "timestamp": 1790680800000
+    },
+    {
+      "id": "cue-exam-12",
+      "sender": "Ty",
+      "isMe": true,
+      "text": "możemy, może ta mała kawiarnia przy parku?",
+      "timestamp": 1790681100000
+    },
+    {
+      "id": "cue-exam-13",
+      "sender": "Marta",
+      "isMe": false,
+      "text": "mam już dość powtarzania tego wszystkiego",
+      "timestamp": 1790767200000
+    },
+    {
+      "id": "cue-exam-14",
+      "sender": "Ty",
+      "isMe": true,
+      "text": "spoko, już niedługo będziesz miała to z głowy",
+      "timestamp": 1790767380000
+    },
+    {
+      "id": "cue-exam-15",
+      "sender": "Marta",
+      "isMe": false,
+      "text": "a jak tobie minął dzień?",
+      "timestamp": 1790767800000
+    },
+    {
+      "id": "cue-exam-16",
+      "sender": "Ty",
+      "isMe": true,
+      "text": "całkiem spoko, w końcu trochę odetchnąłem",
+      "timestamp": 1790767920000
+    },
+    {
+      "id": "cue-exam-17",
+      "sender": "Marta",
+      "isMe": false,
+      "text": "jutro mam ten ustny z anatomii, strasznie się stresuję 😬",
+      "timestamp": 1790871600000
+    },
+    {
+      "id": "cue-exam-18",
+      "sender": "Ty",
+      "isMe": true,
+      "text": "dasz radę, trzymam kciuki 😊",
+      "timestamp": 1790871780000
+    },
+    {
+      "id": "cue-exam-19",
+      "sender": "Marta",
+      "isMe": false,
+      "text": "odezwę się jak wyjdę",
+      "timestamp": 1790871840000
+    },
+    {
+      "id": "cue-exam-20",
+      "sender": "Ty",
+      "isMe": true,
+      "text": "jasne, powodzenia!",
+      "timestamp": 1790871900000
+    },
+    {
+      "id": "cue-exam-21",
+      "sender": "Marta",
+      "isMe": false,
+      "text": "już po wszystkim 😮‍💨",
+      "timestamp": 1790940000000
+    }
+  ]
+}

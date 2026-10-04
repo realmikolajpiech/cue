@@ -6,12 +6,19 @@ import { SettingsDivider, SettingsGroup, SettingsRow } from './SettingsRows';
 import { useTranslation } from '@/i18n';
 
 export default function KeyboardSettings() {
+  const { t } = useTranslation();
+  return <Page compact>
+    <Copy style={ui.body}>{t('keyboard.intro')}</Copy>
+    <KeyboardSetup />
+  </Page>;
+}
+
+export function KeyboardSetup() {
   const { data: status } = useSubtextStatus();
   const action = useSubtextAction();
   const ios = Platform.OS === 'ios';
   const { t } = useTranslation();
-  return <Page compact>
-    <Copy style={ui.body}>{t('keyboard.intro')}</Copy>
+  return <>
     <SettingsGroup title={t('keyboard.setup')}>
       <SettingsRow icon="settings" title={t('keyboard.enable')} subtitle={ios ? t('keyboard.enableSubtitleIOS') : t('keyboard.enableSubtitle')} disabled={!status?.available || action.isPending}
         onPress={() => action.mutate(subtext.keyboardSettings)} />
@@ -27,5 +34,5 @@ export default function KeyboardSettings() {
       <Field accessibilityLabel={t('keyboard.try')} placeholder={t('keyboard.tryPlaceholder')} multiline style={{ minHeight: 112, textAlignVertical: 'top' }} />
       <Copy style={ui.small}>{t('keyboard.notSent')}</Copy>
     </View>
-  </Page>;
+  </>;
 }

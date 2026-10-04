@@ -1,0 +1,21 @@
+{
+  "tool": "Built-in image_gen",
+  "purpose": "Translate original Cue screenshot text into English for the presentation; preserve layout and behavior; not an English native UI capture.",
+  "prompts": [
+    {
+      "source": "../01-connections-full.png",
+      "output": "01-connections-full.png",
+      "prompt": "Use case: text-localization. Edit target: attached actual Cue app screenshot. Produce ONE faithful English translation of this screenshot for a slide deck. Preserve the original 1080×2340 aspect ratio, every panel position, margins, icons, colors, typography weights, toolbar position, device status bar, and UI geometry. Change only text; do not redesign or add new features, do not add a demo label, do not crop. Use natural English exactly as specified. Replace all Polish text with exact English: \"Połączone konta\" -> \"Connected accounts\"; intro -> \"Connect a messaging account to see your conversations in Cue.\"; \"Połączony\" -> \"Connected\"; \"Odśwież rozmowy\" -> \"Refresh conversations\"; \"Zarządzaj kontem\" -> \"Manage account\"; \"Niepołączony\" -> \"Not connected\"; WhatsApp instructions -> \"In WhatsApp, go to Linked devices and choose Link with phone number.\"; \"Pobierz kod parowania\" -> \"Get pairing code\". Keep Messenger, WhatsApp, example phone number unchanged."
+    },
+    {
+      "source": "../02-intention-full.png",
+      "output": "02-intention-full.png",
+      "prompt": "Use case: text-localization. Edit target: attached actual Cue app screenshot. Produce ONE faithful English translation of this screenshot for a slide deck. Preserve the original 1080×2340 aspect ratio, every panel position, margins, icons, colors, typography weights, toolbar position, device status bar, and UI geometry. Change only text; do not redesign or add new features, do not add a demo label, do not crop. Use natural English exactly as specified. Replace all Polish text with exact English: \"Klawiatura Cue\" -> \"Cue keyboard\"; truncated subtitle -> \"without leaving your messaging app.\"; \"Konfiguracja\" -> \"Setup\"; \"1. Włącz klawiaturę Cue\" -> \"1. Enable the Cue keyboard\"; \"Otwórz listę klawiatur Androida\" -> \"Open Android keyboard settings\"; \"2. Wybierz Cue do pisania\" -> \"2. Choose Cue for typing\"; \"Wybierz ją z klawiatur telefonu\" -> \"Select it from your phone's keyboards\"; \"Wypróbuj klawiaturę\" -> \"Try the keyboard\"; \"Napisz kilka słów...\" -> \"Type a few words...\"; both \"Naturalny\" -> \"Natural\"; \"Podpowiedz\" -> \"Suggest\"; \"Cel rozmowy\" -> \"Conversation goal\"; goal -> \"i want to ask how it went\"; \"Edytuj\" -> \"Edit\"; \"Flirtujący\" -> \"Flirty\"; bottom sentence -> \"Write as you normally would, with no added tone.\" Keep Marta unchanged."
+    },
+    {
+      "source": "../03-reply-full.png",
+      "output": "03-reply-full.png",
+      "prompt": "Use case: text-localization. Edit target: attached actual Cue app screenshot. Produce ONE faithful English translation of this screenshot for a slide deck. Preserve the original 1080×2340 aspect ratio, every panel position, margins, icons, colors, typography weights, toolbar position, device status bar, and UI geometry. Change only text; do not redesign or add new features, do not add a demo label, do not crop. Use natural English exactly as specified. Replace all Polish text with exact English: \"Klawiatura Cue\" -> \"Cue keyboard\"; truncated subtitle -> \"without leaving your messaging app.\"; \"Konfiguracja\" -> \"Setup\"; \"1. Włącz klawiaturę Cue\" -> \"1. Enable the Cue keyboard\"; \"Otwórz listę klawiatur Androida\" -> \"Open Android keyboard settings\"; \"2. Wybierz Cue do pisania\" -> \"2. Choose Cue for typing\"; \"Wybierz ją z klawiatur telefonu\" -> \"Select it from your phone's keyboards\"; \"Wypróbuj klawiaturę\" -> \"Try the keyboard\"; \"Napisz kilka słów...\" -> \"Type a few words...\"; \"Naturalny\" -> \"Natural\"; \"Wstaw\" -> \"Insert\"; tabs: \"Naturalnie\" -> \"Natural\", \"Z ulgą\" -> \"Relieved\", \"Krótko\" -> \"Short\"; reply -> \"so how did it go? 😊\"; \"Dlaczego ta odpowiedź\" -> \"Why this reply\"; reason -> \"Marta just said her exam is over. Asking how it went is a natural, friendly response that fits your goal.\"; \"Inne propozycje\" -> \"More suggestions\"; \"Klawiatura\" -> \"Keyboard\". Keep Marta unchanged."
+    }
+  ]
+}

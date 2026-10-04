@@ -33,4 +33,11 @@
   <string name="cue_login_failed">Nie udało się połączyć Messengera. Spróbuj ponownie.</string>
   <string name="cue_login_checkpoint">Potwierdź logowanie w aplikacji Facebook, a potem wróć tutaj.</string>
   <string name="cue_login_footer">Logowanie odbywa się na stronie Facebooka.</string>
+  <string name="cue_instagram_heading">Połącz Instagram</string>
+  <string name="cue_instagram_description">Zaloguj się na swoje konto Instagram. Po połączeniu Twoje prywatne rozmowy DM pojawią się w Cue.</string>
+  <string name="cue_instagram_loading">Otwieranie Instagrama…</string>
+  <string name="cue_instagram_connecting">Łączenie z Instagramem…</string>
+  <string name="cue_instagram_failed">Nie udało się połączyć Instagrama. Spróbuj ponownie.</string>
+  <string name="cue_instagram_checkpoint">Potwierdź logowanie w aplikacji Instagram, a potem wróć tutaj.</string>
+  <string name="cue_instagram_footer">Logowanie odbywa się na stronie Instagrama. Sesja jest zapisana w zaszyfrowanej formie na tym telefonie.</string>
 </resources>

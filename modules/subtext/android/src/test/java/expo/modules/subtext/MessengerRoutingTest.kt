@@ -8,6 +8,15 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class MessengerRoutingTest {
+  @Test fun instagramInboxMetadataClassifiesPrivateAndGroupDms() {
+    val privateRoom = parseMessengerConversation("""{"threadKey":"ig-thread","threadName":"Anna","isGroup":false,"participantIds":["ig-user"],"participantNames":["Anna"],"timestamp":1700000000000}""")
+    assertEquals("ig-thread", privateRoom?.id)
+    assertEquals("Anna", privateRoom?.name)
+    assertEquals(ConversationKind.PRIVATE, privateRoom?.kind)
+    assertEquals(setOf("ig-user"), privateRoom?.participantIds)
+    assertEquals(ConversationKind.GROUP, parseMessengerConversation("""{"threadKey":"ig-group","isGroup":true}""")?.kind)
+  }
+
   @Test fun routesEncryptedRecipientToInboxThread() {
     val kinds = mapOf("thread" to ConversationKind.PRIVATE, "42" to ConversationKind.PRIVATE)
     assertEquals("thread", resolveMessengerConversationId("42", kinds, mapOf("thread" to "42"), emptyMap()))

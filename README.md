@@ -31,12 +31,17 @@ i `plugins/withSubtext.js`; nie edytuj wygenerowanego projektu ręcznie.
 
 ## Pierwsze użycie
 
-1. Przejdź onboarding i otwórz **Połączenia**.
+1. W onboardingu możesz włączyć **analizę w chmurze** oraz **klawiaturę Cue**.
+   Przełącznik AI zapisuje wybór od razu; ekran informuje o wysyłaniu danych do DeepSeek.
+   Klawiaturę włącz w otwartej liście klawiatur Androida, wróć do Cue,
+   wybierz ją do pisania i wypróbuj w polu testowym. Obie opcje możesz pominąć
+   i skonfigurować później w ustawieniach. Na końcu otwórz **Połączenia**.
 2. Messenger: zaloguj się w natywnym ekranie Facebooka. Dokończ ewentualne
    potwierdzenie logowania we własnej aplikacji Facebook.
 3. WhatsApp: podaj numer z kodem kraju; w WhatsAppie użyj opcji połączenia
    urządzenia za pomocą numeru telefonu i wpisz wyświetlony kod.
-4. W **Ustawieniach** włącz analizę w chmurze. Klucz AI jest po stronie serwera.
+4. Jeśli pominąłeś analizę w onboardingu, włącz ją w **Ustawieniach**.
+   Klucz AI jest po stronie serwera.
 5. Otwórz czat w **Rozmowach**. Po globalnym włączeniu AI pamięć aktualizuje się automatycznie po nowych wiadomościach. W profilu Androida możesz wykluczyć czat z AI. „Uzupełnij” uruchamia analizę ręcznie; źródła i korekty są przy zapisanych sprawach.
 6. Opcjonalnie włącz klawiaturę Cue w ustawieniach Androida. Podczas
    pisania wybierz właściwą rozmowę, poproś o sugestię i dotknij jej, aby

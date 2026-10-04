@@ -16,7 +16,7 @@ new Function('require', 'exports', compiled)(name => {
   if (name === '@/i18n') return { t: (key, values) => i18n.t(key, values), dateLocale: () => i18n.language === 'pl' ? 'pl-PL' : 'en-GB' };
   throw new Error(`Unexpected test dependency: ${name}`);
 }, exports);
-const { filterConversations, initials, conversationTime, messageText } = exports;
+const { filterConversations, initials, conversationTime, messageText, networkName } = exports;
 
 const rooms = [
   { id: '1', name: 'Łukasz Żółć', network: 'messenger', updatedAt: 10 },
@@ -54,4 +54,26 @@ test('a native request that never settles becomes a retryable error', async () =
   await assert.rejects(withDeadline(new Promise(() => {}), 10, 'Retry sync'), /Retry sync/);
   assert.equal(await withDeadline(Promise.resolve('cached'), 100, 'Retry sync'), 'cached');
   await assert.rejects(withDeadline(Promise.reject(new Error('Disconnected')), 100, 'Retry sync'), /Disconnected/);
+});
+
+test('Instagram DMs keep their platform name and filter independently from other accounts', () => {
+  const inbox = [...rooms, { id: 'ig', name: 'Łukasz Instagram', network: 'instagram', updatedAt: 40 }];
+  assert.equal(networkName('instagram'), 'Instagram');
+  assert.equal(networkName('messenger'), 'Messenger');
+  assert.equal(networkName('whatsapp'), 'WhatsApp');
+  assert.deepEqual(filterConversations(inbox, 'lukasz', 'instagram').map(room => room.id), ['ig']);
+  assert.deepEqual(filterConversations(inbox, 'lukasz', 'whatsapp').map(room => room.id), ['3']);
+  assert.equal(filterConversations(inbox, '', 'all')[0].id, 'ig');
+});
+
+test('Instagram room parsing and connection status preserve compatibility with an older native build', async () => {
+  const { roomSchema, subtextStatusSchema } = await import('../src/types/subtext.ts');
+  const room = roomSchema.parse({ id: 'instagram:1', remoteId: '1', network: 'instagram', name: 'Anna',
+    kind: 'PRIVATE', updatedAt: 10, snippet: 'Hello', profile: null });
+  assert.equal(room.network, 'instagram');
+  const status = { available: true, hasApiKey: true, cloudEnabled: false, backgroundEnabled: false,
+    model: 'deepseek-flash', analyzing: null, messenger: { phase: 'CONNECTED', detail: '' },
+    whatsapp: { phase: 'NOT_CONFIGURED', detail: '' } };
+  assert.equal(subtextStatusSchema.parse(status).instagram.phase, 'NOT_CONFIGURED');
+  assert.equal(subtextStatusSchema.parse({ ...status, instagram: { phase: 'SESSION_EXPIRED', detail: 'Sign in again' } }).instagram.phase, 'SESSION_EXPIRED');
 });
