@@ -1,1 +1,10 @@
-{"platforms":["android"],"android":{"modules":["expo.modules.subtext.SubtextModule"]}}
+{
+  "platforms": [
+    "android"
+  ],
+  "android": {
+    "modules": [
+      "expo.modules.subtext.SubtextModule"
+    ]
+  }
+}

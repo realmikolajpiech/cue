@@ -1,0 +1,56 @@
+{
+  "kind": "assistant-semantic-inspection",
+  "humanParticipants": 0,
+  "source": "report.json",
+  "notes": [
+    {
+      "id": "debt-disputed",
+      "note": "Wpis ma owner=other mimo roszczenia wobec użytkownika. Warianty odpowiedzi mogą eskalować. Automatyczne sprawdzenie statusu tentative tego nie wykryło."
+    },
+    {
+      "id": "cancel",
+      "note": "Model zwrócił text=\"\" przy cancelled. Stary zapis Androida ignorował taką zmianę; poprawiono zachowanie i dodano test. Nie liczyć pierwotnego wyniku jako potwierdzenia całego przepływu."
+    },
+    {
+      "id": "full-return",
+      "note": "Model zwrócił text=\"\" przy done. Stary zapis Androida ignorował taką zmianę; poprawiono zachowanie i dodano test."
+    },
+    {
+      "id": "new-topic",
+      "note": "Warianty twierdzą, że użytkownik nie widział filmu, mimo braku takiej informacji. Wymagana korekta przed wysłaniem."
+    },
+    {
+      "id": "expired-not-done",
+      "note": "Brak nieuprawnionego zamknięcia spotkania, ale sugestie zakładają samopoczucie użytkownika; wariant bez pamięci dopowiada pracę i przerwę w kontakcie."
+    },
+    {
+      "id": "reschedule",
+      "note": "Poprawna aktualizacja terminu, ale memoryUpdates nadmiernie uogólnia jedną wiadomość jako sposób komunikacji."
+    },
+    {
+      "id": "future-is-not-done",
+      "note": "Pamięć nie oznacza spłaty jako zakończonej. Pierwszy wariant błędnie prosi nadawcę przelewu o informację, kiedy środki dotrą."
+    },
+    {
+      "id": "unknown-fact",
+      "note": "Część odpowiedzi dodaje obietnicę przyszłego kontaktu bez podania takiej intencji."
+    },
+    {
+      "id": "boundary",
+      "note": "Odmowa zgodna z intencją, ale niektóre warianty są zbyt szorstkie wobec prośby o spokojny ton."
+    },
+    {
+      "id": "draft-not-fact",
+      "note": "HTTP 502 invalid_response; brak poprawnego wyniku. Pozostaje niepowodzeniem tej serii."
+    },
+    {
+      "id": "personal-voice",
+      "note": "Pamięć daje krótkie odpowiedzi małymi literami zgodnie z próbkami; wariant bez pamięci jest bardziej formalny. To pojedynczy przykład, nie ocena użytkowników."
+    },
+    {
+      "id": "memory-preference",
+      "note": "Z pamięcią przywołano wskazaną restaurację. Bez pamięci model ujawnia techniczny język pamięci w tekście do wysłania; wymaga naturalniejszego pytania."
+    }
+  ],
+  "limitations": "Przegląd asystenta, bez niezależnych ludzkich oceniających i bez wskaźnika semantycznej skuteczności."
+}

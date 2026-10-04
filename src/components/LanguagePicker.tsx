@@ -1,13 +1,13 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Copy, Icon } from '@/components/ui';
-import { usePreferences } from '@/features/preferences';
+import { useLanguagePreferences } from '@/i18n/preferences';
 import { languages, useLanguage, useTranslation } from '@/i18n';
 import { useTheme } from '@/theme/useTheme';
 
 /** Settings row with a segmented Polish / English switch. */
 export function LanguagePicker() {
   const language = useLanguage();
-  const setLanguage = usePreferences(state => state.setLanguage);
+  const setLanguage = useLanguagePreferences(state => state.setLanguage);
   const { colors } = useTheme();
   const { t } = useTranslation();
   return <View style={styles.row}>

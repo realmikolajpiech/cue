@@ -15,7 +15,7 @@ import { useSubtextPreferences } from './preferences';
 import type { Room } from '@/types/subtext';
 import { useTranslation } from '@/i18n';
 
-const filters = [{ id: 'all', label: 'inbox.all' }, { id: 'messenger', label: 'Messenger' }, { id: 'whatsapp', label: 'WhatsApp' }] as const;
+const filters = [{ id: 'all', label: 'inbox.all' }, { id: 'messenger', label: 'Messenger' }, { id: 'whatsapp', label: 'WhatsApp' }, { id: 'instagram', label: 'Instagram' }] as const;
 
 type InboxItem = { type: 'intro' | 'controls' | 'section' | 'empty' } | { type: 'room'; room: Room };
 const AnimatedInboxList = Animated.createAnimatedComponent(FlashList<InboxItem>);

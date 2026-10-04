@@ -1,7 +1,22 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { filterConversations, initials, conversationTime } from '../src/features/subtext/conversationPresentation.ts';
+import { readFileSync } from 'node:fs';
+import ts from 'typescript';
+import { createInstance } from 'i18next';
 import { withDeadline } from '../src/services/deadline.ts';
+
+const i18n = createInstance();
+await i18n.init({ lng: 'pl', initAsync: false, resources: Object.fromEntries(['pl', 'en'].map(language => [language, {
+  translation: JSON.parse(readFileSync(new URL(`../src/i18n/locales/${language}.json`, import.meta.url), 'utf8')),
+}])) });
+const source = readFileSync(new URL('../src/features/subtext/conversationPresentation.ts', import.meta.url), 'utf8');
+const compiled = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText;
+const exports = {};
+new Function('require', 'exports', compiled)(name => {
+  if (name === '@/i18n') return { t: (key, values) => i18n.t(key, values), dateLocale: () => i18n.language === 'pl' ? 'pl-PL' : 'en-GB' };
+  throw new Error(`Unexpected test dependency: ${name}`);
+}, exports);
+const { filterConversations, initials, conversationTime, messageText } = exports;
 
 const rooms = [
   { id: '1', name: 'Łukasz Żółć', network: 'messenger', updatedAt: 10 },
@@ -27,6 +42,13 @@ test('dates distinguish yesterday across a month boundary and suppress unknown t
   assert.equal(conversationTime(0), '');
   assert.equal(conversationTime(NaN), '');
   assert.equal(conversationTime(new Date(2026, 8, 30, 12).getTime(), new Date(2026, 9, 1, 9)), 'Wczoraj');
+});
+test('conversation dates and photo captions follow the selected language', async () => {
+  await i18n.changeLanguage('en');
+  try {
+    assert.equal(conversationTime(new Date(2026, 8, 30, 12).getTime(), new Date(2026, 9, 1, 9)), 'Yesterday');
+    assert.equal(messageText('[Zdjęcie] hello'), i18n.t('inbox.photoSentWithCaption', { caption: 'hello' }));
+  } finally { await i18n.changeLanguage('pl'); }
 });
 test('a native request that never settles becomes a retryable error', async () => {
   await assert.rejects(withDeadline(new Promise(() => {}), 10, 'Retry sync'), /Retry sync/);

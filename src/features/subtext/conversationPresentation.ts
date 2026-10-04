@@ -2,7 +2,7 @@ import type { Network, Room } from '@/types/subtext';
 import { dateLocale, t } from '@/i18n';
 
 export type InboxFilter = 'all' | Network;
-export const networkName = (network: Network) => network === 'messenger' ? 'Messenger' : 'WhatsApp';
+export const networkName = (network: Network) => ({ messenger: 'Messenger', whatsapp: 'WhatsApp', instagram: 'Instagram' })[network];
 export function normalizeSearch(value: string) {
   return value.toLocaleLowerCase('pl-PL').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ł/g, 'l').trim();
 }

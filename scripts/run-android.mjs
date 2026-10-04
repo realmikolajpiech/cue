@@ -7,7 +7,9 @@ const env = { ...process.env };
 // Use the working Android toolchain on macOS, even if Homebrew's latest Java is default.
 if (process.platform === 'darwin') {
   const java17 = '/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home';
+  const java21 = '/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home';
   if (existsSync(java17)) env.JAVA_HOME = java17;
+  else if (!env.JAVA_HOME && existsSync(java21)) env.JAVA_HOME = java21;
 }
 if (!env.ANDROID_HOME) {
   const sdk = env.ANDROID_SDK_ROOT || join(homedir(), process.platform === 'darwin' ? 'Library/Android/sdk' : 'Android/Sdk');

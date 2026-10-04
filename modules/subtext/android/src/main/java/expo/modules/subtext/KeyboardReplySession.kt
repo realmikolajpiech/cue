@@ -7,7 +7,7 @@ import org.json.JSONObject
 /** A keyboard never infers the recipient from the foreground app alone. */
 internal object KeyboardReplySession {
   fun available(packageName: String, type: Int, options: Int): Boolean {
-    if (packageName !in setOf("com.facebook.orca", "com.whatsapp", "com.whatsapp.w4b", "com.mikolajpiech.guardian")) return false
+    if (packageName !in setOf("com.facebook.orca", "com.instagram.android", "com.whatsapp", "com.whatsapp.w4b", "com.mikolajpiech.guardian")) return false
     if (type and InputType.TYPE_MASK_CLASS != InputType.TYPE_CLASS_TEXT) return false
     if (options and EditorInfo.IME_MASK_ACTION == EditorInfo.IME_ACTION_SEARCH) return false
     if (options and EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING != 0) return false
@@ -20,6 +20,7 @@ internal object KeyboardReplySession {
   fun rooms(rooms: List<JSONObject>, packageName: String): List<JSONObject> {
     val network = when (packageName) {
       "com.facebook.orca" -> "messenger"
+      "com.instagram.android" -> "instagram"
       "com.whatsapp", "com.whatsapp.w4b" -> "whatsapp"
       else -> null
     }

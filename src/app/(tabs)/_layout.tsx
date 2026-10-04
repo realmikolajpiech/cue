@@ -1,9 +1,11 @@
 import { Tabs } from 'expo-router';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon, type IconName } from '@/components/ui';
 import { useTheme } from '@/theme/useTheme';
 import { useTranslation } from '@/i18n';
+import { AnimatedTabButton } from '@/components/navigation/AnimatedTabButton';
+import { AnimatedTabBar } from '@/components/navigation/AnimatedTabBar';
 
 function TabIcon({ name, focused }: { name: IconName; focused: boolean }) {
   const { colors } = useTheme();
@@ -16,7 +18,10 @@ export default function TabsLayout() {
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
-  return <Tabs screenOptions={{ headerStyle: { backgroundColor: colors.background }, headerTintColor: colors.text, headerShadowVisible: false, headerTitleStyle: { fontFamily: 'Manrope', fontSize: 24 },
+  // Three peer screens stay attached so returning to the inbox doesn't reattach
+  // and lay out its list during the transition.
+  return <Tabs detachInactiveScreens={false} tabBar={props => <AnimatedTabBar {...props} />} screenOptions={{ headerStyle: { backgroundColor: colors.background }, headerTintColor: colors.text, headerShadowVisible: false, headerTitleStyle: { fontFamily: 'Manrope', fontSize: 24 },
+    sceneStyle: { backgroundColor: colors.background },
     tabBarStyle: [styles.bar, {
       backgroundColor: colors.surface,
       borderColor: isDark ? '#424B65' : '#FFFFFF',
@@ -27,19 +32,18 @@ export default function TabsLayout() {
     }],
     tabBarActiveTintColor: colors.accent,
     tabBarInactiveTintColor: colors.secondaryText,
-    tabBarActiveBackgroundColor: colors.secondary,
+    tabBarActiveBackgroundColor: 'transparent',
+    tabBarInactiveBackgroundColor: 'transparent',
     tabBarLabelPosition: 'below-icon',
     tabBarIconStyle: styles.icon,
     tabBarLabelStyle: styles.label,
     tabBarItemStyle: styles.item,
-    tabBarButton: ({ android_ripple: _ripple, ref: _ref, ...props }) => <Pressable {...props}
-      style={({ pressed }) => [props.style, { opacity: pressed ? 0.65 : 1 }]} />,
+    tabBarButton: props => <AnimatedTabButton {...props} />,
     animation: 'none',
     tabBarHideOnKeyboard: true }}>
-    <Tabs.Screen name="index" options={{ title: t('nav.conversations'), headerShown: false, tabBarIcon: ({ focused }) => <TabIcon name="message" focused={focused} /> }} />
-    <Tabs.Screen name="style" options={{ title: t('nav.yourStyle'), tabBarIcon: ({ focused }) => <TabIcon name="style" focused={focused} /> }} />
-    <Tabs.Screen name="check" options={{ title: t('nav.accounts'), href: null }} />
-    <Tabs.Screen name="alerts" options={{ title: t('nav.settings'), tabBarIcon: ({ focused }) => <TabIcon name="settings" focused={focused} /> }} />
+    <Tabs.Screen name="index" options={{ title: t('nav.conversations'), lazy: false, headerShown: false, tabBarIcon: ({ focused }) => <TabIcon name="message" focused={focused} /> }} />
+    <Tabs.Screen name="style" options={{ title: t('nav.yourStyle'), lazy: false, tabBarIcon: ({ focused }) => <TabIcon name="style" focused={focused} /> }} />
+    <Tabs.Screen name="preferences" options={{ title: t('nav.settings'), lazy: false, tabBarIcon: ({ focused }) => <TabIcon name="settings" focused={focused} /> }} />
   </Tabs>;
 }
 

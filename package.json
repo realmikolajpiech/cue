@@ -1,18 +1,15 @@
 {
-  "name": "guardian",
+  "name": "cue",
   "version": "1.0.0",
   "main": "expo-router/entry",
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
-    "@react-native-picker/picker": "2.11.4",
     "@shopify/flash-list": "2.0.2",
     "@tanstack/react-query": "^5.104.1",
     "expo": "~57.0.26",
     "expo-build-properties": "~57.0.22",
-    "expo-clipboard": "~57.0.2",
     "expo-constants": "~57.0.20",
     "expo-dev-client": "~57.0.19",
-    "expo-document-picker": "~57.0.3",
     "expo-font": "~57.0.4",
     "expo-image": "~57.0.5",
     "expo-linking": "~57.0.11",
@@ -51,7 +48,9 @@
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "doctor": "npx expo-doctor",
-    "model:download": "node scripts/download-model.mjs"
+    "test:cue": "node --test scripts/conversation-ux.test.mjs scripts/preferences.test.mjs scripts/cue/evaluate.test.mjs",
+    "benchmark:cue": "node scripts/cue/evaluate.mjs",
+    "benchmark:cue:live": "node scripts/cue/evaluate.mjs --live"
   },
   "private": true
 }

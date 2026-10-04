@@ -10,6 +10,8 @@ import { t } from '@/i18n';
 declare class SubtextModule extends NativeModule<{ onChanged: () => void }> {
   status(): Promise<string>;
   loadDemo(): Promise<string>;
+  setDemoStage(stage: number): Promise<string>;
+  setConversationAI(id: string, enabled: boolean): Promise<void>;
   conversationWritingStyle(id: string): Promise<string>;
   conversationReminders(id: string): Promise<string>;
   refreshConversationReminders(id: string): Promise<string>;
@@ -30,6 +32,7 @@ declare class SubtextModule extends NativeModule<{ onChanged: () => void }> {
   clearHistory(): Promise<void>;
   disconnect(network: Network): Promise<void>;
   connectMessenger(): Promise<void>;
+  connectInstagram(): Promise<void>;
   pairWhatsApp(phone: string): Promise<string>;
   openKeyboardSettings(): Promise<void>;
   selectKeyboard(): void;
@@ -38,6 +41,7 @@ const native = process.env.EXPO_OS === 'android' ? requireOptionalNativeModule<S
 function requireSubtext() { if (!native) throw new Error(t('errors.nativeMissing')); return native; }
 const unavailable = {
   available: false, hasApiKey: false, cloudEnabled: false, backgroundEnabled: false, model: 'deepseek-flash', analyzing: null,
+  instagram: { phase: 'NOT_CONFIGURED', detail: '' },
   messenger: { phase: 'NOT_CONFIGURED', detail: '' }, whatsapp: { phase: 'NOT_CONFIGURED', detail: '', pairingCode: null },
 };
 /** Lets the Cue keyboard and AI prompts follow the language chosen in the app. */
@@ -57,6 +61,10 @@ export const subtext = {
   writingStyle: async () => native ? writingStyleSchema.parse(JSON.parse(await native.writingStyle())) :
     writingStyleSchema.parse({ sampleCount: 0, conversationCount: 0, summary: '', habits: [], examples: [] }),
   demo: () => requireSubtext().loadDemo(),
+  demoStage: (stage: number) => requireSubtext().setDemoStage(stage),
+  conversationAI: (id: string, enabled: boolean) => requireSubtext().setConversationAI(id, enabled),
+  supportsDemo: () => typeof native?.setDemoStage === 'function',
+  supportsConversationAI: () => typeof native?.setConversationAI === 'function',
   status: async () => native ? subtextStatusSchema.parse(JSON.parse(await native.status())) : unavailable,
   rooms: async () => native ? z.array(roomSchema).parse(JSON.parse(await native.conversations())) : [],
   room: async (id: string) => roomSchema.parse(JSON.parse(await withDeadline(requireSubtext().conversation(id), 5000, t('errors.roomTimeout')))),
@@ -68,6 +76,8 @@ export const subtext = {
   clear: () => requireSubtext().clearHistory(),
   disconnect: (network: Network) => requireSubtext().disconnect(network),
   messenger: () => requireSubtext().connectMessenger(),
+  instagram: () => requireSubtext().connectInstagram(),
+  supportsInstagram: () => typeof native?.connectInstagram === 'function',
   whatsapp: (phone: string) => requireSubtext().pairWhatsApp(phone),
   keyboardSettings: () => requireSubtext().openKeyboardSettings(),
   keyboard: () => requireSubtext().selectKeyboard(),

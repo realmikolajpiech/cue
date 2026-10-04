@@ -10,6 +10,7 @@ import { messageText, conversationTime, initials, networkName } from './conversa
 const platformIcons = {
   messenger: require('../../../assets/platforms/messenger.svg'),
   whatsapp: require('../../../assets/platforms/whatsapp.svg'),
+  instagram: require('../../../assets/platforms/instagram.svg'),
 };
 
 export function ConversationPlatformIcon({ network, size = 18 }: { network: Network; size?: number }) {

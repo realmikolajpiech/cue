@@ -15,7 +15,10 @@ bindings. Subtext exposes only Messenger and WhatsApp.
 
 Rebuild sources and patches: `scripts/bridges/build-messaging-bridges.sh`.
 The checked-in Java bindings source archive is alongside the AAR.
-The current binary supports Android **arm64-v8a** only. It is not a Matrix server
+The Android binary supports **arm64-v8a**. The iOS `ios/Frameworks/Messagebridges.xcframework`
+uses the same pinned source and patches, with Messenger and WhatsApp bindings for
+**arm64 iPhone** and **arm64 iOS Simulator**. Rebuild it with
+`BRIDGE_PLATFORM=ios scripts/bridges/build-messaging-bridges.sh`. It is not a Matrix server
 and does not require a separate host.
 
 MirrorMsg and mautrix-meta are AGPL-3.0; whatsmeow is MPL-2.0. Preserve upstream

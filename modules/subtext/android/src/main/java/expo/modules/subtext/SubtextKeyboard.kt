@@ -497,6 +497,7 @@ class SubtextKeyboard : LatinIME() {
     val platform = when (room.optString("network")) {
       "messenger" -> R.drawable.cue_network_messenger to "Messenger"
       "whatsapp" -> R.drawable.cue_network_whatsapp to "WhatsApp"
+      "instagram" -> R.drawable.cue_network_instagram to "Instagram"
       else -> null
     }
     icon.visibility = if (platform == null) View.GONE else View.VISIBLE

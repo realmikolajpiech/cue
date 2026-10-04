@@ -55,12 +55,7 @@ web-build/
 # Local benchmark output
 benchmarks/*.local.json
 
-# Downloaded model weights
-models/*.litertlm
-models/*.part
-
 # Native module build output
-modules/guardian/android/build/
 modules/subtext/android/build/
 modules/subtext/android/.cxx/
 artifacts/*.apk
@@ -73,3 +68,10 @@ supabase/.env*
 # Vendored HeliBoard build output
 vendor/heliboard/android/build/
 vendor/heliboard/android/.cxx/
+
+# Native iOS test/build output
+modules/subtext/.build/
+.artifacts/
+
+# Cue artifact build intermediates
+.cue-artifacts/

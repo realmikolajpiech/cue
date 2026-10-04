@@ -33,8 +33,11 @@
   },
   "connections": {
     "intro": "Połącz komunikator, aby zobaczyć swoje rozmowy w Cue.",
-    "androidOnly": "Połączenie kont jest dostępne w aplikacji na Androidzie.",
+    "androidOnly": "Połączenie kont wymaga natywnego buildu Cue na telefonie.",
     "refresh": "Odśwież rozmowy",
+    "connectInstagram": "Połącz Instagram",
+    "instagramHint": "Zaloguj się na Instagramie, aby pobrać prywatne rozmowy DM. Jeśli Instagram poprosi o potwierdzenie, zatwierdź logowanie w jego aplikacji i wróć do Cue.",
+    "instagramBuildRequired": "Zainstaluj aktualną wersję aplikacji, aby połączyć Instagram.",
     "connectMessenger": "Połącz Messengera",
     "manage": "Zarządzaj kontem",
     "signInAgain": "Zaloguj się ponownie",
@@ -56,7 +59,7 @@
     "notFound": "Nie znaleziono rozmów",
     "notFoundHint": "Spróbuj innego imienia lub komunikatora.",
     "addFirst": "Dodaj pierwsze konto",
-    "addFirstHint": "Połącz Messenger lub WhatsApp, żeby zobaczyć swoje rozmowy.",
+    "addFirstHint": "Połącz Messenger, WhatsApp lub Instagram, żeby zobaczyć swoje rozmowy.",
     "showAll": "Pokaż wszystkie rozmowy",
     "connect": "Połącz komunikator",
     "syncing": "Synchronizuję…",
@@ -94,7 +97,7 @@
     "fillLabel": "Uzupełnij sprawy z wiadomości",
     "fill": "Uzupełnij",
     "history": "Historia ({{count}})",
-    "enableAI": "Włącz analizę AI, aby uzupełniać listę z wiadomości.",
+    "enableAI": "Analiza wymaga włączenia AI w ustawieniach oraz dla tej rozmowy.",
     "editLabel": "Edytuj: {{text}}. {{detail}}",
     "other": "Rozmówca",
     "shared": "Wspólne",
@@ -166,11 +169,26 @@
     "incomingLabel": "Rozmówca: {{text}}",
     "replyLabel": "Propozycja Cue: {{text}}",
     "tone": {
-      "natural": { "label": "Naturalny", "description": "Tak, jak zwykle piszesz — bez dodatkowego tonu." },
-      "flirt": { "label": "Flirtujący", "description": "Subtelne zainteresowanie, ciepło i lekki humor." },
-      "assertive": { "label": "Asertywny", "description": "Jasne potrzeby i granice, spokojnie i bez agresji." },
-      "empathetic": { "label": "Empatyczny", "description": "Zrozumienie emocji i wsparcie bez pustych pocieszeń." },
-      "calming": { "label": "Łagodzący konflikt", "description": "Spokojna odpowiedź, która pomaga dojść do porozumienia." }
+      "natural": {
+        "label": "Naturalny",
+        "description": "Tak, jak zwykle piszesz — bez dodatkowego tonu."
+      },
+      "flirt": {
+        "label": "Flirtujący",
+        "description": "Subtelne zainteresowanie, ciepło i lekki humor."
+      },
+      "assertive": {
+        "label": "Asertywny",
+        "description": "Jasne potrzeby i granice, spokojnie i bez agresji."
+      },
+      "empathetic": {
+        "label": "Empatyczny",
+        "description": "Zrozumienie emocji i wsparcie bez pustych pocieszeń."
+      },
+      "calming": {
+        "label": "Łagodzący konflikt",
+        "description": "Spokojna odpowiedź, która pomaga dojść do porozumienia."
+      }
     }
   },
   "settings": {
@@ -182,9 +200,9 @@
     "connected_few": "{{networks}} · połączone",
     "connected_many": "{{networks}} · połączone",
     "connectionInterrupted": "Połączenie przerwane",
-    "addAccount": "Dodaj Messenger lub WhatsApp",
+    "addAccount": "Dodaj Messenger, WhatsApp lub Instagram",
     "enableAITitle": "Włączyć analizę AI?",
-    "enableAIMessage": "Do DeepSeek przez Supabase trafi do 80 ostatnich wiadomości, nazwy nadawców, szkic i pamięć czatu. Pamięć i lista „Warto pamiętać” aktualizują się po nowych wiadomościach wysłanych i odebranych. Wiadomości wysłane jedna po drugiej analizujemy razem. Cechy stylu liczymy na telefonie.",
+    "enableAIMessage": "Do DeepSeek przez Supabase trafi do 80 ostatnich wiadomości, nazwy nadawców, szkic, pamięć czatu i do 3 ostatnich zdjęć podczas tworzenia odpowiedzi. Pamięć i lista „Warto pamiętać” aktualizują się po nowych wiadomościach wysłanych i odebranych. Wiadomości wysłane jedna po drugiej analizujemy razem. Automatyczna analiza pamięci obejmuje zsynchronizowane czaty; możesz wyłączyć AI osobno w profilu rozmowy. Cechy stylu liczymy na telefonie.",
     "conversations": "Rozmowy",
     "connectedAccounts": "Połączone konta",
     "keyboard": "Klawiatura Cue",
@@ -210,14 +228,17 @@
     "enableSubtitle": "Otwórz listę klawiatur Androida",
     "choose": "2. Wybierz Cue do pisania",
     "chooseSubtitle": "Wybierz ją z klawiatur telefonu",
-    "androidOnly": "Klawiatura Cue jest dostępna w aplikacji na Androidzie.",
+    "androidOnly": "Klawiatura Cue wymaga natywnego buildu aplikacji.",
     "try": "Wypróbuj klawiaturę",
     "tryPlaceholder": "Napisz kilka słów…",
-    "notSent": "Tekst z tego pola nie jest wysyłany jako wiadomość."
+    "notSent": "Tekst z tego pola nie jest wysyłany jako wiadomość.",
+    "enableSubtitleIOS": "Ustawienia → Ogólne → Klawiatura → Klawiatury → Dodaj klawiaturę → Cue",
+    "chooseSubtitleIOS": "Przytrzymaj 🌐 na klawiaturze i wybierz Cue",
+    "fullAccessIOS": "W ustawieniach klawiatury Cue włącz pełny dostęp, aby korzystać z zapisanych rozmów i AI. Samo pisanie działa bez niego. Rozmowy odświeżaj w aplikacji Cue."
   },
   "privacy": {
     "clearTitle": "Usunąć dane zapisane w Cue?",
-    "clearMessage": "Usuniesz zapisane rozmowy, podsumowania oraz pamięć i styl. Wiadomości w Messengerze i WhatsAppie pozostaną. Kolejna synchronizacja może pobrać rozmowy ponownie.",
+    "clearMessage": "Usuniesz zapisane rozmowy, podsumowania oraz pamięć i styl. Wiadomości w Messengerze, WhatsAppie i Instagramie pozostaną. Kolejna synchronizacja może pobrać rozmowy ponownie.",
     "clearConfirm": "Usuń dane",
     "onDevice": "Na Twoim telefonie",
     "onDeviceTitle": "Rozmowy, pamięć i styl",
@@ -227,7 +248,7 @@
     "enabled": "Włączona",
     "disabled": "Wyłączona",
     "aiData": "Po włączeniu AI do DeepSeek przez Supabase trafia do 80 ostatnich wiadomości, nazwy nadawców, szkic i pamięć wybranego czatu.",
-    "aiUpdates": "Pamięć i lista „Warto pamiętać” aktualizują się automatycznie po nowych wiadomościach wysłanych i odebranych, po krótkiej przerwie w pisaniu. Odpowiedzi zawsze sprawdzasz i wysyłasz samodzielnie.",
+    "aiUpdates": "Pamięć i lista „Warto pamiętać” aktualizują się automatycznie po nowych wiadomościach wysłanych i odebranych, po krótkiej przerwie w pisaniu. Automatyczna pamięć obejmuje zsynchronizowane rozmowy, poza tymi, dla których wyłączysz AI w profilu. Wyłączenie nie cofa danych już wysłanych do dostawcy. Odpowiedzi zawsze sprawdzasz i wysyłasz samodzielnie.",
     "management": "Zarządzanie danymi",
     "managementFooter": "Usunięcie danych Cue nie usuwa wiadomości z komunikatorów. Synchronizacja może je pobrać ponownie.",
     "deleting": "Usuwam dane…",
@@ -247,30 +268,57 @@
     "decide": "Ty decydujesz, co wysyłasz. Analizę AI włączysz osobno w ustawieniach.",
     "lookAround": "Na razie rozejrzę się",
     "steps": [
-      { "title": "Mniej rozkmin. Więcej rozmowy.", "body": "Chcesz podtrzymać rozmowę, poflirtować albo kogoś wesprzeć. Tylko co odpisać?", "cta": "Zobacz podpowiedź" },
-      { "title": "Dobre słowa zaczynają się od kontekstu.", "body": "Cue łączy dostępne wiadomości i ważne szczegóły, żeby podpowiedź pasowała do Waszej rozmowy.", "cta": "Chcę spróbować" },
-      { "title": "Twoje rozmowy. Twoje słowa.", "body": "Podpowiedzi AI prosto w klawiaturze, tam, gdzie już piszesz.", "cta": "Połącz komunikator" }
+      {
+        "title": "Mniej rozkmin. Więcej rozmowy.",
+        "body": "Chcesz podtrzymać rozmowę, poflirtować albo kogoś wesprzeć. Tylko co odpisać?",
+        "cta": "Zobacz podpowiedź"
+      },
+      {
+        "title": "Dobre słowa zaczynają się od kontekstu.",
+        "body": "Cue łączy dostępne wiadomości i ważne szczegóły, żeby podpowiedź pasowała do Waszej rozmowy.",
+        "cta": "Chcę spróbować"
+      },
+      {
+        "title": "Twoje rozmowy. Twoje słowa.",
+        "body": "Podpowiedzi AI prosto w klawiaturze, tam, gdzie już piszesz.",
+        "cta": "Połącz komunikator"
+      }
     ],
     "setup": [
-      { "title": "Połącz komunikator", "detail": "Messenger lub WhatsApp." },
-      { "title": "Wybierz osobę", "detail": "Zobacz kontekst Waszej rozmowy." },
-      { "title": "Włącz klawiaturę Cue", "detail": "Wybierz podpowiedź i dopasuj ją do siebie." }
+      {
+        "title": "Połącz komunikator",
+        "detail": "Messenger, WhatsApp lub Instagram."
+      },
+      {
+        "title": "Wybierz osobę",
+        "detail": "Zobacz kontekst Waszej rozmowy."
+      },
+      {
+        "title": "Włącz klawiaturę Cue",
+        "detail": "Wybierz podpowiedź i dopasuj ją do siebie."
+      }
     ],
     "examples": {
       "everyday": {
-        "label": "Na co dzień", "name": "Ola", "message": "To co robimy w sobotę?",
+        "label": "Na co dzień",
+        "name": "Ola",
+        "message": "To co robimy w sobotę?",
         "context": "Ostatnio mówiła: „Chcę w końcu spróbować tej włoskiej na Kazimierzu”.",
         "reply": "Może ta włoska na Kazimierzu, o której mówiłaś? Pasuje Ci 18?",
         "desire": "Zaproponuj coś, co nawiązuje do Waszej rozmowy."
       },
       "flirt": {
-        "label": "Flirt", "name": "Maja", "message": "Całkiem miło było wczoraj :)",
+        "label": "Flirt",
+        "name": "Maja",
+        "message": "Całkiem miło było wczoraj :)",
         "context": "Po spotkaniu żartowaliście, że rewanż w bilard jest obowiązkowy.",
         "reply": "Mi też :) Ale ten rewanż w bilard nadal aktualny. Kiedy dajesz mi szansę?",
         "desire": "Okaż zainteresowanie bez wymuszonego tekstu."
       },
       "support": {
-        "label": "Wsparcie", "name": "Kuba", "message": "No i nie wyszło…",
+        "label": "Wsparcie",
+        "name": "Kuba",
+        "message": "No i nie wyszło…",
         "context": "Kuba wcześniej pisał o rozmowie rekrutacyjnej, na której mu zależało.",
         "reply": "Kurczę, wiem, że zależało Ci na tej pracy. Chcesz pogadać czy wyjść się przewietrzyć?",
         "desire": "Pokaż, że słuchasz, nawet gdy trudno znaleźć słowa."
@@ -278,7 +326,7 @@
     }
   },
   "errors": {
-    "nativeMissing": "Zainstaluj build Cue na Androidzie. Expo Go i podgląd web nie obsługują komunikatorów.",
+    "nativeMissing": "Zainstaluj natywny build Cue na telefonie. Expo Go i podgląd web nie obsługują komunikatorów.",
     "roomTimeout": "Nie udało się odczytać zapisanej rozmowy. Spróbuj ponownie.",
     "imageTimeout": "Pobieranie zdjęcia trwa zbyt długo. Spróbuj ponownie.",
     "syncTimeout": "Synchronizacja trwa zbyt długo. Zapisane wiadomości są nadal dostępne. Spróbuj ponownie.",

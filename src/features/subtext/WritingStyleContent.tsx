@@ -8,6 +8,7 @@ import type { z } from 'zod';
 import type { writingStyleSchema, WritingTone } from '@/types/subtext';
 import { Button, Disclosure, ErrorText } from './components';
 import { currentLanguage, plural, useTranslation } from '@/i18n';
+import EvidenceSources from './EvidenceSources';
 
 export type WritingStyleProps = { roomId?: string; isExample?: boolean };
 type Example = z.infer<typeof writingStyleSchema>['examples'][number];
@@ -64,6 +65,13 @@ export default function WritingStyleContent({ roomId, isExample = false }: Writi
   </View>;
 
   return <View style={{ gap: 4 }}>
+    {roomId && !!style?.relationship?.length && <View style={styles.section}>
+      <Copy accessibilityRole="header" style={[styles.title, { color: colors.text }]}>Kontekst rozmowy</Copy>
+      {style.relationship.map(item => <View key={item.id} style={{ gap: 4 }}>
+        <Copy selectable style={[styles.body, { color: colors.text }]}>{item.text}</Copy>
+        <EvidenceSources roomId={roomId} evidenceIds={item.evidenceIds} sources={item.sources} />
+      </View>)}
+    </View>}
     <View style={[styles.section, { paddingTop: roomId ? 20 : 0, borderColor: colors.border, borderTopWidth: roomId ? StyleSheet.hairlineWidth : 0 }]}>
       <Row style={{ justifyContent: 'space-between', gap: 12 }}>
         <View style={{ flex: 1, gap: 3 }}>

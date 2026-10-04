@@ -24,6 +24,8 @@ class SubtextModule : Module() {
     OnDestroy { subtextRuntime.observers.remove(changed) }
     AsyncFunction("status") { subtextRuntime.status() }
     AsyncFunction("loadDemo") { subtextRuntime.loadDemo() }
+    AsyncFunction("setDemoStage") Coroutine { stage: Int -> subtextRuntime.demoStage(stage) }
+    AsyncFunction("setConversationAI") { id: String, enabled: Boolean -> subtextRuntime.setConversationAI(id, enabled) }
     AsyncFunction("conversationWritingStyle") { id: String -> subtextRuntime.writingStyle(id) }
     AsyncFunction("conversationReminders") { id: String ->
       requireNotNull(subtextRuntime.store.room(id)) { "Nie znaleziono rozmowy." }
@@ -61,6 +63,10 @@ class SubtextModule : Module() {
     AsyncFunction("disconnect") { network: String -> subtextRuntime.disconnect(network) }
     AsyncFunction("connectMessenger") {
       context.startActivity(Intent(context, SubtextLoginActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
+    AsyncFunction("connectInstagram") {
+      context.startActivity(Intent(context, SubtextLoginActivity::class.java)
+        .putExtra("network", "instagram").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
     AsyncFunction("pairWhatsApp") Coroutine { phone: String ->
       subtextRuntime.startConnections()
