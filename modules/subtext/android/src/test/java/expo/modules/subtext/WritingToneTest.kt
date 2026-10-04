@@ -18,6 +18,13 @@ class WritingToneTest {
     assertTrue(ConversationGoal.intent("", "natural", "piątek 18", 2).contains("Do celu dąż naturalnie"))
     assertFalse(ConversationGoal.intent("", "flirt", "", 2).contains("Do celu dąż"))
   }
+  @Test fun regenerationListsRejectedRepliesWithinLimit() {
+    val intent = ConversationGoal.intent("hej", "flirt", "piątek 18", 2, listOf("a".repeat(500), "b", "c"))
+    assertTrue(intent.contains("nie pasowały"))
+    assertTrue(intent.length <= 4000)
+    assertTrue(org.json.JSONObject(intent.substringAfter("Dane użytkownika w JSON: ")).has("odrzucone"))
+    assertFalse(ConversationGoal.intent("hej", "flirt", "", 1).contains("nie pasowały"))
+  }
   @Test fun naturalToneHasNoLevelsAndOutOfRangeIsClamped() {
     assertTrue(WritingTone.levels("natural").isEmpty())
     assertFalse(WritingTone.instruction("natural", 2).contains("Natężenie"))

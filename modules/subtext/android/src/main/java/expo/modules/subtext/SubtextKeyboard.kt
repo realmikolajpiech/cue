@@ -143,20 +143,22 @@ class SubtextKeyboard : LatinIME() {
 
   private fun isEditing() = mode == Mode.SEARCH || mode == Mode.GOAL
   private fun isPicker(value: Mode) = value == Mode.PEOPLE || value == Mode.STYLES
+  // Suggestions don't need the letter keys, so they take over that space like the pickers.
+  private fun fullPanel(value: Mode) = isPicker(value) || value == Mode.LOADING || value == Mode.REPLIES || value == Mode.ERROR
 
   private fun open(next: Mode) {
     val toolbarBefore = toolbarMotion?.capture(panel.getChildAt(0))
-    val returningKeys = isPicker(mode) && !isPicker(next)
-    val snapshot = if (isPicker(next) && !isPicker(mode)) pickerMotion?.capture() else null
-    if (isPicker(next)) {
-      revision++; job?.cancel()
-      currentInputConnection?.finishComposingText()
-      if (mode != Mode.SEARCH && !isPicker(mode)) {
-        searchRooms = rooms()
-        stripVisibility = strip?.visibility ?: View.VISIBLE
+    val returningKeys = fullPanel(mode) && !fullPanel(next)
+    val snapshot = if (fullPanel(next) && !fullPanel(mode)) pickerMotion?.capture() else null
+    if (fullPanel(next)) {
+      if (isPicker(next)) {
+        revision++; job?.cancel()
+        currentInputConnection?.finishComposingText()
+        if (mode != Mode.SEARCH && !isPicker(mode)) searchRooms = rooms()
+        endSearch()
       }
-      endSearch()
-      if (!isPicker(mode)) {
+      if (mode != Mode.SEARCH && !fullPanel(mode)) stripVisibility = strip?.visibility ?: View.VISIBLE
+      if (!fullPanel(mode)) {
         val frame = keyboardFrame
         pickerHeight = frame?.let { parent -> (0 until parent.childCount).map(parent::getChildAt)
           .filter { it !== panel && it.visibility == View.VISIBLE }.sumOf { it.height } } ?: dp(280)
@@ -171,14 +173,14 @@ class SubtextKeyboard : LatinIME() {
       strip?.visibility = View.GONE
     }
     bodyHeight = dp(148)
-    mode = next; render(animate = !isPicker(next) && next != Mode.SEARCH && next != Mode.GOAL && !returningKeys)
+    mode = next; render(animate = !fullPanel(next) && next != Mode.SEARCH && next != Mode.GOAL && !returningKeys)
     toolbarMotion?.change(toolbarBefore, panel.getChildAt(0))
-    if (isPicker(next)) pickerMotion?.disappear(snapshot, panel.getChildAt(1))
+    if (snapshot != null) pickerMotion?.disappear(snapshot, panel.getChildAt(1))
     else if (returningKeys) pickerMotion?.appear()
   }
 
   private fun typing() {
-    val returningKeys = isPicker(mode)
+    val returningKeys = fullPanel(mode)
     pickerMotion?.cancel(); toolbarMotion?.cancel(); panelMotion.cancel()
     val toolbarBefore = toolbarMotion?.capture(panel.getChildAt(0))
     revision++; job?.cancel(); goalAfterChoice = false; endSearch(); restoreKeys(); mode = Mode.TYPING; render(animate = !returningKeys)
@@ -198,7 +200,7 @@ class SubtextKeyboard : LatinIME() {
     panel.removeAllViews(); panel.setBackgroundColor(surface)
     panel.visibility = if (available) View.VISIBLE else View.GONE
     if (!available) return
-    strip?.visibility = if (isPicker(mode) || mode == Mode.SEARCH) View.GONE else stripVisibility
+    strip?.visibility = if (fullPanel(mode) || mode == Mode.SEARCH) View.GONE else stripVisibility
     if (mode == Mode.PEOPLE) { renderPicker(); return }
     if (mode == Mode.SEARCH) { renderPeople(); return }
     if (mode == Mode.GOAL) { renderGoal(); return }
@@ -233,14 +235,15 @@ class SubtextKeyboard : LatinIME() {
     if (mode == Mode.STYLES) { renderTones(); return }
     if (mode == Mode.TYPING) return
     if (mode == Mode.LOADING) {
-      val loading = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL; setPadding(dp(20), 0, dp(16), dp(8)) }
-      loading.addView(ProgressBar(this).apply { indeterminateTintList = ColorStateList.valueOf(accent) }, LinearLayout.LayoutParams(dp(16), dp(16)).apply { marginEnd = dp(10) })
-      loading.addView(label("Układam odpowiedź…", 14f).apply { setTextColor(muted) })
-      panel.addView(loading, LinearLayout.LayoutParams(-1, dp(36)))
+      val loading = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER; setPadding(dp(20), 0, dp(20), dp(24)) }
+      loading.addView(ProgressBar(this).apply { indeterminateTintList = ColorStateList.valueOf(accent) }, LinearLayout.LayoutParams(dp(32), dp(32)).apply { bottomMargin = dp(12) })
+      loading.addView(label(if (rejectedReplies.isEmpty()) "Układam odpowiedź…" else "Szukam innych propozycji…", 15f).apply { setTextColor(muted) })
+      panel.addView(loading, LinearLayout.LayoutParams(-1, pickerHeight))
       return
     }
-    val body = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(12), 0, dp(12), dp(8)) }
-    panel.addView(body, LinearLayout.LayoutParams(-1, bodyHeight))
+    val navigation = ViewCompat.getRootWindowInsets(panel)?.getInsets(WindowInsetsCompat.Type.navigationBars())?.bottom ?: dp(24)
+    val body = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(12), 0, dp(12), navigation + dp(8)) }
+    panel.addView(body, LinearLayout.LayoutParams(-1, if (fullPanel(mode)) pickerHeight else bodyHeight))
     when (mode) {
       Mode.PEOPLE, Mode.STYLES, Mode.SEARCH, Mode.GOAL -> Unit
       Mode.LOADING -> Unit
@@ -494,9 +497,12 @@ class SubtextKeyboard : LatinIME() {
 
   private fun readDraft(): String? = currentInputConnection?.let(KeyboardDraftEditor::read)
 
-  private fun generate() {
+  private var rejectedReplies = emptyList<String>()
+  private fun generate(again: Boolean = false) {
     val id = selected ?: return open(Mode.PEOPLE)
     if (job?.isActive == true || !available) return
+    // Everything shown so far was not good enough; the next round should go elsewhere.
+    rejectedReplies = if (again) (rejectedReplies + replies.map { it.optString("text") }.filter(String::isNotBlank)).takeLast(6) else emptyList()
     val snapshot = readDraft()
     if (snapshot == null) { errorMessage = "Nie mogę odczytać tego szkicu. Wróć do pisania i spróbuj ponownie."; open(Mode.ERROR); return }
     draft = snapshot; undo = null
@@ -505,7 +511,7 @@ class SubtextKeyboard : LatinIME() {
     open(Mode.LOADING)
     job = scope.launch {
       try {
-        val profile = withContext(Dispatchers.IO) { JSONObject(runtime.analyze(id, snapshot, tone)) }
+        val profile = withContext(Dispatchers.IO) { JSONObject(runtime.analyze(id, snapshot, tone, rejected = rejectedReplies)) }
         if (token != revision) return@launch
         val suggestions = profile.getJSONArray("suggestions")
         replies = (0 until suggestions.length()).map { suggestions.getJSONObject(it) }
@@ -527,51 +533,62 @@ class SubtextKeyboard : LatinIME() {
     replyIndex = replyIndex.coerceIn(0, replies.lastIndex)
     val suggestion = replies[replyIndex]
     val noReply = suggestion.optString("action") == "no_reply"
-    val scroll = ScrollView(this).apply { isFillViewport = false; isVerticalScrollBarEnabled = true }
-    val content = LinearLayout(this).apply {
-      orientation = LinearLayout.VERTICAL; setPadding(dp(8), dp(4), dp(8), dp(8))
+    fun pick(index: Int) {
+      if (index == replyIndex || index !in replies.indices) return
+      val toolbarBefore = toolbarMotion?.capture(panel.getChildAt(0))
+      replyIndex = index; render()
+      toolbarMotion?.change(toolbarBefore, panel.getChildAt(0))
     }
+    if (replies.size > 1) {
+      val tabs = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL; setPadding(dp(2), dp(2), dp(2), dp(2)); background = rounded(card, 14) }
+      replies.forEachIndexed { index, reply ->
+        val active = index == replyIndex
+        tabs.addView(button(if (reply.optString("action") == "no_reply") "Bez odpowiedzi" else reply.optString("tone").ifBlank { "${index + 1}" }, false) { pick(index) }.apply {
+          textSize = 13f; maxLines = 1; ellipsize = TextUtils.TruncateAt.END; setPadding(dp(6), 0, dp(6), 0)
+          setTextColor(if (active) onAccent else muted)
+          background = RippleDrawable(ColorStateList.valueOf(0x225F78B8), rounded(if (active) accent else Color.TRANSPARENT, 12), null)
+          contentDescription = "Propozycja ${index + 1} z ${replies.size}: $text" + if (active) ", wybrana" else ""
+        }, LinearLayout.LayoutParams(0, dp(40), 1f))
+      }
+      body.addView(tabs, LinearLayout.LayoutParams(-1, dp(44)).apply { topMargin = dp(2) })
+    }
+    val scroll = ScrollView(this).apply { isVerticalScrollBarEnabled = true }
+    val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
     if (noReply) {
-      content.addView(label("Nie musisz teraz odpisywać", 16f, true))
-      content.addView(label(suggestion.optString("reason").ifBlank { "Możesz wrócić do tej rozmowy później." }, 14f).apply {
-        setTextColor(muted); setPadding(0, dp(6), 0, 0); setLineSpacing(dp(2).toFloat(), 1f)
-      })
+      content.addView(label("Nie musisz teraz odpisywać", 18f, true).apply { setPadding(dp(4), dp(8), dp(4), 0) })
     } else {
-      content.background = rounded(card, 12)
-      content.setPadding(dp(12), dp(10), dp(12), dp(10))
-      content.addView(label(suggestion.getString("text"), 15f).apply { setLineSpacing(dp(2).toFloat(), 1f) })
-      content.addView(label("Dlaczego ta odpowiedź", 12f, true).apply {
-        setTextColor(accent); setPadding(0, dp(10), 0, dp(4))
+      content.addView(label(suggestion.getString("text"), 18f).apply {
+        setLineSpacing(dp(3).toFloat(), 1f); setTextIsSelectable(false)
+        background = rounded(card, 16); setPadding(dp(16), dp(14), dp(16), dp(14))
       })
-      content.addView(label(suggestion.optString("reason").ifBlank { "AI nie podało uzasadnienia tej propozycji." }, 13f).apply {
-        setTextColor(muted); setLineSpacing(dp(2).toFloat(), 1f)
-      })
+    }
+    val reason = suggestion.optString("reason").ifBlank { if (noReply) "Możesz wrócić do tej rozmowy później." else "" }
+    if (reason.isNotBlank()) {
+      content.addView(label("Dlaczego ta odpowiedź", 12f, true).apply { setTextColor(accent); setPadding(dp(4), dp(16), dp(4), dp(4)) })
+      content.addView(label(reason, 14f).apply { setTextColor(muted); setLineSpacing(dp(2).toFloat(), 1f); setPadding(dp(4), 0, dp(4), 0) })
     }
     scroll.addView(content)
-    body.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
-    // One recommendation needs no selector that repeats the same recommendation.
-    if (replies.size > 1 || !noReply) {
-      val scroller = HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false }
-      val options = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
-      if (replies.size > 1) replies.forEachIndexed { index, reply ->
-        options.addView(button(if (reply.optString("action") == "no_reply") "Bez odpowiedzi" else reply.optString("tone").ifBlank { "${index + 1}" }, false) {
-          val toolbarBefore = toolbarMotion?.capture(panel.getChildAt(0))
-          replyIndex = index; render()
-          toolbarMotion?.change(toolbarBefore, panel.getChildAt(0))
-        }.apply {
-          maxLines = 1; setTextColor(if (index == replyIndex) accent else muted)
-          background = RippleDrawable(ColorStateList.valueOf(0x225F78B8), rounded(if (index == replyIndex) card else Color.TRANSPARENT, 10), null)
-        }, LinearLayout.LayoutParams(-2, dp(44)).apply { marginEnd = dp(4) })
+    // Swipe across the suggestion to move between reply types.
+    var downX = 0f; var downY = 0f
+    scroll.setOnTouchListener { _, event ->
+      when (event.actionMasked) {
+        android.view.MotionEvent.ACTION_DOWN -> { downX = event.x; downY = event.y }
+        android.view.MotionEvent.ACTION_UP -> {
+          val dx = event.x - downX
+          if (kotlin.math.abs(dx) > dp(60) && kotlin.math.abs(dx) > 2 * kotlin.math.abs(event.y - downY)) { pick(replyIndex + if (dx < 0) 1 else -1); return@setOnTouchListener true }
+        }
       }
-      options.addView(button("↻", false) { generate() }.apply { contentDescription = "Inne propozycje" }, LinearLayout.LayoutParams(dp(44), dp(44)))
-      scroller.addView(options)
-      val footer = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
-      footer.addView(scroller, LinearLayout.LayoutParams(0, dp(44), 1f))
-      footer.addView(button("×", false) { typing() }.apply {
-        textSize = 22f; contentDescription = "Zamknij podpowiedzi i wróć do pisania"
-      }, LinearLayout.LayoutParams(dp(44), dp(44)))
-      body.addView(footer)
+      false
     }
+    body.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f).apply { topMargin = dp(10) })
+    val footer = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
+    footer.addView(button("↻  Inne propozycje", false) { generate(again = true) }.apply {
+      textSize = 14f; setTextColor(accent); contentDescription = "Wygeneruj inne propozycje"
+    }, LinearLayout.LayoutParams(0, dp(44), 1f))
+    footer.addView(button("⌨  Klawiatura", false) { typing() }.apply {
+      textSize = 14f; setTextColor(muted); contentDescription = "Zamknij podpowiedzi i wróć do pisania"
+    }, LinearLayout.LayoutParams(0, dp(44), 1f))
+    body.addView(footer, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(6) })
   }
 
   private fun replace(expected: String, text: String): Boolean = available &&

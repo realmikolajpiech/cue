@@ -217,7 +217,8 @@ class SubtextRuntime private constructor(private val context: Context) {
     }
     return output
   }
-  suspend fun analyze(id: String, draft: String, tone: String? = null, intensity: Int? = null): String = analysisMutex.withLock {
+  suspend fun analyze(id: String, draft: String, tone: String? = null, intensity: Int? = null,
+    rejected: List<String> = emptyList()): String = analysisMutex.withLock {
     check(prefs.getBoolean("cloud", false)) { "Włącz analizę DeepSeek w ustawieniach. Wybrana rozmowa zostanie wysłana do API." }
     val token = generation.get()
     analyzing = id; changed()
@@ -231,7 +232,7 @@ class SubtextRuntime private constructor(private val context: Context) {
       check(recent.length() > 0) { fetched.optString("historyNotice", "Wiadomości nie zostały jeszcze zsynchronizowane.") }
       val memory = store.memory(id)
       val chosenTone = tone ?: selectedTone(id)
-      val intent = ConversationGoal.intent(draft, chosenTone, conversationGoal(id), intensity ?: selectedIntensity(id, chosenTone))
+      val intent = ConversationGoal.intent(draft, chosenTone, conversationGoal(id), intensity ?: selectedIntensity(id, chosenTone), rejected)
       val profile = DeepSeek.analyze(gateway, recent, intent, memory, images = analysisImages(id, recent))
       check(token == generation.get() && prefs.getBoolean("cloud", false)) { "Analiza anulowana po zmianie ustawień." }
       profile.put("replyDraft", draft)
