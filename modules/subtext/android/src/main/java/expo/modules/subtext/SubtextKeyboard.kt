@@ -191,6 +191,7 @@ class SubtextKeyboard : LatinIME() {
   }
 
   private fun rooms() = KeyboardReplySession.rooms(runtime.store.summaries(), currentInputEditorInfo?.packageName.orEmpty())
+    .filter { !runtime.prefs.getBoolean("demoMode", false) || DemoVisibility.allows(it.optString("name")) }
   private fun person() = rooms().firstOrNull { it.optString("id") == selected }
 
   private fun restoreKeys() {

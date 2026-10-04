@@ -2,7 +2,7 @@ import { MessagePhoto } from './MessagePhoto';
 import { useMemo } from 'react';
 import { View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Redirect, Stack, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Copy } from '@/components/ui';
 import { useRoom, useSubtextStatus, useSyncRoom } from '@/services/subtext';
@@ -17,6 +17,7 @@ export default function Messages() {
   const room = query.data;
   const sync = useSyncRoom(id, !!room && !room.demo && status?.[room.network].phase === 'CONNECTED', room?.updatedAt);
   const messages = useMemo(() => [...(query.data?.messages ?? [])].sort((a, b) => a.timestamp - b.timestamp), [query.data?.messages]);
+  if (query.isSuccess && !query.data) return <Redirect href="/(tabs)" />;
   return <View style={{ flex: 1, backgroundColor: colors.background }}>
     <Stack.Screen options={{ title: t('nav.messages'), headerBackTitle: query.data?.name ?? t('common.conversation') }} />
     <View style={{ gap: 12, paddingHorizontal: 20, paddingVertical: 12 }}>

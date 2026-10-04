@@ -24,6 +24,10 @@ class SubtextModule : Module() {
     OnDestroy { subtextRuntime.observers.remove(changed) }
     AsyncFunction("status") { subtextRuntime.status() }
     AsyncFunction("loadDemo") { subtextRuntime.loadDemo() }
+    AsyncFunction("setDemoMode") { enabled: Boolean ->
+      subtextRuntime.prefs.edit().putBoolean("demoMode", enabled).apply()
+      subtextRuntime.changed()
+    }
     AsyncFunction("setDemoStage") Coroutine { stage: Int -> subtextRuntime.demoStage(stage) }
     AsyncFunction("setConversationAI") { id: String, enabled: Boolean -> subtextRuntime.setConversationAI(id, enabled) }
     AsyncFunction("conversationWritingStyle") { id: String -> subtextRuntime.writingStyle(id) }

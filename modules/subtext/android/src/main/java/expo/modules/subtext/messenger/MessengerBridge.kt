@@ -505,7 +505,7 @@ open class MessengerRepository(
         replayPendingMessages(raw.id)
     }
 
-    private fun canonicalConversationId(id: String): String = resolveMessengerConversationId(
+    fun canonicalConversationId(id: String): String = resolveMessengerConversationId(
         id, conversationKinds, contactByConversation, e2eeByConversation,
     )
 
@@ -521,7 +521,10 @@ open class MessengerRepository(
     // sender's contact id. Once the real thread is known, fold that stray chat into it.
     private fun adoptEncryptedAlias(threadId: String) {
         if (conversationKinds[threadId] != ConversationKind.PRIVATE) return
-        val aliases = (mutableMessages.value.keys + mutableConversations.value.map { it.id })
+        val mappedRecipients = listOfNotNull(contactByConversation[threadId],
+            e2eeByConversation[threadId]?.substringBefore('@')?.substringBefore(':'))
+        // These ids may exist only in Cue's persisted store after a process restart.
+        val aliases = (mutableMessages.value.keys + mutableConversations.value.map { it.id } + mappedRecipients)
             .filter { it != threadId && canonicalConversationId(it) == threadId }.toSet()
         if (aliases.isEmpty()) return
         mutableMessages.update { current ->

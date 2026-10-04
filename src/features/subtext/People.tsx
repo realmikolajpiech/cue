@@ -1,4 +1,4 @@
-import { useDeferredValue, useMemo, useRef, useState } from 'react';
+import { useEffect, useDeferredValue, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Keyboard, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import Animated, { useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
@@ -13,6 +13,7 @@ import { ConversationPlatformIcon, ConversationRow } from './ConversationRow';
 import { filterConversations, type InboxFilter } from './conversationPresentation';
 import { useSubtextPreferences } from './preferences';
 import type { Room } from '@/types/subtext';
+import { usePreferences } from '@/features/preferences';
 import { useTranslation } from '@/i18n';
 
 const filters = [{ id: 'all', label: 'inbox.all' }, { id: 'messenger', label: 'Messenger' }, { id: 'whatsapp', label: 'WhatsApp' }, { id: 'instagram', label: 'Instagram' }] as const;
@@ -44,6 +45,7 @@ function InboxControls({ search, filter, setSearch, setFilter }: {
 }
 
 export default function People() {
+  const demoMode = usePreferences(state => state.demoMode);
   const insets = useSafeAreaInsets();
   const rooms = useRooms(); const action = useSubtextAction(); const { data: status } = useSubtextStatus(); const { colors } = useTheme(); const { t } = useTranslation();
   const [search, setSearch] = useState(''); const deferredSearch = useDeferredValue(search);
@@ -53,6 +55,7 @@ export default function People() {
   const [controlsHeight, setControlsHeight] = useState(0);
   const scrollOffset = useSharedValue(0);
   const introOffset = useSharedValue(0);
+  useEffect(() => { scrollOffset.set(0); }, [demoMode, scrollOffset]);
   const onScroll = useAnimatedScrollHandler(event => {
     scrollOffset.set(event.contentOffset.y);
   });
@@ -76,7 +79,7 @@ export default function People() {
   }
   function refresh() { action.mutate(subtext.refresh); }
   return <View onLayout={event => setViewportHeight(event.nativeEvent.layout.height - insets.top)} style={[styles.screen, { backgroundColor: colors.background, paddingTop: insets.top }]}>
-    <AnimatedInboxList data={items} keyExtractor={item => item.type === 'room' ? item.room.id : item.type}
+    <AnimatedInboxList key={demoMode ? 'demo' : 'all'} data={items} keyExtractor={item => item.type === 'room' ? item.room.id : item.type}
       getItemType={item => item.type} onScroll={onScroll} scrollEventThrottle={16} maintainVisibleContentPosition={{ disabled: true }}
       keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" refreshing={action.isPending} onRefresh={refresh}
       // Keep short search results tall enough for the active search field to stay pinned.

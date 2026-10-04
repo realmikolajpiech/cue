@@ -22,10 +22,23 @@ class SubtextStore(context: Context) {
     }
     saveMemories()
   }
+  private fun canonicalKey(key: String): String {
+    var current = key
+    val visited = mutableSetOf<String>()
+    while (visited.add(current)) {
+      val next = memories.optJSONObject(current)?.optString("aliasOf")?.takeIf { it.isNotBlank() } ?: return current
+      current = next
+    }
+    return key
+  }
+  @Synchronized fun conversationKeys(key: String): Set<String> {
+    val target = canonicalKey(key)
+    return memories.keys().asSequence().filter { canonicalKey(it) == target }.toSet() + target
+  }
   @Synchronized fun rooms(): List<JSONObject> = data.keys().asSequence().map { JSONObject(data.getJSONObject(it).toString()) }
     .filter { it.optString("kind") == "PRIVATE" }
     .sortedByDescending { it.optLong("updatedAt") }.toList()
-  @Synchronized fun room(key: String): JSONObject? = data.optJSONObject(key)?.takeIf { it.optString("kind") == "PRIVATE" }?.let { JSONObject(it.toString()).put("aiExcluded", memories.optJSONObject(key)?.optBoolean("aiExcluded") ?: false) }
+  @Synchronized fun room(key: String): JSONObject? = data.optJSONObject(canonicalKey(key))?.takeIf { it.optString("kind") == "PRIVATE" }?.let { JSONObject(it.toString()).put("aiExcluded", memories.optJSONObject(canonicalKey(key))?.optBoolean("aiExcluded") ?: false) }
   // The inbox should not serialize hundreds of message bodies per conversation.
   @Synchronized fun summaries(): List<JSONObject> = data.keys().asSequence().map { data.getJSONObject(it) }
     .filter { it.optString("kind") == "PRIVATE" }.map { room ->
@@ -41,12 +54,12 @@ class SubtextStore(context: Context) {
       }
     }.sortedByDescending { it.optLong("updatedAt") }.toList()
   @Synchronized fun merge(network: String, id: String, name: String, kind: String, messages: List<JSONObject> = emptyList(), timestamp: Long = 0) {
-    val key = "$network:$id"
+    val key = canonicalKey("$network:$id")
     if (kind != "PRIVATE") {
       if (kind == "GROUP") data.remove(key)
       return
     }
-    val room = data.optJSONObject(key) ?: JSONObject().put("id", key).put("remoteId", id).put("network", network)
+    val room = data.optJSONObject(key) ?: JSONObject().put("id", key).put("remoteId", key.substringAfter(":" )).put("network", network)
       .put("messages", JSONArray()).put("profile", JSONObject.NULL)
     if (name.isNotBlank()) room.put("name", name.take(160))
     if (!room.has("name")) room.put("name", "Rozmowa")
@@ -65,7 +78,8 @@ class SubtextStore(context: Context) {
     data.put(key, room)
     if (data.length() > 150) rooms().drop(150).forEach { data.remove(it.getString("id")) }
   }
-  @Synchronized fun avatar(key: String, uri: String?) {
+  @Synchronized fun avatar(rawKey: String, uri: String?) {
+    val key = canonicalKey(rawKey)
     val room = data.optJSONObject(key) ?: return
     if (uri == null) room.remove("avatarUri") else room.put("avatarUri", uri)
     save()
@@ -76,25 +90,29 @@ class SubtextStore(context: Context) {
     PersonMemory.update(memory, messages)
     memories.put(key, memory)
   }
-  @Synchronized fun memory(key: String): JSONObject = JSONObject((memories.optJSONObject(key) ?: JSONObject()).toString())
-  @Synchronized fun updateContext(key: String, updates: JSONArray, messages: JSONArray, revision: Long,
+  @Synchronized fun memory(key: String): JSONObject = JSONObject((memories.optJSONObject(canonicalKey(key)) ?: JSONObject()).toString())
+  @Synchronized fun updateContext(rawKey: String, updates: JSONArray, messages: JSONArray, revision: Long,
     reminderUpdates: JSONArray = JSONArray(), reminderSnapshot: JSONArray = JSONArray()) {
+    val key = canonicalKey(rawKey)
     val memory = memories.optJSONObject(key) ?: return
     PersonMemory.apply(memory, updates, messages, revision)
     ConversationReminders.apply(memory, reminderUpdates, messages, reminderSnapshot)
     memory.put("reminderVersion", 1)
     saveMemories()
   }
-  @Synchronized fun editReminder(key: String, id: String, patch: JSONObject) {
+  @Synchronized fun editReminder(rawKey: String, id: String, patch: JSONObject) {
+    val key = canonicalKey(rawKey)
     val memory = requireNotNull(memories.optJSONObject(key)) { "Nie znaleziono pamięci rozmowy." }
     ConversationReminders.edit(memory, id, patch)
     saveMemories()
   }
-  @Synchronized fun contextFailed(key: String, error: String) {
+  @Synchronized fun contextFailed(rawKey: String, error: String) {
+    val key = canonicalKey(rawKey)
     memories.optJSONObject(key)?.put("contextError", error.take(300))?.put("attemptedAt", System.currentTimeMillis())
     saveMemories()
   }
-  @Synchronized fun setAIExcluded(key: String, excluded: Boolean) {
+  @Synchronized fun setAIExcluded(rawKey: String, excluded: Boolean) {
+    val key = canonicalKey(rawKey)
     requireNotNull(data.optJSONObject(key)) { "Nie znaleziono rozmowy." }
     val memory = memories.optJSONObject(key) ?: JSONObject()
     memories.put(key, memory.put("aiExcluded", excluded)); saveMemories()
@@ -114,9 +132,42 @@ class SubtextStore(context: Context) {
     return key
   }
   @Synchronized fun markDemo(key: String) { data.getJSONObject(key).put("demo", true); save() }
-  @Synchronized fun profile(key: String, profile: JSONObject) {
-    requireNotNull(data.optJSONObject(key)) { "Rozmowa nie istnieje." }.put("profile", profile)
+  @Synchronized fun profile(rawKey: String, profile: JSONObject) {
+    val key = canonicalKey(rawKey)
+    requireNotNull(data.optJSONObject(canonicalKey(key))) { "Rozmowa nie istnieje." }.put("profile", profile)
     save()
+  }
+  /** Fold a proven Messenger contact alias into its thread without matching display names. */
+  @Synchronized fun rehome(sourceKey: String, targetKey: String) {
+    val source = canonicalKey(sourceKey); val target = canonicalKey(targetKey)
+    if (source == target || source.substringBefore(":") != target.substringBefore(":")) return
+    val old = data.optJSONObject(source)
+    val targetRoom = data.optJSONObject(target)
+    val sourceMemory = memory(source); val targetMemory = memory(target)
+    val cutoff = maxOf(sourceMemory.optLong("resetBefore"), targetMemory.optLong("resetBefore"))
+    val eligible = listOf(sourceMemory, targetMemory).filter { it.optLong("resetBefore") == cutoff }
+    val base = JSONObject((eligible.maxByOrNull { it.optInt("sampleCount") } ?: JSONObject()).toString())
+    for (field in listOf("relationship", "reminders", "dismissedReminders")) {
+      val values = eligible.flatMap { memory ->
+        val array = memory.optJSONArray(field) ?: JSONArray()
+        (0 until array.length()).map { array.get(it) }
+      }.distinctBy { if (it is JSONObject) it.optString("id").ifBlank { it.toString() } else it.toString() }
+      if (values.isNotEmpty()) base.put(field, JSONArray(values))
+    }
+    val histories = listOfNotNull(old, targetRoom).flatMap { room ->
+      val messages = room.getJSONArray("messages")
+      (0 until messages.length()).map { messages.getJSONObject(it) }
+    }.filter { cutoff == 0L || it.optLong("timestamp") > cutoff }
+    if (old != null || targetRoom != null) {
+      val identity = JSONObject((targetRoom ?: old!!).toString()).put("id", target).put("remoteId", target.substringAfter(":"))
+      identity.put("messages", JSONArray()).put("snippet", "")
+      if (cutoff > 0) identity.put("profile", JSONObject.NULL)
+      data.put(target, identity); memories.put(target, base)
+      merge(identity.getString("network"), identity.getString("remoteId"), identity.getString("name"), "PRIVATE", histories)
+    }
+    data.remove(source)
+    memories.put(source, JSONObject().put("aliasOf", target))
+    save(); saveMemories()
   }
   /** Drops a chat that turned out to be a duplicate of another one. */
   @Synchronized fun forget(network: String, id: String) {
@@ -125,10 +176,11 @@ class SubtextStore(context: Context) {
   }
   /** Keep the identity, but never relearn messages from before this reset. */
   @Synchronized fun resetConversation(key: String, now: Long = System.currentTimeMillis()) {
-    val room = requireNotNull(data.optJSONObject(key)) { "Nie znaleziono rozmowy." }
-    val excluded = memories.optJSONObject(key)?.optBoolean("aiExcluded") ?: false
+    val target = canonicalKey(key)
+    val room = requireNotNull(data.optJSONObject(target)) { "Nie znaleziono rozmowy." }
+    val excluded = memories.optJSONObject(target)?.optBoolean("aiExcluded") ?: false
     room.put("messages", JSONArray()).put("profile", JSONObject.NULL).put("snippet", "").put("updatedAt", now)
-    memories.put(key, JSONObject().put("resetBefore", now).put("aiExcluded", excluded))
+    memories.put(target, JSONObject().put("resetBefore", now).put("aiExcluded", excluded))
     save(); saveMemories()
   }
   @Synchronized fun clear(network: String? = null) {

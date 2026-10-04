@@ -47,8 +47,14 @@ class SubtextRuntime private constructor(private val context: Context) {
     scope.launch { instagram.state.collect { changed() } }
     scope.launch { whatsapp.state.collect { changed() } }
     listOf("messenger" to messenger, "instagram" to instagram).forEach { (network, repository) ->
-      repository.onAliasesMerged = { ids -> ids.forEach { store.forget(network, it) }; changed() }
+      repository.onAliasesMerged = { ids -> ids.forEach { rehomeConversation("$network:$it", "$network:${repository.canonicalConversationId(it)}") }; changed() }
       scope.launch { repository.conversations.debounce(500).collect { rooms ->
+        // Thread mappings can arrive after the contact-id row was persisted in an earlier session.
+        store.summaries().filter { it.optString("network") == network }.forEach { saved ->
+          val remote = saved.getString("remoteId")
+          val canonical = repository.canonicalConversationId(remote)
+          if (remote != canonical) rehomeConversation(saved.getString("id"), "$network:$canonical")
+        }
         rooms.filter { it.kind == ConversationKind.GROUP }.forEach { store.merge(network, it.id, it.name, it.kind.name) }
         rooms.filter { it.kind == ConversationKind.PRIVATE }.take(150).forEach {
           store.merge(network, it.id, it.name, it.kind.name, timestamp = it.timestamp)
@@ -532,13 +538,29 @@ class SubtextRuntime private constructor(private val context: Context) {
   suspend fun demoStage(stage: Int): String = analysisMutex.withLock {
     store.demoStage(stage).also { changed() }
   }
+  private val personPreferenceKeys = listOf("conversation-goal", "goal-ideas", "topic-ideas", "goal-plan", "goal-finished", "recent-topic", "open-question")
+  private fun rehomeConversation(source: String, target: String) {
+    if (source == target || store.room(source)?.optString("id") == target) return
+    val oldCutoff = store.memory(target).optLong("resetBefore")
+    val sourceCutoff = store.memory(source).optLong("resetBefore")
+    store.rehome(source, target)
+    generation.incrementAndGet()
+    val editor = prefs.edit()
+    personPreferenceKeys.forEach { prefix ->
+      val oldKey = "$prefix:$source"; val newKey = "$prefix:$target"
+      if (sourceCutoff > oldCutoff) editor.remove(newKey)
+      else if (oldCutoff == 0L && sourceCutoff == 0L && !prefs.contains(newKey)) prefs.getString(oldKey, null)?.let { editor.putString(newKey, it) }
+      editor.remove(oldKey)
+    }
+    editor.apply()
+  }
   suspend fun resetConversation(id: String) = analysisMutex.withLock {
     synchronized(photoLifecycleLock) {
       generation.incrementAndGet()
+      val ids = store.conversationKeys(id)
       store.resetConversation(id)
       val editor = prefs.edit()
-      listOf("conversation-goal", "goal-ideas", "topic-ideas", "goal-plan", "goal-finished", "recent-topic", "open-question")
-        .forEach { editor.remove("$it:$id") }
+      ids.forEach { personId -> personPreferenceKeys.forEach { editor.remove("$it:$personId") } }
       // General previews can contain samples from this person, too.
       prefs.all.keys.filter { it.startsWith("writing-style-preview") }.forEach { editor.remove(it) }
       editor.apply()

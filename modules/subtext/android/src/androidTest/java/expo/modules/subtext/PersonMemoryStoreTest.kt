@@ -13,6 +13,31 @@ import java.util.UUID
 
 @RunWith(AndroidJUnit4::class)
 class PersonMemoryStoreTest {
+  @Test fun aliasMergeSurvivesRestartAndCannotResurrectResetMessages() {
+    val target = InstrumentationRegistry.getInstrumentation().targetContext
+    val directory = File(target.cacheDir, "alias-test-${UUID.randomUUID()}").apply { mkdirs() }
+    val isolated = object : ContextWrapper(target) { override fun getNoBackupFilesDir() = directory }
+    fun message(id: String, time: Long) = JSONObject().put("id", id).put("text", "spoko $id").put("timestamp", time).put("isMe", true)
+    try {
+      val store = SubtextStore(isolated)
+      store.merge("messenger", "contact", "Marcel", "PRIVATE", listOf(message("old-contact", 1000)))
+      store.merge("messenger", "thread", "Marcel", "PRIVATE", listOf(message("old-thread", 1500)))
+      store.resetConversation("messenger:contact", 2000)
+      store.merge("messenger", "contact", "Marcel", "PRIVATE", listOf(message("new-contact", 2001)))
+      store.rehome("messenger:contact", "messenger:thread")
+      val restored = SubtextStore(isolated)
+      assertEquals(1, restored.summaries().size)
+      assertEquals("messenger:thread", restored.room("messenger:contact")!!.getString("id"))
+      assertEquals(2000L, restored.memory("messenger:thread").getLong("resetBefore"))
+      assertEquals(1, restored.room("messenger:thread")!!.getJSONArray("messages").length())
+      restored.merge("messenger", "contact", "Marcel", "PRIVATE", listOf(message("old-contact", 1000), message("new-contact", 2001), message("newer", 2002)))
+      restored.flush()
+      val again = SubtextStore(isolated)
+      assertEquals(1, again.summaries().size)
+      assertEquals(2, again.room("messenger:thread")!!.getJSONArray("messages").length())
+      assertEquals(2, again.memory("messenger:contact").getInt("sampleCount"))
+    } finally { directory.deleteRecursively() }
+  }
   @Test fun resetClearsOnlySelectedPersonAndPreventsHistoryReimportAfterRestart() {
     val target = InstrumentationRegistry.getInstrumentation().targetContext
     val directory = File(target.cacheDir, "reset-test-${UUID.randomUUID()}").apply { mkdirs() }

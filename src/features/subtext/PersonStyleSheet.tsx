@@ -10,6 +10,7 @@ export default function PersonStyle() {
   const showMemory = memory === 'true' && developerMode;
   const room = useRoom(id);
   const { t } = useTranslation();
+  if (room.isSuccess && !room.data) return <Redirect href="/(tabs)" />;
   if (!showMemory) return <Redirect href={{ pathname: '/person/[id]', params: { id } }} />;
   return <><Stack.Screen options={{ title: t('nav.memoryDev'), headerBackTitle: room.data?.name ?? t('common.conversation') }} />
     <ConversationMemory id={id} name={room.data?.name ?? t('common.conversation')} />

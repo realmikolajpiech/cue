@@ -1,4 +1,4 @@
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Redirect, Stack, useLocalSearchParams } from 'expo-router';
 import { useRoom } from '@/services/subtext';
 import { Page } from './components';
 import ProfileContent from './ProfileContent';
@@ -7,5 +7,6 @@ export default function Person() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const room = useRoom(id);
   const { t } = useTranslation();
+  if (room.isSuccess && !room.data) return <Redirect href="/(tabs)" />;
   return <Page><Stack.Screen options={{ title: room.data?.name ?? t('common.conversation'), headerBackTitle: t('nav.conversations') }} /><ProfileContent key={id} id={id} /></Page>;
 }

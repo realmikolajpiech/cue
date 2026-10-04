@@ -12,6 +12,7 @@ import { t } from '@/i18n';
 declare class SubtextModule extends NativeModule<{ onChanged: () => void }> {
   status(): Promise<string>;
   loadDemo(): Promise<string>;
+  setDemoMode?(enabled: boolean): Promise<void>;
   setDemoStage(stage: number): Promise<string>;
   setConversationAI(id: string, enabled: boolean): Promise<void>;
   conversationWritingStyle(id: string): Promise<string>;
@@ -93,6 +94,14 @@ export const subtext = {
 export const subtextCache = new QueryClient({ defaultOptions: { queries: { retry: 1, staleTime: 5000, networkMode: 'always' } } });
 export function SubtextProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
+    const syncDemoMode = () => { void native?.setDemoMode?.(usePreferences.getState().demoMode).catch(() => undefined); };
+    syncDemoMode();
+    const unsubscribe = usePreferences.subscribe((state, previous) => {
+      if (state.demoMode !== previous.demoMode) syncDemoMode();
+    });
+    return unsubscribe;
+  }, []);
+  useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const invalidate = () => {
       if (timer) return;
@@ -121,13 +130,13 @@ function withDemoName(room: Room, names: Record<string, string>): Room {
 }
 export function useRooms() {
   const demoMode = usePreferences(s => s.demoMode); const names = usePreferences(s => s.demoNames);
-  const select = useCallback((rooms: Room[]) => rooms.filter(isDemoPerson).map(room => withDemoName(room, names)), [names]);
-  return useQuery({ queryKey: ['subtext', 'rooms'], queryFn: subtext.rooms, select: demoMode ? select : undefined });
+  const select = useCallback((rooms: Room[]) => demoMode ? rooms.filter(isDemoPerson).map(room => withDemoName(room, names)) : rooms, [demoMode, names]);
+  return useQuery({ queryKey: ['subtext', 'rooms'], queryFn: subtext.rooms, select });
 }
 export function useRoom(id: string) {
   const demoMode = usePreferences(s => s.demoMode); const names = usePreferences(s => s.demoNames);
-  const select = useCallback((room: Room) => withDemoName(room, names), [names]);
-  return useQuery({ queryKey: ['subtext', 'room', id], queryFn: () => subtext.room(id), enabled: !!id, staleTime: 0, retry: false, select: demoMode ? select : undefined });
+  const select = useCallback((room: Room) => demoMode ? (isDemoPerson(room) ? withDemoName(room, names) : undefined) : room, [demoMode, names]);
+  return useQuery({ queryKey: ['subtext', 'room', id], queryFn: () => subtext.room(id), enabled: !!id, staleTime: 0, retry: false, select });
 }
 export function useSyncRoom(id: string, enabled: boolean, updatedAt = 0) {
   return useQuery({ // A new inbox timestamp requests recent messages while the saved room stays visible.

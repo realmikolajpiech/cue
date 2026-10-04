@@ -16,7 +16,7 @@ new Function('require', 'exports', compiled)(name => {
   if (name === '@/i18n') return { t: (key, values) => i18n.t(key, values), dateLocale: () => i18n.language === 'pl' ? 'pl-PL' : 'en-GB' };
   throw new Error(`Unexpected test dependency: ${name}`);
 }, exports);
-const { filterConversations, initials, conversationTime, messageText, networkName } = exports;
+const { isDemoPerson, filterConversations, initials, conversationTime, messageText, networkName } = exports;
 
 const rooms = [
   { id: '1', name: 'Łukasz Żółć', network: 'messenger', updatedAt: 10 },
@@ -76,4 +76,13 @@ test('Instagram room parsing and connection status preserve compatibility with a
     whatsapp: { phase: 'NOT_CONFIGURED', detail: '' } };
   assert.equal(subtextStatusSchema.parse(status).instagram.phase, 'NOT_CONFIGURED');
   assert.equal(subtextStatusSchema.parse({ ...status, instagram: { phase: 'SESSION_EXPIRED', detail: 'Sign in again' } }).instagram.phase, 'SESSION_EXPIRED');
+});
+
+test('demo mode allows only the two full names, including Polish spelling and whitespace', () => {
+  for (const name of ['Marcel Chudyba', 'Mikołaj Piech', 'MIKOLAJ PIECH', ' Marcel   Chudyba ']) {
+    assert.equal(isDemoPerson({ name }), true, name);
+  }
+  for (const name of ['Marta', 'Miki', 'Jakub Łabno', 'Marcel Chudyba Nowak', 'Mikołaj Piechowski', 'Anna Marcel Chudyba']) {
+    assert.equal(isDemoPerson({ name }), false, name);
+  }
 });

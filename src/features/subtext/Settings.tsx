@@ -47,9 +47,10 @@ export default function Settings() {
     <SettingsGroup title={t('settings.helpPrivacy')}>
       <SettingsRow icon="help" title={t('settings.howItWorks')} onPress={() => router.push('/welcome')} />
       <SettingsDivider />
-      <SettingsRow icon="message" title={t('common.exampleConversation')} subtitle={demo.isPending ? t('settings.openingExample') : undefined} disabled={!status?.available} busy={demo.isPending}
+      {!demoMode && <><SettingsRow icon="message" title={t('common.exampleConversation')} subtitle={demo.isPending ? t('settings.openingExample') : undefined} disabled={!status?.available} busy={demo.isPending}
         onPress={() => demo.mutate(async () => { const id = await subtext.demo(); selectPerson(id); router.push({ pathname: '/person/[id]', params: { id } }); })} />
       <SettingsDivider />
+      </>}
       <SettingsToggle icon="accounts" title={t('settings.demoMode')} subtitle={t('settings.demoModeSubtitle')} value={demoMode} onValueChange={toggleDemoMode} />
       <SettingsDivider />
       <SettingsRow icon="lock" title={t('settings.privacy')} onPress={() => router.push('/settings-privacy')} />
