@@ -41,6 +41,15 @@ object DeepSeek {
       .put("styleInput", JSONObject().put("conversationExamples", JSONArray(local))
         .put("generalExamples", JSONArray(general)).put("activeSource", source))
   }
+  // Approach names sit on narrow tabs: an overlong one keeps its first words, never a cut-off word.
+  internal fun tabLabel(tone: String): String {
+    val words = tone.replace(Regex("\\s[/|·–-]\\s.*"), "").trim().split(Regex("\\s+")).filter { it.isNotBlank() }
+    val kept = mutableListOf<String>()
+    for (word in words) { if ((kept + word).joinToString(" ").length > 16) break; kept += word }
+    // "Szczerze z", "Honest w/" read as broken: a dangling joining word goes too.
+    while (kept.size > 1 && (kept.last().length <= 2 || kept.last().lowercase() in setOf("with", "and", "oraz", "albo", "lub"))) kept.removeAt(kept.lastIndex)
+    return kept.joinToString(" ").ifEmpty { words.firstOrNull()?.take(16).orEmpty() }
+  }
   fun validate(raw: JSONObject, messages: JSONArray, memoryOnly: Boolean = false): JSONObject {
     val ids = (0 until messages.length()).map { messages.getJSONObject(it).getString("id") }.toSet()
     val clean = JSONObject().put("summary", raw.getString("summary").take(1200))
@@ -95,7 +104,7 @@ object DeepSeek {
         suggestion.put("tone", "Nie odpisuj").put("text", "").put("reason", item.getString("reason").take(600))
       } else {
         require(item.getString("text").isNotBlank()) { "Pusta sugestia AI." }
-        suggestion.put("tone", item.getString("tone").take(60)).put("text", item.getString("text").take(2000))
+        suggestion.put("tone", tabLabel(item.getString("tone"))).put("text", item.getString("text").take(2000))
         if (item.optString("reason").isNotBlank()) suggestion.put("reason", item.getString("reason").take(600))
         item.optString("step").takeIf { it == "goal" || it == "keep" }?.let { suggestion.put("step", it) }
       }
@@ -107,6 +116,10 @@ object DeepSeek {
         .filter { it.isNotBlank() }.distinct().take(limit)))
     }
     raw.optJSONObject("goalPlan")?.let(ConversationGoal::cleanPlan)?.let { clean.put("goalPlan", it) }
+    // The question must point at a real message; null means the model saw nothing to decide.
+    raw.optJSONObject("openQuestion")?.takeIf { it.optString("messageId") in ids && it.optString("question").isNotBlank() }?.let {
+      clean.put("openQuestion", JSONObject().put("messageId", it.getString("messageId")).put("question", it.getString("question").trim().take(160)))
+    }
     return clean.put("suggestions", output).put("createdAt", System.currentTimeMillis()).put("model", MODEL).put("messageCount", messages.length())
   }
 }

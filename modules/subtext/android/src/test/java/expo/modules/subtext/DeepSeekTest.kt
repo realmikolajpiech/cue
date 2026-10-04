@@ -46,6 +46,14 @@ class DeepSeekTest {
     assertEquals("good", clean.getJSONObject("goalPlan").getString("moment"))
     assertEquals("goal", clean.getJSONArray("suggestions").getJSONObject(0).getString("step"))
   }
+  @Test fun approachNamesFitTheTabs() {
+    assertEquals("Krótko", DeepSeek.tabLabel("Krótko"))
+    assertEquals("Open", DeepSeek.tabLabel("Open / later"))
+    assertEquals("Honest", DeepSeek.tabLabel("Honest w/ question"))
+    assertEquals("Z pytaniem", DeepSeek.tabLabel("Z pytaniem"))
+    assertEquals("Szczerze", DeepSeek.tabLabel("Szczerze z dopytaniem o szczegóły"))
+    assertTrue(DeepSeek.tabLabel("Bardzozłożonapojedynczanazwa").length <= 16)
+  }
   @Test fun dropsUnsupportedClaimsAndKeepsEvidence() {
     val clean = DeepSeek.validate(result(), messages)
     assertEquals(0, clean.getJSONArray("commitments").length())

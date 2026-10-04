@@ -239,7 +239,7 @@ class SubtextRuntime private constructor(private val context: Context) {
     return output
   }
   suspend fun analyze(id: String, draft: String, tone: String? = null, intensity: Int? = null,
-    rejected: List<String> = emptyList(), topic: String = ""): String = analysisMutex.withLock {
+    rejected: List<String> = emptyList(), topic: String = "", decision: JSONObject? = null): String = analysisMutex.withLock {
     checkAIAllowed(id)
     check(prefs.getBoolean("cloud", false)) { "Włącz analizę DeepSeek w ustawieniach. Wybrana rozmowa zostanie wysłana do API." }
     val token = generation.get()
@@ -258,17 +258,17 @@ class SubtextRuntime private constructor(private val context: Context) {
       val chosenTone = tone ?: selectedTone(id)
       val situation = ConversationOpener.situation(recent, System.currentTimeMillis())
       // A chosen topic is a light opener: it neither pursues nor updates the goal.
-      val chosenTopic = topic.trim()
+      val chosenTopic = if (decision == null) topic.trim() else ""
       val goal = if (chosenTopic.isEmpty()) conversationGoal(id) else ""
       if (chosenTopic.isNotEmpty()) rememberTopic(id, chosenTopic)
       val intent = ConversationGoal.intent(draft, chosenTone, goal, intensity ?: selectedIntensity(id, chosenTone), rejected,
         CueLanguage.promptNote(context), situation?.let { ConversationOpener.instruction(it, room.optString("name")) }.orEmpty(),
-        plan = if (chosenTopic.isEmpty()) goalPlan(id) else null, topic = chosenTopic, recentTopic = recentTopic(id))
+        plan = if (chosenTopic.isEmpty()) goalPlan(id) else null, topic = chosenTopic, recentTopic = recentTopic(id), decision = decision)
       val profile = DeepSeek.analyze(gateway, recent, intent, memory, images = analysisImages(id, recent), opener = recent.length() == 0,
         generalHistory = if (recent.length() == 0) DeepSeek.generalWritingHistory(styleRooms(null)) else JSONArray())
       check(token == generation.get() && prefs.getBoolean("cloud", false)) { "Analiza anulowana po zmianie ustawień." }
       profile.put("replyDraft", draft)
-      saveIdeas(id, profile); saveGoalPlan(id, profile, goal)
+      saveGoalPlan(id, profile, goal)
       store.profile(id, profile)
       if (recent.length() > 0) store.updateContext(id, profile.getJSONArray("memoryUpdates"), recent, memory.optLong("revision"),
         profile.getJSONArray("reminderUpdates"), memory.optJSONArray("reminders") ?: JSONArray())
@@ -329,7 +329,7 @@ class SubtextRuntime private constructor(private val context: Context) {
         val goal = conversationGoal(id)
         val profile = DeepSeek.analyze(gateway, recent, ConversationGoal.background(goal, goalPlan(id), CueLanguage.promptNote(context)), memory, memoryOnly = true)
         if (token == generation.get() && prefs.getBoolean("cloud", false)) {
-          saveIdeas(id, profile); saveGoalPlan(id, profile, goal)
+          saveIdeas(id, profile); saveGoalPlan(id, profile, goal); saveOpenQuestion(id, profile, recent)
           store.updateContext(id, profile.getJSONArray("memoryUpdates"), recent, memory.optLong("revision"),
             profile.getJSONArray("reminderUpdates"), memory.optJSONArray("reminders") ?: JSONArray())
         }
@@ -369,7 +369,7 @@ class SubtextRuntime private constructor(private val context: Context) {
     try {
       val profile = DeepSeek.analyze(gateway, recent, ConversationGoal.background(goal, goalPlan(id), CueLanguage.promptNote(context)), memory, memoryOnly = true)
       if (token != generation.get() || !prefs.getBoolean("cloud", false)) return@withLock
-      saveIdeas(id, profile); saveGoalPlan(id, profile, goal)
+      saveIdeas(id, profile); saveGoalPlan(id, profile, goal); saveOpenQuestion(id, profile, recent)
       if (!room.optBoolean("demo")) store.updateContext(id, profile.getJSONArray("memoryUpdates"), recent, memory.optLong("revision"),
         profile.getJSONArray("reminderUpdates"), memory.optJSONArray("reminders") ?: JSONArray())
     } finally { analyzing = null; changed() }
@@ -414,6 +414,20 @@ class SubtextRuntime private constructor(private val context: Context) {
       changed(); return
     }
     prefs.edit().putString("goal-plan:$id", JSONObject(plan.toString()).put("goal", goal).put("updatedAt", System.currentTimeMillis()).toString()).apply()
+  }
+  // The AI's verdict on which unanswered question needs the user's yes or no, tied to the newest message it saw.
+  private fun saveOpenQuestion(id: String, profile: JSONObject, recent: JSONArray) {
+    if (recent.length() == 0) return
+    val verdict = JSONObject().put("analyzed", recent.getJSONObject(recent.length() - 1).optString("id"))
+    profile.optJSONObject("openQuestion")?.let { verdict.put("messageId", it.optString("messageId")).put("question", it.optString("question")) }
+    prefs.edit().putString("open-question:$id", verdict.toString()).apply()
+  }
+  /** The question waiting for the user's decision, or null when nothing needs a yes or no. */
+  fun openQuestion(id: String): JSONObject? {
+    val messages = store.room(id)?.optJSONArray("messages") ?: return null
+    if (messages.length() == 0) return null
+    val saved = runCatching { prefs.getString("open-question:$id", null)?.let(::JSONObject) }.getOrNull()
+    return QuestionCheck.open(messages, saved)
   }
   /** A goal that ended on its own in the last day and that the user has not looked at yet. */
   fun finishedGoal(id: String): JSONObject? {
@@ -521,7 +535,7 @@ class SubtextRuntime private constructor(private val context: Context) {
   private fun clearStylePreviews() {
     val editor = prefs.edit()
     prefs.all.keys.filter { it.startsWith("writing-style-preview") || it.startsWith("writing-style-tone:") || it.startsWith("conversation-goal:") ||
-      it.startsWith("goal-plan:") || it.startsWith("goal-finished:") || it.startsWith("recent-topic:") }.forEach { editor.remove(it) }
+      it.startsWith("goal-plan:") || it.startsWith("goal-finished:") || it.startsWith("recent-topic:") || it.startsWith("open-question:") }.forEach { editor.remove(it) }
     editor.apply()
   }
   fun clear() = synchronized(photoLifecycleLock) { generation.incrementAndGet(); clearStylePreviews(); images.clear(); photos.clear(); store.clear(); changed() }

@@ -37,7 +37,7 @@ import kotlinx.coroutines.*
 import org.json.JSONObject
 
 class SubtextKeyboard : LatinIME() {
-  private enum class Mode { TYPING, PEOPLE, STYLES, SEARCH, GOAL, TOPIC, LOADING, REPLIES, ERROR }
+  private enum class Mode { TYPING, PEOPLE, STYLES, SEARCH, GOAL, TOPIC, DECISION, LOADING, REPLIES, ERROR }
   private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
   private var job: Job? = null
   private var revision = 0
@@ -75,6 +75,9 @@ class SubtextKeyboard : LatinIME() {
   private var activeTopic = ""
   // Topic picked from the list, shown on the tile and used by the next suggestion.
   private var pendingTopic = ""
+  // A yes/no question from the other person: shown before replies, then the user's answer to it.
+  private var question: JSONObject? = null
+  private var decision: JSONObject? = null
   // A first message to someone without a conversation: the context the user gave, while composing it.
   private var openerContext: String? = null
   private var composingOpener = false
@@ -83,7 +86,7 @@ class SubtextKeyboard : LatinIME() {
   private data class Parked(val app: String, val mode: Mode, val selected: String?, val opener: String?,
     val composingOpener: Boolean, val afterChoice: Mode?, val generateAfterChoice: Boolean,
     val replies: List<JSONObject>, val index: Int, val draft: String, val editorText: String?, val error: String,
-    val at: Long, val token: Int?, val topic: String, val pendingTopic: String)
+    val at: Long, val token: Int?, val topic: String, val pendingTopic: String, val question: JSONObject?, val decision: JSONObject?)
   private var parked: Parked? = null
   // A background generation the visible keyboard is waiting on again after being restored.
   private var adoptedToken = -1
@@ -96,7 +99,7 @@ class SubtextKeyboard : LatinIME() {
     if (loading && job?.isActive != true) return
     parked = Parked(currentInputEditorInfo?.packageName.orEmpty(), mode, selected, openerContext, composingOpener,
       afterChoice, generateAfterChoice, if (loading) emptyList() else replies, replyIndex, draft,
-      if (isEditing()) searchEditor?.text?.toString() else null, errorMessage, System.currentTimeMillis(), if (loading) revision else null, activeTopic, pendingTopic)
+      if (isEditing()) searchEditor?.text?.toString() else null, errorMessage, System.currentTimeMillis(), if (loading) revision else null, activeTopic, pendingTopic, question, decision)
   }
   private fun restoreParked(info: EditorInfo?): Boolean {
     val saved = parked ?: return false
@@ -106,7 +109,7 @@ class SubtextKeyboard : LatinIME() {
     val needsDraft = saved.mode == Mode.LOADING || saved.mode == Mode.REPLIES || saved.mode == Mode.ERROR
     if (needsDraft && readDraft() != saved.draft) return false
     selected = saved.selected; openerContext = saved.opener; composingOpener = saved.composingOpener
-    afterChoice = saved.afterChoice; generateAfterChoice = saved.generateAfterChoice; activeTopic = saved.topic; pendingTopic = saved.pendingTopic
+    afterChoice = saved.afterChoice; generateAfterChoice = saved.generateAfterChoice; activeTopic = saved.topic; pendingTopic = saved.pendingTopic; question = saved.question; decision = saved.decision
     draft = saved.draft; undo = null; errorMessage = saved.error; restoredEditorText = saved.editorText
     when (saved.mode) {
       Mode.LOADING -> adoptedToken = saved.token ?: -1
@@ -114,6 +117,7 @@ class SubtextKeyboard : LatinIME() {
       Mode.SEARCH -> searchRooms = rooms()
       Mode.GOAL -> if (selected == null && !composingOpener) { restoredEditorText = null; return false }
       Mode.TOPIC -> if (selected == null) return false
+      Mode.DECISION -> if (selected == null || question == null) return false
       else -> Unit
     }
     open(saved.mode)
@@ -146,7 +150,7 @@ class SubtextKeyboard : LatinIME() {
     // A new editor is a new recipient decision, even inside the same messaging app.
     park()
     revision++; adoptedToken = -1; if (!backgroundLoading()) job?.cancel()
-    if (!restarting) { selected = null; undo = null; afterChoice = null; activeTopic = ""; pendingTopic = ""; openerContext = null; composingOpener = false }
+    if (!restarting) { selected = null; undo = null; afterChoice = null; activeTopic = ""; pendingTopic = ""; question = null; decision = null; openerContext = null; composingOpener = false }
     endSearch(); restoreKeys()
     mode = Mode.TYPING
     available = attribute != null && KeyboardReplySession.available(attribute.packageName.orEmpty(), attribute.inputType, attribute.imeOptions)
@@ -199,7 +203,7 @@ class SubtextKeyboard : LatinIME() {
   private fun isEditor(value: Mode) = value == Mode.GOAL
   private fun isPicker(value: Mode) = value == Mode.PEOPLE || value == Mode.STYLES
   // Suggestions don't need the letter keys, so they take over that space like the pickers.
-  private fun fullPanel(value: Mode) = isPicker(value) || value == Mode.TOPIC || value == Mode.LOADING || value == Mode.REPLIES || value == Mode.ERROR
+  private fun fullPanel(value: Mode) = isPicker(value) || value == Mode.TOPIC || value == Mode.DECISION || value == Mode.LOADING || value == Mode.REPLIES || value == Mode.ERROR
 
   private fun open(next: Mode) {
     val toolbarBefore = toolbarMotion?.capture(panel.getChildAt(0))
@@ -228,10 +232,32 @@ class SubtextKeyboard : LatinIME() {
       strip?.visibility = View.GONE
     }
     bodyHeight = dp(148)
+    val previous = mode
     mode = next; render(animate = !fullPanel(next) && next != Mode.SEARCH && !isEditor(next) && !returningKeys)
     toolbarMotion?.change(toolbarBefore, panel.getChildAt(0))
     if (snapshot != null) pickerMotion?.disappear(snapshot, panel.getChildAt(1))
     else if (returningKeys) pickerMotion?.appear()
+    slideSubpanel(previous, next)
+  }
+
+  // Goal and topic slide in over the style panel like a page pushed on top; going back slides the styles in from the other side.
+  private fun slideSubpanel(from: Mode, to: Mode) {
+    val sub = setOf(Mode.GOAL, Mode.TOPIC)
+    val forward = from == Mode.STYLES && to in sub
+    if (!forward && !(from in sub && to == Mode.STYLES) || !android.animation.ValueAnimator.areAnimatorsEnabled()) return
+    val body = panel.getChildAt(1) ?: return
+    val shift = dp(28).toFloat() * if (forward) 1f else -1f
+    body.alpha = 0f; body.translationX = shift
+    body.animate().alpha(1f).translationX(0f).setStartDelay(if (forward) 40 else 0).setDuration(260)
+      .setInterpolator(android.view.animation.PathInterpolator(0.22f, 1f, 0.36f, 1f)).start()
+    // Topic rows follow one after another, settling with the same small overshoot as the decision choices.
+    val rows = if (forward && to == Mode.TOPIC) ((body as? ScrollView)?.getChildAt(0) as? ViewGroup) else null
+    rows?.let { list -> for (i in 0 until list.childCount) {
+      val row = list.getChildAt(i)
+      row.alpha = 0f; row.translationY = dp(14).toFloat()
+      row.animate().alpha(1f).translationY(0f).setStartDelay(80L + i * 45L).setDuration(300)
+        .setInterpolator(android.view.animation.OvershootInterpolator(1.4f)).start()
+    } }
   }
 
   private fun typing() {
@@ -262,6 +288,7 @@ class SubtextKeyboard : LatinIME() {
     if (mode == Mode.SEARCH) { renderPeople(); return }
     if (mode == Mode.GOAL) { renderGoal(); return }
     if (mode == Mode.TOPIC) { renderTopic(); return }
+    if (mode == Mode.DECISION) { renderDecision(); return }
     val toolbar = brandToolbar()
     if (mode == Mode.TYPING || mode == Mode.REPLIES || mode == Mode.LOADING || mode == Mode.STYLES) {
       val room = person()
@@ -301,7 +328,7 @@ class SubtextKeyboard : LatinIME() {
     val body = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(12), 0, dp(12), navigation + dp(8)) }
     panel.addView(body, LinearLayout.LayoutParams(-1, if (fullPanel(mode)) pickerHeight else bodyHeight))
     when (mode) {
-      Mode.PEOPLE, Mode.STYLES, Mode.SEARCH, Mode.GOAL, Mode.TOPIC -> Unit
+      Mode.PEOPLE, Mode.STYLES, Mode.SEARCH, Mode.GOAL, Mode.TOPIC, Mode.DECISION -> Unit
       Mode.LOADING -> Unit
       Mode.ERROR -> {
         val center = center(body)
@@ -474,11 +501,6 @@ class SubtextKeyboard : LatinIME() {
     toolbar.addView(button(s(R.string.cue_kb_save), true) { saveGoal() }, LinearLayout.LayoutParams(dp(96), dp(44)))
     finishToolbar(toolbar); panel.addView(toolbar, LinearLayout.LayoutParams(-1, dp(56)))
     val body = editorPanel(s(R.string.cue_kb_goal_hint), s(R.string.cue_kb_goal), runtime.conversationGoal(id), 1000)
-    // Quick starts fill the field; the user can then add details like the day or time.
-    val ideas = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
-    ideasRow = ideas; fillGoalIdeas(ideas, id); prefetchIdeas(id)
-    body.addView(HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false; addView(ideas) },
-      LinearLayout.LayoutParams(-1, dp(44)).apply { topMargin = dp(4) })
     // The remembered route: where the conversation is now and what the plan waits for.
     if (hasGoal) body.addView(LinearLayout(this).apply {
       gravity = Gravity.CENTER_VERTICAL; setPadding(dp(4), dp(6), dp(4), dp(2))
@@ -514,6 +536,89 @@ class SubtextKeyboard : LatinIME() {
     prefetchIdeas(id)
     panel.announceForAccessibility(s(R.string.cue_kb_topic_announcement))
   }
+  // The other person asked something only the user can decide; their answer steers all three replies.
+  private fun renderDecision() {
+    val asked = question ?: return typing()
+    val toolbar = brandToolbar()
+    toolbar.addView(editorBack { typing() }.apply { contentDescription = s(R.string.cue_kb_back) }, LinearLayout.LayoutParams(dp(44), dp(44)))
+    toolbar.addView(editorTitle(s(R.string.cue_kb_decision_title)), LinearLayout.LayoutParams(0, dp(44), 1f))
+    panel.addView(toolbar, LinearLayout.LayoutParams(-1, dp(56)))
+    val navigation = ViewCompat.getRootWindowInsets(panel)?.getInsets(WindowInsetsCompat.Type.navigationBars())?.bottom ?: dp(24)
+    val body = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(16), dp(4), dp(16), navigation + dp(8)) }
+    val name = person()?.optString("name")?.substringBefore(' ').orEmpty()
+    body.addView(label(if (name.isBlank()) s(R.string.cue_kb_decision_asks_someone) else s(R.string.cue_kb_decision_asks, name), 13f).apply { setTextColor(muted); setPadding(dp(4), 0, 0, dp(8)) })
+    // Drawn like the incoming message it came from.
+    val bubble = label(asked.optString("question"), 17f, true).apply {
+      setLineSpacing(dp(3).toFloat(), 1f); setPadding(dp(18), dp(14), dp(18), dp(14)); maxLines = 4; ellipsize = TextUtils.TruncateAt.END
+      background = GradientDrawable().apply {
+        setColor(card); val r = dp(20).toFloat(); cornerRadii = floatArrayOf(dp(6).toFloat(), dp(6).toFloat(), r, r, r, r, r, r)
+      }
+    }
+    body.addView(FrameLayout(this).apply { addView(bubble, FrameLayout.LayoutParams(-2, -2)) }, LinearLayout.LayoutParams(-1, -2))
+    body.addView(View(this), LinearLayout.LayoutParams(-1, 0, 1f))
+    val choices = LinearLayout(this)
+    listOf(Triple("yes", "👍", R.string.cue_kb_decision_yes), Triple("no", "👎", R.string.cue_kb_decision_no),
+      Triple("unsure", "🤷", R.string.cue_kb_decision_unsure)).forEachIndexed { index, (answer, emoji, text) ->
+      val choice = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER
+        background = RippleDrawable(ColorStateList.valueOf(0x335F78B8), rounded(androidx.core.graphics.ColorUtils.blendARGB(card, accent, if (dark) 0.14f else 0.08f), 20), null)
+        addView(label(emoji, 24f).apply { gravity = Gravity.CENTER })
+        addView(label(s(text), 15f, true).apply { gravity = Gravity.CENTER; setPadding(0, dp(6), 0, 0) })
+        contentDescription = s(text)
+        setOnClickListener { view ->
+          view.animate().scaleX(0.92f).scaleY(0.92f).setDuration(90).withEndAction {
+            view.animate().scaleX(1f).scaleY(1f).setDuration(160).setInterpolator(android.view.animation.OvershootInterpolator(2.5f)).start()
+            decide(answer)
+          }.start()
+        }
+      }
+      choices.addView(choice, LinearLayout.LayoutParams(0, dp(88), 1f).apply { if (index > 0) marginStart = dp(10) })
+      // The three answers rise in one after another.
+      if (android.animation.ValueAnimator.areAnimatorsEnabled()) {
+        choice.alpha = 0f; choice.translationY = dp(18).toFloat()
+        choice.animate().alpha(1f).translationY(0f).setStartDelay(60L + index * 70L).setDuration(320)
+          .setInterpolator(android.view.animation.OvershootInterpolator(1.4f)).start()
+      }
+    }
+    body.addView(choices, LinearLayout.LayoutParams(-1, dp(88)))
+    body.addView(button(s(R.string.cue_kb_decision_skip), false) { decide("skip") }.apply { textSize = 13f; setTextColor(muted) },
+      LinearLayout.LayoutParams(-1, dp(44)).apply { topMargin = dp(6) })
+    panel.addView(body, LinearLayout.LayoutParams(-1, pickerHeight))
+    panel.announceForAccessibility(s(R.string.cue_kb_decision_announcement, asked.optString("question")))
+  }
+  private fun decide(answer: String) {
+    val asked = question ?: return
+    if (mode != Mode.DECISION) return
+    decision = JSONObject(asked.toString()).put("answer", answer)
+    generate()
+  }
+  private fun reanswer(answer: String) {
+    val current = decision ?: return
+    // Leaving an answer keeps the tab the user was on.
+    answerReplies[current.optString("answer")]?.let { answerReplies[current.optString("answer")] = it.first to replyIndex }
+    decision = JSONObject(current.toString()).put("answer", answer)
+    val cached = answerReplies[answer]
+    if (cached != null && answerContext == answerContext(selected ?: return generate(), readDraft() ?: return generate())) {
+      replies = cached.first; replyIndex = cached.second.coerceIn(0, cached.first.lastIndex); rejectedReplies = emptyList()
+      bubbleEnter = 0; tabFrom = -1; render()
+    } else generate()
+  }
+  // Replies already written for each answer to the open question, valid while nothing they depend on changes.
+  private val answerReplies = mutableMapOf<String, Pair<List<JSONObject>, Int>>()
+  private var answerContext = ""
+  private fun answerContext(id: String, draft: String): String {
+    val tone = runtime.selectedTone(id)
+    val newest = runtime.store.room(id)?.optJSONArray("messages")?.let { if (it.length() == 0) "" else it.getJSONObject(it.length() - 1).optString("id") }.orEmpty()
+    return listOf(id, decision?.optString("messageId").orEmpty(), draft, tone, runtime.selectedIntensity(id, tone), newest).joinToString("\u0000")
+  }
+  private fun rememberAnswer(context: String, answer: String, written: List<JSONObject>) {
+    if (context != answerContext) { answerReplies.clear(); answerContext = context }
+    answerReplies[answer] = written to 0
+  }
+  private fun answerLabel(answer: String) = when (answer) {
+    "yes" -> s(R.string.cue_kb_decision_yes); "no" -> s(R.string.cue_kb_decision_no); else -> s(R.string.cue_kb_decision_unsure)
+  }
+
   private fun planStatus(plan: JSONObject?): String {
     if (plan == null) return s(R.string.cue_kb_goal_planning)
     val steps = plan.optJSONArray("steps")
@@ -600,9 +705,6 @@ class SubtextKeyboard : LatinIME() {
   }
 
   private val ideasRequested = mutableSetOf<String>()
-  private var ideasRow: LinearLayout? = null
-  private fun fillGoalIdeas(row: LinearLayout, id: String) =
-    fillIdeas(row, runtime.goalIdeas(id).ifEmpty { CueLanguage.resources(this).getStringArray(R.array.cue_kb_goal_ideas).toList() })
   private fun fillIdeas(row: LinearLayout, ideas: List<String>) {
     row.removeAllViews()
     ideas.forEach { idea ->
@@ -623,7 +725,6 @@ class SubtextKeyboard : LatinIME() {
         catch (error: CancellationException) { throw error } catch (error: Exception) { false }
       if (!ok) ideasRequested.remove(id)
       if (selected != id) return@launch
-      if (mode == Mode.GOAL) ideasRow?.let { fillGoalIdeas(it, id) }
       if (mode == Mode.TOPIC) render()
       if (mode == Mode.STYLES) render()
     }
@@ -667,7 +768,7 @@ class SubtextKeyboard : LatinIME() {
   }
 
   private fun choosePerson(room: JSONObject) {
-    selected = room.optString("id"); undo = null; openerContext = null; activeTopic = ""; pendingTopic = ""
+    selected = room.optString("id"); undo = null; openerContext = null; activeTopic = ""; pendingTopic = ""; question = null; decision = null
     prefetchIdeas(room.optString("id"))
     val shouldGenerate = generateAfterChoice
     val editor = afterChoice; afterChoice = null
@@ -697,9 +798,18 @@ class SubtextKeyboard : LatinIME() {
   private var rejectedReplies = emptyList<String>()
   private fun generate(again: Boolean = false, topic: String? = null) {
     val id = selected
+    // A yes/no question from the other person is settled by the user first; a typed draft already says what they mean.
+    if (id != null && !again && topic == null) {
+      val asked = runtime.openQuestion(id)
+      if (decision?.optString("messageId") != asked?.optString("messageId")) decision = null
+      if (asked != null && decision == null && readDraft().isNullOrBlank()) { question = asked; open(Mode.DECISION); return }
+    }
     // A topic picked on the style panel goes with the next fresh suggestion, then the tile clears.
-    if (topic != null) activeTopic = topic else if (!again) activeTopic = pendingTopic
-    if (!again) pendingTopic = ""
+    // An answered question comes first; a picked topic then waits for a later suggestion.
+    val answering = decision?.optString("answer") in ConversationGoal.ANSWERS
+    if (topic != null) activeTopic = topic
+    else if (!again && answering) activeTopic = ""
+    else if (!again) { activeTopic = pendingTopic; pendingTopic = "" }
     val opener = if (id == null) openerContext ?: return open(Mode.PEOPLE) else null
     // A generation left running for another editor must not block this one.
     if (job?.isActive == true && parked?.token != null && adoptedToken == -1) { job?.cancel(); parked = null }
@@ -711,15 +821,20 @@ class SubtextKeyboard : LatinIME() {
     draft = snapshot; undo = null; parked = null; adoptedToken = -1
     val token = revision
     val tone = runtime.selectedTone(id)
+    // Written for one answer to the open question: kept so switching back to it needs no new request.
+    val answeredWith = decision?.optString("answer")?.takeIf { it in ConversationGoal.ANSWERS }
+    val context = if (id != null && answeredWith != null) answerContext(id, snapshot) else null
     open(Mode.LOADING)
     job = scope.launch {
       try {
         val profile = withContext(Dispatchers.IO) { JSONObject(
-          if (id != null) runtime.analyze(id, snapshot, tone, rejected = rejectedReplies, topic = activeTopic)
+          if (id != null) runtime.analyze(id, snapshot, tone, rejected = rejectedReplies, topic = activeTopic,
+            decision = decision?.takeIf { it.optString("answer") in ConversationGoal.ANSWERS })
           else runtime.openNewPerson("", opener.orEmpty(), snapshot, rejectedReplies)) }
         val suggestions = profile.getJSONArray("suggestions")
         val fresh = (0 until suggestions.length()).map { suggestions.getJSONObject(it) }
           .filter { it.optString("action") == "no_reply" || it.optString("text").isNotBlank() }
+        if (context != null && answeredWith != null && fresh.isNotEmpty()) rememberAnswer(context, answeredWith, fresh)
         val waiting = parked?.takeIf { it.token == token }
         if (token != revision && token != adoptedToken) {
           // Finished while the keyboard was hidden: keep the replies for when the user comes back.
@@ -760,6 +875,25 @@ class SubtextKeyboard : LatinIME() {
       replyIndex = index; render()
       toolbarMotion?.change(toolbarBefore, panel.getChildAt(0))
     }
+    // The answer the replies were written for, as a three-way switch: tapping another answer shows its replies,
+    // straight from memory when they were written already.
+    // It sits first: what to answer comes before how.
+    decision?.takeIf { it.optString("answer") in ConversationGoal.ANSWERS }?.let { chosen ->
+      val row = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
+      row.addView(label(s(R.string.cue_kb_decision_your_answer), 12.5f).apply { setTextColor(muted); setPadding(dp(4), 0, dp(8), 0) })
+      listOf("yes" to "👍", "no" to "👎", "unsure" to "🤷").forEach { (answer, emoji) ->
+        val active = answer == chosen.optString("answer")
+        row.addView(button("$emoji  ${answerLabel(answer)}", false) { if (!active) reanswer(answer) }.apply {
+          textSize = 13f; setPadding(dp(12), 0, dp(12), 0)
+          typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+          setTextColor(if (active) onAccent else ink)
+          background = RippleDrawable(ColorStateList.valueOf(0x335F78B8), rounded(if (active) accent else card, 16), null)
+          contentDescription = answerLabel(answer) + if (active) s(R.string.cue_kb_selected) else ""
+        }, LinearLayout.LayoutParams(-2, dp(32)).apply { marginEnd = dp(6) })
+      }
+      body.addView(HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false; addView(row) },
+        LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(4) })
+    }
     // One accent bar slides between the tabs; it is null when there is only one reply.
     var indicator: View? = null
     val tabViews = mutableListOf<View>()
@@ -771,7 +905,9 @@ class SubtextKeyboard : LatinIME() {
       replies.forEachIndexed { index, reply ->
         val active = index == replyIndex
         tabs.addView(button(if (reply.optString("action") == "no_reply") s(R.string.cue_kb_no_reply) else reply.optString("tone").ifBlank { "${index + 1}" }, false) { pick(index) }.apply {
-          textSize = if (active) 15f else 14f; maxLines = 1; ellipsize = TextUtils.TruncateAt.END; setPadding(dp(6), 0, dp(6), dp(4))
+          textSize = if (active) 15f else 14f; maxLines = 1; setPadding(dp(4), 0, dp(4), dp(4))
+          // Long approach names shrink to fit rather than being cut off.
+          androidx.core.widget.TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(this, 10, if (active) 15 else 14, 1, android.util.TypedValue.COMPLEX_UNIT_SP)
           typeface = Typeface.create(Typeface.DEFAULT, if (active) Typeface.BOLD else Typeface.NORMAL)
           setTextColor(if (active) accent else muted)
           background = RippleDrawable(ColorStateList.valueOf(0x225F78B8), null, rounded(Color.WHITE, 12))
@@ -924,6 +1060,7 @@ class SubtextKeyboard : LatinIME() {
       errorMessage = s(R.string.cue_kb_draft_changed); mode = Mode.ERROR; render(); return
     }
     undo = text to draft
+    answerReplies.clear()
     typing()
     panel.announceForAccessibility(s(R.string.cue_kb_inserted))
   }
@@ -1017,9 +1154,8 @@ class SubtextKeyboard : LatinIME() {
     // The picked topic waits here for the next suggestion; ✕ drops it.
     val topic = pendingTopic.ifBlank { null }
     sections.addView(section(s(R.string.cue_kb_topics), topic ?: s(R.string.cue_kb_topic_empty), topic != null, null,
-      s(R.string.cue_kb_topic_description), end = topic?.let { { pendingTopic = ""; render() } }) { openEditor(Mode.TOPIC) },
+      s(R.string.cue_kb_topic_description), end = topic?.let { { pendingTopic = ""; render() } }, endDescription = s(R.string.cue_kb_clear_topic)) { openEditor(Mode.TOPIC) },
       LinearLayout.LayoutParams(0, -1, 1f).apply { marginStart = dp(4) })
-    content.addView(sections, LinearLayout.LayoutParams(-1, dp(60)).apply { topMargin = dp(4) })
     val intensity = FrameLayout(this)
     val hint = label("", 15f).apply { setTextColor(ink); gravity = Gravity.CENTER; maxLines = 2; ellipsize = TextUtils.TruncateAt.END }
     fun showIntensity() {
@@ -1041,6 +1177,10 @@ class SubtextKeyboard : LatinIME() {
     }, LinearLayout.LayoutParams(-1, dp(72)).apply { topMargin = dp(6) })
     content.addView(intensity, LinearLayout.LayoutParams(-1, dp(60)).apply { topMargin = dp(10); marginStart = dp(8); marginEnd = dp(8) })
     content.addView(hint, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(14); marginStart = dp(20); marginEnd = dp(20) })
+    // Goal and topic sit below the style, as extras to the reply.
+    content.addView(View(this), LinearLayout.LayoutParams(-1, 0, 1f))
+    // Clear of the IME switcher and hide buttons drawn over the bottom edge.
+    content.addView(sections, LinearLayout.LayoutParams(-1, dp(60)).apply { topMargin = dp(12); bottomMargin = dp(24) })
     showIntensity()
     panel.addView(content, LinearLayout.LayoutParams(-1, pickerHeight))
   }
@@ -1050,8 +1190,8 @@ class SubtextKeyboard : LatinIME() {
     if (selected == null) { afterChoice = editor; open(Mode.PEOPLE) } else open(editor)
   }
   private fun section(caption: String, value: String, filled: Boolean, icon: android.graphics.drawable.Drawable?, description: String,
-    muted: Boolean = false, end: (() -> Unit)? = null, action: () -> Unit) = LinearLayout(this).apply {
-    gravity = Gravity.CENTER_VERTICAL; setPadding(dp(14), dp(8), if (end == null) dp(12) else dp(2), dp(8))
+    muted: Boolean = false, end: (() -> Unit)? = null, endDescription: String = s(R.string.cue_kb_end_goal), action: () -> Unit) = LinearLayout(this).apply {
+    gravity = Gravity.CENTER_VERTICAL; setPadding(dp(14), dp(8), if (end == null) dp(10) else dp(2), dp(8))
     background = RippleDrawable(ColorStateList.valueOf(0x225F78B8), rounded(card, 16), null)
     val texts = LinearLayout(this@SubtextKeyboard).apply { orientation = LinearLayout.VERTICAL }
     texts.addView(label(caption, 12f).apply {
@@ -1062,10 +1202,18 @@ class SubtextKeyboard : LatinIME() {
       setTextColor(if (filled) ink else if (muted) this@SubtextKeyboard.muted else accent); maxLines = 1; ellipsize = TextUtils.TruncateAt.END; setPadding(0, dp(4), 0, 0)
     })
     addView(texts, LinearLayout.LayoutParams(0, -2, 1f))
-    // Ends the goal in one tap, without opening the editor.
-    if (end != null) addView(button("✕", false) { end() }.apply {
-      textSize = 13f; setTextColor(this@SubtextKeyboard.muted); contentDescription = s(R.string.cue_kb_end_goal)
-    }, LinearLayout.LayoutParams(dp(40), dp(40)))
+    // An empty section shows + so it reads as "add"; a filled one opens its editor on tap.
+    if (!filled && !muted) addView(android.widget.ImageView(this@SubtextKeyboard).apply {
+      setImageDrawable(getDrawable(R.drawable.cue_plus)?.mutate()?.apply { setTint(onAccent) })
+      background = rounded(accent, 13)
+      scaleType = android.widget.ImageView.ScaleType.CENTER; importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+    }, LinearLayout.LayoutParams(dp(26), dp(26)).apply { marginStart = dp(6) })
+    // Ends the goal or drops the topic in one tap, without opening the editor.
+    if (end != null) addView(android.widget.ImageButton(this@SubtextKeyboard).apply {
+      setImageDrawable(getDrawable(R.drawable.cue_close)?.mutate()?.apply { setTint(this@SubtextKeyboard.muted) })
+      background = RippleDrawable(ColorStateList.valueOf(0x225F78B8), null, rounded(Color.WHITE, 18))
+      contentDescription = endDescription; setOnClickListener { end() }
+    }, LinearLayout.LayoutParams(dp(36), dp(36)))
     contentDescription = description; setOnClickListener { action() }
   }
   // Remembers what each conversation's arc last showed, so a new stage sweeps forward instead of jumping.
@@ -1148,7 +1296,7 @@ class SubtextKeyboard : LatinIME() {
   }
 
   override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-    if (keyCode == KeyEvent.KEYCODE_BACK && mode != Mode.TYPING) { backHandled = true; if (mode == Mode.SEARCH) open(Mode.PEOPLE) else if (mode == Mode.GOAL) { endSearch(); if (composingOpener) { composingOpener = false; open(Mode.PEOPLE) } else open(Mode.STYLES) } else if (mode == Mode.TOPIC) open(Mode.STYLES) else typing(); return true }
+    if (keyCode == KeyEvent.KEYCODE_BACK && mode != Mode.TYPING) { backHandled = true; if (mode == Mode.SEARCH) open(Mode.PEOPLE) else if (mode == Mode.GOAL) { endSearch(); if (composingOpener) { composingOpener = false; open(Mode.PEOPLE) } else open(Mode.STYLES) } else if (mode == Mode.TOPIC) open(Mode.STYLES) else if (mode == Mode.DECISION) typing() else typing(); return true }
     if (isEditor(mode)) return searchEditor?.dispatchKeyEvent(event) ?: true
     if (mode == Mode.SEARCH) {
       consumedHardwareKeys.add(keyCode)
