@@ -104,4 +104,16 @@
     <item>Szukasz porozumienia bez oskarżeń.</item>
     <item>Bierzesz odpowiedzialność za swoją część i przepraszasz.</item>
   </string-array>
+  <string name="cue_kb_new_person">Nowa osoba</string>
+  <string name="cue_kb_new_person_title">Pierwsza wiadomość</string>
+  <string name="cue_kb_new_person_hint">Skąd się znacie albo co o tej osobie wiesz?</string>
+  <string name="cue_kb_new_person_announcement">Opisz nową osobę. Klawiatura wpisuje teraz kontekst, nie wiadomość.</string>
+  <string name="cue_kb_write">Napisz</string>
+  <string-array name="cue_kb_opener_ideas">
+    <item>Widziałem relację</item>
+    <item>Wspólny znajomy</item>
+    <item>Poznaliśmy się na…</item>
+    <item>Z apki randkowej</item>
+    <item>Sprawa zawodowa</item>
+  </string-array>
 </resources>

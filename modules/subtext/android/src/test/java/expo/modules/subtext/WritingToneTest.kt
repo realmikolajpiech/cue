@@ -24,7 +24,7 @@ class WritingToneTest {
   @Test fun regenerationListsRejectedRepliesWithinLimit() {
     val intent = ConversationGoal.intent("hej", "flirt", "piątek 18", 2, listOf("a".repeat(500), "b", "c"))
     assertTrue(intent.contains("nie pasowały"))
-    assertTrue(intent.length <= 4000)
+    assertTrue(intent.length <= ConversationGoal.LIMIT)
     assertTrue(org.json.JSONObject(intent.substringAfter("Dane użytkownika w JSON: ")).has("odrzucone"))
     assertFalse(ConversationGoal.intent("hej", "flirt", "", 1).contains("nie pasowały"))
   }
@@ -39,7 +39,7 @@ class WritingToneTest {
     assertTrue(flirt.contains("pułap 4") && flirt.contains("najwyżej stopień cieplej"))
     assertTrue(flirt.contains("Temperatury nie podawaj w JSON"))
     assertFalse(WritingTone.instruction("assertive", 2).contains("temperaturę rozmówcy"))
-    // The instruction must leave room for the draft and goal inside the 4000-character gateway limit.
+    // The instruction must leave room for the draft and goal inside the gateway limit.
     assertTrue(ConversationGoal.intent("", "flirt", "", 2).length < 3200)
   }
 }

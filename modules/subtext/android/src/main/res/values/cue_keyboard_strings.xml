@@ -106,4 +106,16 @@
     <item>You look for agreement without accusations.</item>
     <item>You take responsibility for your part and apologise.</item>
   </string-array>
+  <string name="cue_kb_new_person">New person</string>
+  <string name="cue_kb_new_person_title">First message</string>
+  <string name="cue_kb_new_person_hint">How do you know them, or what do you know about them?</string>
+  <string name="cue_kb_new_person_announcement">Describe the new person. The keyboard is typing context, not the message.</string>
+  <string name="cue_kb_write">Write</string>
+  <string-array name="cue_kb_opener_ideas">
+    <item>Saw their story</item>
+    <item>Mutual friend</item>
+    <item>We met at…</item>
+    <item>From a dating app</item>
+    <item>Work-related</item>
+  </string-array>
 </resources>

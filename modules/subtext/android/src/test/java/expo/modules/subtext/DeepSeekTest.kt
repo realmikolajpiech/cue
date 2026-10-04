@@ -27,7 +27,7 @@ class DeepSeekTest {
     assertEquals(goal, payload.getString("celRozmowy"))
     assertEquals("hej", payload.getString("szkic"))
     val longIntent = ConversationGoal.intent("\"\n".repeat(2000), "empathetic", "\"\n".repeat(1000))
-    assertTrue(longIntent.length <= 4000)
+    assertTrue(longIntent.length <= ConversationGoal.LIMIT)
     JSONObject(longIntent.substringAfter("Dane użytkownika w JSON: "))
   }
   @Test fun keepsShortDistinctGoalIdeas() {

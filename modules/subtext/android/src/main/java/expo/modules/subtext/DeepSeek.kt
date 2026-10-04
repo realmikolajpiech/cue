@@ -8,9 +8,11 @@ import org.json.JSONObject
 object DeepSeek {
   const val MODEL = "deepseek-flash"
   suspend fun analyze(gateway: SupabaseGateway, messages: JSONArray, draft: String,
-    memory: JSONObject = JSONObject(), memoryOnly: Boolean = false, images: JSONArray = JSONArray()): JSONObject = withContext(Dispatchers.IO) {
-    validate(gateway.analyze(userContent(messages, draft, generalHistory = JSONArray())
-      .put("personMemory", PersonMemory.input(memory)).put("memoryOnly", memoryOnly).put("images", images)), messages, memoryOnly)
+    memory: JSONObject = JSONObject(), memoryOnly: Boolean = false, images: JSONArray = JSONArray(),
+    opener: Boolean = false, generalHistory: JSONArray = JSONArray()): JSONObject = withContext(Dispatchers.IO) {
+    // An opener may have no messages at all; the server only accepts that with the flag set.
+    validate(gateway.analyze(userContent(messages, draft, generalHistory = generalHistory)
+      .put("personMemory", PersonMemory.input(memory)).put("memoryOnly", memoryOnly).put("images", images).put("opener", opener)), messages, memoryOnly)
   }
 
   // Balance the general sample so one prolific conversation cannot dominate it.
@@ -35,7 +37,7 @@ object DeepSeek {
     // A handful of acknowledgements is not enough to infer a relationship-specific voice.
     val enoughLocal = local.size >= 8 && local.sumOf { it.length } >= 160
     val source = if (enoughLocal) "conversation" else if (general.isNotEmpty()) "general" else "insufficient"
-    return JSONObject().put("messages", messages).put("draft", draft.take(4000))
+    return JSONObject().put("messages", messages).put("draft", draft.take(ConversationGoal.LIMIT))
       .put("styleInput", JSONObject().put("conversationExamples", JSONArray(local))
         .put("generalExamples", JSONArray(general)).put("activeSource", source))
   }

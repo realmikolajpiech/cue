@@ -1,4 +1,4 @@
-import { languageRule, PROMPT, MEMORY_PROMPT, NO_REPLY_PROMPT, REMINDERS_PROMPT, CURRENT_THREAD_PROMPT, MEDIA_PROMPT, OUTPUT_RELIABILITY_PROMPT } from './prompt.ts';
+import { languageRule, PROMPT, MEMORY_PROMPT, NO_REPLY_PROMPT, REMINDERS_PROMPT, CURRENT_THREAD_PROMPT, MEDIA_PROMPT, OUTPUT_RELIABILITY_PROMPT, OPENER_PROMPT } from './prompt.ts';
 import { validateImages, visionContent } from './vision.ts';
 import { messageTime } from './message-time.ts';
 
@@ -43,8 +43,11 @@ Deno.serve(async (req: Request) => {
     let input;
     try { input = JSON.parse(new TextDecoder().decode(bytes)); }
     catch { return reply(400, { error: 'invalid_json' }); }
-    if (!input || !Array.isArray(input.messages) || input.messages.length < 1 || input.messages.length > 80 ||
-        typeof input.draft !== 'string' || input.draft.length > 4000) return reply(400, { error: 'invalid_input' });
+    if (input?.opener !== undefined && typeof input.opener !== 'boolean') return reply(400, { error: 'invalid_mode' });
+    // Only a conversation opener may start without any message history.
+    const minimum = input?.opener === true && input?.memoryOnly !== true ? 0 : 1;
+    if (!input || !Array.isArray(input.messages) || input.messages.length < minimum || input.messages.length > 80 ||
+        typeof input.draft !== 'string' || input.draft.length > 6000) return reply(400, { error: 'invalid_input' });
     const ids = new Set<string>();
     for (const m of input.messages) {
       if (!m || typeof m.id !== 'string' || !m.id || m.id.length > 512 || ids.has(m.id) ||
@@ -87,7 +90,7 @@ Deno.serve(async (req: Request) => {
       method: 'POST', headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
       signal: AbortSignal.timeout(55000),
       body: JSON.stringify({ model, thinking: { type: 'disabled' }, response_format: { type: 'json_object' }, max_tokens: 4500,
-        messages: [{ role: 'system', content: PROMPT + languageRule(language) + MEMORY_PROMPT + NO_REPLY_PROMPT + REMINDERS_PROMPT + CURRENT_THREAD_PROMPT + MEDIA_PROMPT + OUTPUT_RELIABILITY_PROMPT }, { role: 'user', content: visionContent({ messages, draft: input.draft,
+        messages: [{ role: 'system', content: PROMPT + languageRule(language) + MEMORY_PROMPT + NO_REPLY_PROMPT + REMINDERS_PROMPT + CURRENT_THREAD_PROMPT + MEDIA_PROMPT + OUTPUT_RELIABILITY_PROMPT + (input.opener === true ? OPENER_PROMPT : '') }, { role: 'user', content: visionContent({ messages, draft: input.draft,
           personMemory, styleInput, memoryOnly: input.memoryOnly === true }, images) }] }),
     });
     if (!response.ok) return reply([402, 429].includes(response.status) ? response.status : 502, { error: 'upstream_unavailable' });

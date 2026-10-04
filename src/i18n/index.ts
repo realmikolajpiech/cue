@@ -3,8 +3,6 @@ import { initReactI18next, useTranslation } from 'react-i18next';
 import { getLocales } from 'expo-localization';
 import pl from './locales/pl.json';
 import en from './locales/en.json';
-import legacyPl from './locales/legacy/pl.json';
-import legacyEn from './locales/legacy/en.json';
 
 export type Language = 'pl' | 'en';
 export const languages: { code: Language; label: string }[] = [
@@ -20,9 +18,8 @@ export function deviceLanguage(): Language {
 export const i18n = createInstance();
 
 void i18n.use(initReactI18next).init({
-  resources: { pl: { translation: pl, legacy: legacyPl }, en: { translation: en, legacy: legacyEn } },
+  resources: { pl: { translation: pl }, en: { translation: en } },
   lng: deviceLanguage(), fallbackLng: 'en', supportedLngs: ['pl', 'en'],
-  ns: ['translation', 'legacy'], defaultNS: 'translation',
   initAsync: false, returnNull: false,
   interpolation: { escapeValue: false }, react: { useSuspense: false },
 });

@@ -250,19 +250,36 @@ class SubtextRuntime private constructor(private val context: Context) {
       val room = requireNotNull(store.room(id)) { "Rozmowa została usunięta." }
       val all = room.getJSONArray("messages")
       val recent = JSONArray((maxOf(0, all.length() - 80) until all.length()).map { all.getJSONObject(it) })
-      check(recent.length() > 0) { fetched.optString("historyNotice", "Wiadomości nie zostały jeszcze zsynchronizowane.") }
+      // An empty history is only a first message when nothing is hiding it (e.g. encryption).
+      val notice = fetched.optString("historyNotice")
+      check(recent.length() > 0 || notice.isBlank()) { notice }
       val memory = store.memory(id)
       val chosenTone = tone ?: selectedTone(id)
-      val intent = ConversationGoal.intent(draft, chosenTone, conversationGoal(id), intensity ?: selectedIntensity(id, chosenTone), rejected, CueLanguage.promptNote(context))
-      val profile = DeepSeek.analyze(gateway, recent, intent, memory, images = analysisImages(id, recent))
+      val situation = ConversationOpener.situation(recent, System.currentTimeMillis())
+      val intent = ConversationGoal.intent(draft, chosenTone, conversationGoal(id), intensity ?: selectedIntensity(id, chosenTone), rejected,
+        CueLanguage.promptNote(context), situation?.let { ConversationOpener.instruction(it, room.optString("name")) }.orEmpty())
+      val profile = DeepSeek.analyze(gateway, recent, intent, memory, images = analysisImages(id, recent), opener = recent.length() == 0,
+        generalHistory = if (recent.length() == 0) DeepSeek.generalWritingHistory(styleRooms(null)) else JSONArray())
       check(token == generation.get() && prefs.getBoolean("cloud", false)) { "Analiza anulowana po zmianie ustawień." }
       profile.put("replyDraft", draft)
       saveGoalIdeas(id, profile)
       store.profile(id, profile)
-      store.updateContext(id, profile.getJSONArray("memoryUpdates"), recent, memory.optLong("revision"),
+      if (recent.length() > 0) store.updateContext(id, profile.getJSONArray("memoryUpdates"), recent, memory.optLong("revision"),
         profile.getJSONArray("reminderUpdates"), memory.optJSONArray("reminders") ?: JSONArray())
       profile.toString()
     } finally { analyzing = null; changed() }
+  }
+  // A first message to someone the app has no conversation with; nothing about them is stored.
+  suspend fun openNewPerson(name: String, personContext: String, draft: String, rejected: List<String> = emptyList()): String = analysisMutex.withLock {
+    check(prefs.getBoolean("cloud", false)) { "Włącz analizę DeepSeek w ustawieniach." }
+    val token = generation.get()
+    val tone = selectedTone(null)
+    val situation = ConversationOpener.Situation(ConversationOpener.Kind.FIRST)
+    val intent = ConversationGoal.intent(draft, tone, "", selectedIntensity(null, tone), rejected, CueLanguage.promptNote(context),
+      ConversationOpener.instruction(situation, name.trim().take(80)), personContext.trim())
+    val profile = DeepSeek.analyze(gateway, JSONArray(), intent, opener = true, generalHistory = DeepSeek.generalWritingHistory(styleRooms(null)))
+    check(token == generation.get() && prefs.getBoolean("cloud", false)) { "Analiza anulowana po zmianie ustawień." }
+    profile.toString()
   }
   fun cloud(enabled: Boolean) {
     generation.incrementAndGet(); prefs.edit().putBoolean("cloud", enabled).apply(); changed()
