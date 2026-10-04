@@ -45,8 +45,8 @@ internal object CueLanguage {
 
   /** Every AI field, reply text included, follows the language chosen in the app. */
   fun promptNote(context: Context): String = if (get(context) == "en")
-    " Language: English. Write every JSON text field in English, including suggestions text, tone, reason, goalIdeas, summary, memory and reminders, even when the conversation is in another language."
-  else " Język: polski. Wszystkie pola tekstowe JSON, także propozycje odpowiedzi (text), tone, reason, goalIdeas, podsumowania, pamięć i przypomnienia, pisz po polsku, nawet gdy rozmowa jest w innym języku."
+    " Language: English. Write every JSON text field in English, including suggestions text, tone, reason, goalIdeas, topicIdeas, goalPlan, summary, memory and reminders, even when the conversation is in another language."
+  else " Język: polski. Wszystkie pola tekstowe JSON, także propozycje odpowiedzi (text), tone, reason, goalIdeas, topicIdeas, goalPlan, podsumowania, pamięć i przypomnienia, pisz po polsku, nawet gdy rozmowa jest w innym języku."
 
   /** Incoming messages and goals for the writing style preview, in the app language. */
   fun previewScenarios(context: Context): List<Pair<String, String>> = if (get(context) == "en") listOf(

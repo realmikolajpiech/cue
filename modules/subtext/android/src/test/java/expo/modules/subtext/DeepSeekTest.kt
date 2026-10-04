@@ -37,6 +37,15 @@ class DeepSeekTest {
     assertEquals("Umówić się na piątek", ideas.getString(0))
     assertEquals(60, ideas.getString(1).length)
   }
+  @Test fun keepsTopicsPlanAndReplyStep() {
+    val raw = result().put("topicIdeas", JSONArray(listOf("Koncert w sobotę", "Nowy serial", "a", "b", "c", "d")))
+      .put("goalPlan", JSONObject("""{"steps":["Ocieplić","Propozycja"],"stage":1,"moment":"good","note":"otwiera się"}"""))
+    raw.getJSONArray("suggestions").getJSONObject(0).put("step", "goal")
+    val clean = DeepSeek.validate(raw, messages)
+    assertEquals(5, clean.getJSONArray("topicIdeas").length())
+    assertEquals("good", clean.getJSONObject("goalPlan").getString("moment"))
+    assertEquals("goal", clean.getJSONArray("suggestions").getJSONObject(0).getString("step"))
+  }
   @Test fun dropsUnsupportedClaimsAndKeepsEvidence() {
     val clean = DeepSeek.validate(result(), messages)
     assertEquals(0, clean.getJSONArray("commitments").length())

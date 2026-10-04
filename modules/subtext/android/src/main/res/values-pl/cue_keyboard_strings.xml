@@ -62,6 +62,26 @@
   <string name="cue_kb_not_set">nie ustawiono</string>
   <string name="cue_kb_edit_goal">Edytuj cel</string>
   <string name="cue_kb_add_goal">Dodaj cel</string>
+  <string name="cue_kb_topics">Tematy</string>
+  <string name="cue_kb_topic_hint">O czym chcesz napisać?</string>
+  <string name="cue_kb_topic_empty">Znajdź temat</string>
+  <string name="cue_kb_topic_announcement">Wpisz albo wybierz temat. Klawiatura edytuje temat, nie wiadomość.</string>
+  <string name="cue_kb_topic_description">Tematy do rozmowy. Otwórz, aby wybrać temat</string>
+  <string-array name="cue_kb_topic_ideas">
+    <item>Jak minął dzień</item>
+    <item>Plany na weekend</item>
+    <item>Polecić film lub serial</item>
+    <item>Coś zabawnego</item>
+    <item>Muzyka na teraz</item>
+  </string-array>
+  <string name="cue_kb_goal_planning">Układam drogę do celu…</string>
+  <string name="cue_kb_goal_stage">Etap %1$d z %2$d</string>
+  <string name="cue_kb_moment_good">dobry moment</string>
+  <string name="cue_kb_moment_wait">czekam na moment</string>
+  <string name="cue_kb_moment_paused">wstrzymane</string>
+  <string name="cue_kb_moment_done">Cel osiągnięty</string>
+  <string name="cue_kb_step_goal">Krok do celu</string>
+  <string name="cue_kb_step_keep">Podtrzymanie rozmowy</string>
   <string name="cue_kb_reply_style">Styl odpowiedzi: %1$s</string>
   <string name="cue_kb_swipe_position">, %1$d z %2$d. Przesuń w lewo lub w prawo, aby zmienić.</string>
   <string name="cue_kb_intensity">Natężenie: %1$s, %2$d z %3$d</string>

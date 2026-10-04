@@ -97,14 +97,16 @@ object DeepSeek {
         require(item.getString("text").isNotBlank()) { "Pusta sugestia AI." }
         suggestion.put("tone", item.getString("tone").take(60)).put("text", item.getString("text").take(2000))
         if (item.optString("reason").isNotBlank()) suggestion.put("reason", item.getString("reason").take(600))
+        item.optString("step").takeIf { it == "goal" || it == "keep" }?.let { suggestion.put("step", it) }
       }
       output.put(suggestion)
     }
     require(memoryOnly || output.length() > 0) { "AI nie zwróciło podpowiedzi." }
-    raw.optJSONArray("goalIdeas")?.let { ideas ->
-      clean.put("goalIdeas", JSONArray((0 until minOf(ideas.length(), 8)).map { ideas.optString(it).trim().take(60) }
-        .filter { it.isNotBlank() }.distinct().take(4)))
+    for ((field, limit) in listOf("goalIdeas" to 4, "topicIdeas" to 5)) raw.optJSONArray(field)?.let { ideas ->
+      clean.put(field, JSONArray((0 until minOf(ideas.length(), 8)).map { ideas.optString(it).trim().take(60) }
+        .filter { it.isNotBlank() }.distinct().take(limit)))
     }
+    raw.optJSONObject("goalPlan")?.let(ConversationGoal::cleanPlan)?.let { clean.put("goalPlan", it) }
     return clean.put("suggestions", output).put("createdAt", System.currentTimeMillis()).put("model", MODEL).put("messageCount", messages.length())
   }
 }

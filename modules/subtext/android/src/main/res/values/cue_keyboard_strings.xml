@@ -63,6 +63,26 @@
   <string name="cue_kb_not_set">not set</string>
   <string name="cue_kb_edit_goal">Edit goal</string>
   <string name="cue_kb_add_goal">Add goal</string>
+  <string name="cue_kb_topics">Topics</string>
+  <string name="cue_kb_topic_hint">What do you want to talk about?</string>
+  <string name="cue_kb_topic_empty">Find a topic</string>
+  <string name="cue_kb_topic_announcement">Type or pick a topic. The keyboard is editing the topic, not the message.</string>
+  <string name="cue_kb_topic_description">Conversation topics. Open to pick a topic</string>
+  <string-array name="cue_kb_topic_ideas">
+    <item>How the day went</item>
+    <item>Weekend plans</item>
+    <item>Recommend a film or show</item>
+    <item>Something funny</item>
+    <item>Music right now</item>
+  </string-array>
+  <string name="cue_kb_goal_planning">Planning the route to the goal…</string>
+  <string name="cue_kb_goal_stage">Step %1$d of %2$d</string>
+  <string name="cue_kb_moment_good">good moment</string>
+  <string name="cue_kb_moment_wait">waiting for the moment</string>
+  <string name="cue_kb_moment_paused">paused</string>
+  <string name="cue_kb_moment_done">Goal reached</string>
+  <string name="cue_kb_step_goal">Step toward the goal</string>
+  <string name="cue_kb_step_keep">Keeps the conversation going</string>
   <string name="cue_kb_reply_style">Reply style: %1$s</string>
   <string name="cue_kb_swipe_position">, %1$d of %2$d. Swipe left or right to change.</string>
   <string name="cue_kb_intensity">Intensity: %1$s, %2$d of %3$d</string>

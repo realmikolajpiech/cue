@@ -15,11 +15,31 @@ class WritingToneTest {
     assertTrue(WritingTone.instruction("assertive", 0).contains("Natężenie uprzejme"))
     assertTrue(ConversationGoal.intent("hej", "flirt", "", 2).contains("Natężenie odważne"))
   }
-  @Test fun intensitySetsHowHardToPursueTheGoal() {
-    assertTrue(ConversationGoal.intent("", "flirt", "piątek 18", 2).contains("Do celu dąż aktywnie"))
-    assertTrue(ConversationGoal.intent("", "flirt", "piątek 18", 0).contains("Do celu dąż powoli"))
-    assertTrue(ConversationGoal.intent("", "natural", "piątek 18", 2).contains("Do celu dąż naturalnie"))
-    assertFalse(ConversationGoal.intent("", "flirt", "", 2).contains("Do celu dąż"))
+  @Test fun intensitySetsTheTempoThroughThePlan() {
+    assertTrue(ConversationGoal.intent("", "flirt", "piątek 18", 2).contains("Tempo aktywne"))
+    assertTrue(ConversationGoal.intent("", "flirt", "piątek 18", 0).contains("Tempo spokojne"))
+    assertTrue(ConversationGoal.intent("", "natural", "piątek 18", 2).contains("Tempo naturalne"))
+    assertFalse(ConversationGoal.intent("", "flirt", "", 2).contains("Tempo "))
+    assertFalse(ConversationGoal.intent("", "flirt", "", 2).contains("goalPlan:"))
+  }
+  @Test fun savedPlanAndTopicTravelWithTheGoal() {
+    val plan = org.json.JSONObject("""{"steps":["Ocieplić","Wybadać","Propozycja"],"stage":2,"moment":"wait","note":"czekamy"}""")
+    val payload = org.json.JSONObject(ConversationGoal.intent("", "flirt", "kawa", 1, plan = plan, topic = "koncert")
+      .substringAfter("Dane użytkownika w JSON: "))
+    assertEquals(2, payload.getJSONObject("planCelu").getInt("stage"))
+    assertEquals("koncert", payload.getString("tematRozmowy"))
+    // Without a goal a stale plan is not sent.
+    assertFalse(org.json.JSONObject(ConversationGoal.intent("", "flirt", "", 1, plan = plan).substringAfter("Dane użytkownika w JSON: ")).has("planCelu"))
+    assertTrue(ConversationGoal.background("kawa", plan, "").contains("planCelu"))
+    assertFalse(ConversationGoal.background("", plan, "").contains("goalPlan"))
+  }
+  @Test fun planIsClampedAndValidated() {
+    val clean = ConversationGoal.cleanPlan(org.json.JSONObject("""{"steps":["a"," ","b","c"],"stage":9,"moment":"odd"}"""))!!
+    assertEquals(3, clean.getJSONArray("steps").length())
+    assertEquals(3, clean.getInt("stage"))
+    assertEquals("wait", clean.getString("moment"))
+    assertEquals(2, ConversationGoal.cleanPlan(org.json.JSONObject("""{"steps":["a","b"],"stage":1,"moment":"done"}"""))!!.getInt("stage"))
+    assertEquals(null, ConversationGoal.cleanPlan(org.json.JSONObject("""{"steps":["a"],"stage":1}""")))
   }
   @Test fun regenerationListsRejectedRepliesWithinLimit() {
     val intent = ConversationGoal.intent("hej", "flirt", "piątek 18", 2, listOf("a".repeat(500), "b", "c"))
