@@ -1,4 +1,4 @@
-import { t, useLanguage } from '@/i18n';
+import { t, useLanguage } from '@/i18n/legacy';
 import { useState } from 'react';
 import { FlashList } from '@shopify/flash-list';
 import { router } from 'expo-router';

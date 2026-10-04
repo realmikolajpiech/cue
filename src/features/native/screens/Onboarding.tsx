@@ -1,4 +1,4 @@
-import { t, useLanguage } from '@/i18n';
+import { t, useLanguage } from '@/i18n/legacy';
 import { SymbolView } from 'expo-symbols';
 import { Screen, Copy, Card, Action } from '@/components/ui';
 import { usePreferences } from '@/features/preferences';

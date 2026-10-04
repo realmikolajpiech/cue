@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import { Copy, Row, Icon, Action, type IconName } from '@/components/ui';
 import { AnalysisPending } from '@/features/check/AnalysisPending';
 import { LanguagePicker } from '@/components/LanguagePicker';
-import { t, useLanguage } from '@/i18n';
+import { t, useLanguage } from '@/i18n/legacy';
 import { useTheme } from '@/theme/useTheme';
 import { guardian } from '@/services/guardian';
 import { useProtection } from '@/features/protection/useProtection';
@@ -79,7 +79,7 @@ export default function Settings() {
           <SettingRow icon="bell" label={t('Pokazuj ostrzeżenia')} value={s.notifications} onChange={s.toggleNotifications} disabled={s.busy} />
         </Group>
         <Group title={t('Preferencje')}>
-          <View style={styles.language}><LanguagePicker embedded /></View>
+          <View style={styles.language}><LanguagePicker /></View>
           <Divider />
           <SettingRow icon="moon" label={t('Ciemne tło')} value={demo.dark} onChange={demo.toggleTheme} />
         </Group>

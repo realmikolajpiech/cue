@@ -7,25 +7,15 @@ import { useTheme } from '@/theme/useTheme';
 import type { z } from 'zod';
 import type { writingStyleSchema, WritingTone } from '@/types/subtext';
 import { Button, Disclosure, ErrorText } from './components';
+import { currentLanguage, plural, useTranslation } from '@/i18n';
 
 export type WritingStyleProps = { roomId?: string; isExample?: boolean };
 type Example = z.infer<typeof writingStyleSchema>['examples'][number];
 
-const tones: { id: WritingTone; label: string; description: string }[] = [
-  { id: 'natural', label: 'Naturalny', description: 'Tak, jak zwykle piszesz — bez dodatkowego tonu.' },
-  { id: 'flirt', label: 'Flirtujący', description: 'Subtelne zainteresowanie, ciepło i lekki humor.' },
-  { id: 'assertive', label: 'Asertywny', description: 'Jasne potrzeby i granice, spokojnie i bez agresji.' },
-  { id: 'empathetic', label: 'Empatyczny', description: 'Zrozumienie emocji i wsparcie bez pustych pocieszeń.' },
-  { id: 'calming', label: 'Łagodzący konflikt', description: 'Spokojna odpowiedź, która pomaga dojść do porozumienia.' },
-];
-
-function countLabel(count: number, forms: [string, string, string]) {
-  const few = count % 10 >= 2 && count % 10 <= 4 && !(count % 100 >= 12 && count % 100 <= 14);
-  return `${count} ${forms[count === 1 ? 0 : few ? 1 : 2]}`;
-}
+const tones: WritingTone[] = ['natural', 'flirt', 'assertive', 'empathetic', 'calming'];
 
 function Exchanges({ examples }: { examples: Example[] }) {
-  const { colors } = useTheme();
+  const { colors } = useTheme(); const { t } = useTranslation();
   return <View style={styles.exchanges}>{examples.map((example, index) => (
     <View key={example.id} style={[styles.exchange, {
       borderColor: colors.border,
@@ -33,10 +23,10 @@ function Exchanges({ examples }: { examples: Example[] }) {
       paddingTop: index ? 24 : 0,
     }]}>
       {!!example.incoming && <View style={[styles.bubble, styles.incoming, { backgroundColor: colors.surface }]}>
-        <Copy selectable accessibilityLabel={`Rozmówca: ${example.incoming}`} style={[styles.message, { color: colors.text }]}>{example.incoming}</Copy>
+        <Copy selectable accessibilityLabel={t('style.incomingLabel', { text: example.incoming })} style={[styles.message, { color: colors.text }]}>{example.incoming}</Copy>
       </View>}
       <View style={[styles.bubble, styles.reply, { backgroundColor: colors.accent }]}>
-        <Copy selectable accessibilityLabel={`Propozycja Cue: ${example.reply}`} style={[styles.message, { color: colors.onAccent }]}>{example.reply}</Copy>
+        <Copy selectable accessibilityLabel={t('style.replyLabel', { text: example.reply })} style={[styles.message, { color: colors.onAccent }]}>{example.reply}</Copy>
       </View>
     </View>
   ))}</View>;
@@ -44,7 +34,7 @@ function Exchanges({ examples }: { examples: Example[] }) {
 
 /** Shared content, with one scroll owner when embedded in a person's screen. */
 export default function WritingStyleContent({ roomId, isExample = false }: WritingStyleProps) {
-  const { colors } = useTheme();
+  const { colors } = useTheme(); const { t } = useTranslation();
   const client = useQueryClient();
   const { data: status } = useSubtextStatus();
   const queryKey = ['subtext', 'writing-style', roomId ?? 'general'];
@@ -59,17 +49,17 @@ export default function WritingStyleContent({ roomId, isExample = false }: Writi
   });
   const style = query.data;
   const previews = style?.previewExamples ?? [];
-  const tone = tones.find(item => item.id === style?.selectedTone) ?? tones[0];
+  const tone = tones.find(item => item === style?.selectedTone) ?? tones[0];
   const busy = selection.isPending || preview.isPending || !!status?.analyzing;
   const previewContent = style && <View style={{ gap: 16 }}>
-    {!previews.length && <Copy style={styles.body}>Sprawdź, jak Cue odpowie na przykładowe wiadomości w Twoim stylu.</Copy>}
-    <Copy style={styles.caption}>Wybrany styl: {tone.label.toLocaleLowerCase('pl')}</Copy>
+    {!previews.length && <Copy style={styles.body}>{t('style.previewIntro')}</Copy>}
+    <Copy style={styles.caption}>{t('style.selected', { tone: t(`style.tone.${tone}.label`).toLocaleLowerCase(currentLanguage()) })}</Copy>
     <ErrorText error={preview.error} />
     {style.sampleCount >= 5 ? status?.cloudEnabled ?
-      <Button label={preview.isPending ? 'Przygotowuję przykłady…' : previews.length ? 'Odśwież przykłady' : 'Pokaż przykłady'}
+      <Button label={preview.isPending ? t('style.preparing') : previews.length ? t('style.refreshExamples') : t('style.showExamples')}
         secondary={!!roomId} disabled={busy} onPress={() => preview.mutate()} /> :
-      <Button label="Włącz analizę AI" secondary onPress={() => router.push('/settings')} /> :
-      <Copy style={styles.caption}>Przykłady będą dostępne po kilku Twoich wiadomościach.</Copy>}
+      <Button label={t('style.enableAI')} secondary onPress={() => router.push('/settings')} /> :
+      <Copy style={styles.caption}>{t('style.examplesLater')}</Copy>}
     {!!previews.length && <Exchanges examples={previews} />}
   </View>;
 
@@ -77,44 +67,44 @@ export default function WritingStyleContent({ roomId, isExample = false }: Writi
     <View style={[styles.section, { paddingTop: roomId ? 20 : 0, borderColor: colors.border, borderTopWidth: roomId ? StyleSheet.hairlineWidth : 0 }]}>
       <Row style={{ justifyContent: 'space-between', gap: 12 }}>
         <View style={{ flex: 1, gap: 3 }}>
-          <Copy accessibilityRole="header" style={[styles.title, { color: colors.text }]}>{roomId ? 'Twój styl' : 'Cechy Twoich wiadomości'}</Copy>
-          {style && <Copy style={styles.caption}>{isExample ? 'Rozmowa przykładowa' : style.sampleCount ?
-            `Na podstawie ${style.sampleCount} wiadomości${!roomId ? ` · ${countLabel(style.conversationCount, ['rozmowa', 'rozmowy', 'rozmów'])}` : ''}` : 'Styl pojawi się wraz z Twoimi wiadomościami'}</Copy>}
+          <Copy accessibilityRole="header" style={[styles.title, { color: colors.text }]}>{roomId ? t('style.yourStyle') : t('style.traits')}</Copy>
+          {style && <Copy style={styles.caption}>{isExample ? t('common.exampleConversation') : style.sampleCount ?
+            `${t('style.basedOn', { count: style.sampleCount })}${!roomId ? ` · ${plural('style.conversations', style.conversationCount)}` : ''}` : t('style.appearsLater')}</Copy>}
         </View>
-        {!roomId && <Pressable accessibilityRole="button" accessibilityLabel="Odśwież styl pisania" accessibilityState={{ disabled: query.isFetching, busy: query.isFetching }} disabled={query.isFetching}
+        {!roomId && <Pressable accessibilityRole="button" accessibilityLabel={t('style.refresh')} accessibilityState={{ disabled: query.isFetching, busy: query.isFetching }} disabled={query.isFetching}
           onPress={() => { void query.refetch(); }} style={({ pressed }) => [styles.refresh, { opacity: pressed ? .6 : 1 }]}>
           {query.isFetching ? <ActivityIndicator size="small" color={colors.accent} /> : <Icon name="refresh" size={18} color={colors.accent} />}
         </Pressable>}
       </Row>
       <ErrorText error={query.error} />
-      {query.isPending ? <Copy style={styles.caption}>Odczytuję styl…</Copy> : style && <View style={{ gap: 10 }}>
+      {query.isPending ? <Copy style={styles.caption}>{t('style.reading')}</Copy> : style && <View style={{ gap: 10 }}>
         {!!style.summary && <Copy style={styles.body}>{style.summary}</Copy>}
         {style.habits.length ? <View style={{ gap: 9 }}>{style.habits.map(habit => <Row key={habit} style={{ alignItems: 'flex-start', gap: 10 }}>
           <Copy style={[styles.habit, { color: colors.accent }]}>—</Copy>
           <Copy style={[styles.habit, { color: colors.text, flex: 1 }]}>{habit}</Copy>
-        </Row>)}</View> : <Copy style={styles.body}>{isExample ? 'Twój styl poznam z prawdziwych rozmów.' : style.sampleCount ? 'Potrzebuję jeszcze kilku Twoich wiadomości.' : roomId ? 'Napisz kilka wiadomości w tej rozmowie, żeby poznać swój styl.' : 'Połącz konto, żeby poznać swój styl.'}</Copy>}
-        {!roomId && !style.sampleCount && <Button label="Połącz konto" onPress={() => router.push('/connections')} />}
+        </Row>)}</View> : <Copy style={styles.body}>{isExample ? t('style.exampleOnly') : style.sampleCount ? t('style.needMore') : roomId ? t('style.writeInConversation') : t('style.connectToLearn')}</Copy>}
+        {!roomId && !style.sampleCount && <Button label={t('style.connectAccount')} onPress={() => router.push('/connections')} />}
       </View>}
-      {query.isError && !style && <Button label="Spróbuj ponownie" secondary onPress={() => { void query.refetch(); }} />}
+      {query.isError && !style && <Button label={t('common.retry')} secondary onPress={() => { void query.refetch(); }} />}
     </View>
 
     {style && <View style={[styles.examplesSection, { borderColor: colors.border }]}>
       <View style={{ gap: 10 }}>
-        <Copy accessibilityRole="header" style={[styles.title, { color: colors.text }]}>{roomId ? 'Styl odpowiedzi' : 'Wypróbuj swój styl'}</Copy>
-        <Copy style={styles.body}>Wybierz ton. Odpowiedzi zachowają Twój sposób pisania: wielkość liter, długość, skróty i emoji.</Copy>
+        <Copy accessibilityRole="header" style={[styles.title, { color: colors.text }]}>{roomId ? t('style.replyStyle') : t('style.tryStyle')}</Copy>
+        <Copy style={styles.body}>{t('style.chooseTone')}</Copy>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-          {tones.map(item => <Pressable key={item.id} accessibilityRole="radio"
-            accessibilityState={{ checked: tone.id === item.id, disabled: busy || !status?.available }}
-            disabled={busy || !status?.available} onPress={() => selection.mutate(item.id)}
+          {tones.map(item => <Pressable key={item} accessibilityRole="radio"
+            accessibilityState={{ checked: tone === item, disabled: busy || !status?.available }}
+            disabled={busy || !status?.available} onPress={() => selection.mutate(item)}
             style={({ pressed }) => ({ minHeight: 44, justifyContent: 'center', borderRadius: 22, paddingHorizontal: 14, paddingVertical: 10,
-              backgroundColor: tone.id === item.id ? colors.accent : colors.secondary, opacity: busy ? .5 : pressed ? .7 : 1 })}>
-            <Copy style={{ fontSize: 14, color: tone.id === item.id ? colors.onAccent : colors.text }}>{item.label}</Copy>
+              backgroundColor: tone === item ? colors.accent : colors.secondary, opacity: busy ? .5 : pressed ? .7 : 1 })}>
+            <Copy style={{ fontSize: 14, color: tone === item ? colors.onAccent : colors.text }}>{t(`style.tone.${item}.label`)}</Copy>
           </Pressable>)}
         </View>
-        <Copy style={styles.caption}>{selection.isPending ? 'Zapisuję wybór…' : tone.description}</Copy>
+        <Copy style={styles.caption}>{selection.isPending ? t('style.saving') : t(`style.tone.${tone}.description`)}</Copy>
         <ErrorText error={selection.error} />
       </View>
-      {roomId ? <Disclosure label="Przykładowe odpowiedzi">{previewContent}</Disclosure> : previewContent}
+      {roomId ? <Disclosure label={t('style.sampleReplies')}>{previewContent}</Disclosure> : previewContent}
     </View>}
   </View>;
 }

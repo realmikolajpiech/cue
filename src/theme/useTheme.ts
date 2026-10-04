@@ -1,4 +1,4 @@
-import { t } from '@/i18n';
+import { t } from '@/i18n/legacy';
 import { useDemo } from '@/features/demo/store';
 const palettes = {
   light: { danger: '#B42318', background: '#F5F6FC', surface: '#FFFFFF', text: '#24283F', secondaryText: '#606982', accent: '#4563AB', onAccent: '#FFFFFF', border: '#DDE3F3', secondary: '#EBEEFB', mascotSurface: '#EFEDFF', cream: '#FFF9F4', warning: '#81480D', warningSoft: '#FCF2E5' },

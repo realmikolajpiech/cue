@@ -1,4 +1,4 @@
-import { t } from '@/i18n';
+import { t } from '@/i18n/legacy';
 import type { Threat } from './store';
 // Plain-language copy for the sample alerts; assessment data stays unchanged.
 export function threatCopy(threat: Threat) {

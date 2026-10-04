@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Copy, Icon, Action, Row } from '@/components/ui';
 import { guardian } from '@/services/guardian';
 import { useTheme } from '@/theme/useTheme';
-import { t, dateLocale, useLanguage } from '@/i18n';
+import { t, dateLocale, useLanguage } from '@/i18n/legacy';
 import type { GuardianNotification } from '@/types/guardian';
 
 export function NotificationPicker({ visible, onClose, onSelect }: { visible: boolean; onClose: () => void; onSelect: (item: GuardianNotification) => void }) {

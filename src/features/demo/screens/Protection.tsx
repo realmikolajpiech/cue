@@ -1,4 +1,4 @@
-import { t, useLanguage } from '@/i18n';
+import { t, useLanguage } from '@/i18n/legacy';
 import { View } from 'react-native';
 import { router } from 'expo-router';
 import { Screen, Copy, Action } from '@/components/ui';

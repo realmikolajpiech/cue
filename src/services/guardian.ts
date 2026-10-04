@@ -1,4 +1,4 @@
-import { t } from '@/i18n';
+import { t } from '@/i18n/legacy';
 import { NativeModule, requireOptionalNativeModule } from 'expo';
 import { resultSchema, manualResultSchema, statusSchema, notificationSchema, type GuardianStatus } from '@/types/guardian';
 

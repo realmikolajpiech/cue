@@ -1,4 +1,5 @@
 import type { Network, Room } from '@/types/subtext';
+import { dateLocale, t } from '@/i18n';
 
 export type InboxFilter = 'all' | Network;
 export const networkName = (network: Network) => network === 'messenger' ? 'Messenger' : 'WhatsApp';
@@ -18,14 +19,14 @@ export function initials(name: string) {
 export function conversationTime(timestamp: number, now = new Date()) {
   if (!timestamp || !Number.isFinite(timestamp)) return '';
   const date = new Date(timestamp);
-  if (date.toDateString() === now.toDateString()) return date.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+  if (date.toDateString() === now.toDateString()) return date.toLocaleTimeString(dateLocale(), { hour: '2-digit', minute: '2-digit' });
   const yesterday = new Date(now); yesterday.setDate(yesterday.getDate() - 1);
-  if (date.toDateString() === yesterday.toDateString()) return 'Wczoraj';
-  return date.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', ...(date.getFullYear() !== now.getFullYear() ? { year: 'numeric' } : {}) });
+  if (date.toDateString() === yesterday.toDateString()) return t('inbox.yesterday');
+  return date.toLocaleDateString(dateLocale(), { day: 'numeric', month: 'short', ...(date.getFullYear() !== now.getFullYear() ? { year: 'numeric' } : {}) });
 }
 
 export function messageText(text: string) {
   if (!text.startsWith('[Zdjęcie]')) return text;
   const caption = text.slice('[Zdjęcie]'.length).trim();
-  return caption ? `Wysłano zdjęcie · ${caption}` : 'Wysłano zdjęcie';
+  return caption ? t('inbox.photoSentWithCaption', { caption }) : t('inbox.photoSent');
 }

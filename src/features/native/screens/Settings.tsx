@@ -1,5 +1,5 @@
 import { LanguagePicker } from '@/components/LanguagePicker';
-import { t, useLanguage } from '@/i18n';
+import { t, useLanguage } from '@/i18n/legacy';
 import { useState } from 'react';
 import { Alert } from 'react-native';
 import { Screen, Card, Copy, Action, InlineError } from '@/components/ui';

@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Copy, Row } from '@/components/ui';
 import { useTheme } from '@/theme/useTheme';
 import type { Network, Room } from '@/types/subtext';
+import { useTranslation } from '@/i18n';
 import { messageText, conversationTime, initials, networkName } from './conversationPresentation';
 
 const platformIcons = {
@@ -33,7 +34,8 @@ export function ConversationAvatar({ name, uri, size = 48, network }: { name: st
 export function ConversationRow({ room, onPress }: { room: Room; onPress: () => void }) {
   const { colors } = useTheme();
   const network = networkName(room.network);
-  return <Pressable accessibilityRole="button" accessibilityLabel={`${room.name}, ${network}. ${room.snippet || 'Otwórz rozmowę'}`}
+  const { t } = useTranslation();
+  return <Pressable accessibilityRole="button" accessibilityLabel={`${room.name}, ${network}. ${room.snippet || t('inbox.openConversation')}`}
     onPress={onPress} style={({ pressed }) => [styles.row, { backgroundColor: pressed ? colors.secondary : 'transparent' }]}>
     <ConversationAvatar name={room.name} uri={room.avatarUri} network={room.network} />
     <View style={styles.content}>
@@ -41,7 +43,7 @@ export function ConversationRow({ room, onPress }: { room: Room; onPress: () => 
         <Copy numberOfLines={1} style={[styles.name, { color: colors.text }]}>{room.name}</Copy>
         <Copy numberOfLines={1} style={styles.time}>{conversationTime(room.updatedAt)}</Copy>
       </Row>
-      <Copy numberOfLines={2} style={styles.preview}>{messageText(room.snippet) || 'Brak wiadomości'}</Copy>
+      <Copy numberOfLines={2} style={styles.preview}>{messageText(room.snippet) || t('inbox.noMessages')}</Copy>
     </View>
   </Pressable>;
 }

@@ -1,4 +1,4 @@
-import { t, useLanguage } from '@/i18n';
+import { t, useLanguage } from '@/i18n/legacy';
 import * as Linking from 'expo-linking';
 import { useMemo } from 'react';
 import { useDemo, type Threat } from '@/features/demo/store';

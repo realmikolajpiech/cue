@@ -52,7 +52,8 @@
       ],
       "./plugins/withGuardianAndroid",
       "./plugins/withSubtext",
-      "expo-image"
+      "expo-image",
+      "expo-localization"
     ],
     "scheme": "guardian",
     "experiments": {

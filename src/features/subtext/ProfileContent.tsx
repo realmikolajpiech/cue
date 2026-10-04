@@ -7,19 +7,20 @@ import { ConversationAvatar } from './ConversationRow';
 import { networkName } from './conversationPresentation';
 import ConversationReminders from './ConversationReminders';
 import WritingStyleContent from './WritingStyleContent';
+import { useTranslation } from '@/i18n';
 
 export default function ProfileContent({ id }: { id: string }) {
   const query = useRoom(id);
   const room = query.data;
   const { data: status } = useSubtextStatus();
-  const { colors } = useTheme();
+  const { colors } = useTheme(); const { t } = useTranslation();
   const phase = room ? status?.[room.network].phase : undefined;
   const sync = useSyncRoom(id, phase === 'CONNECTED' && !room?.demo, room?.updatedAt);
 
   if (!room) return <View style={{ gap: 12 }}>
-    {query.isPending ? <Copy style={ui.small}>Otwieram rozmowę…</Copy> : <>
+    {query.isPending ? <Copy style={ui.small}>{t('profile.opening')}</Copy> : <>
       <ErrorText error={query.error} />
-      <Button label="Spróbuj ponownie" onPress={() => { void query.refetch(); }} />
+      <Button label={t('common.retry')} onPress={() => { void query.refetch(); }} />
     </>}
   </View>;
 
@@ -29,10 +30,10 @@ export default function ProfileContent({ id }: { id: string }) {
       <View style={{ flex: 1, gap: 2 }}>
         <Copy style={[styles.network, { color: colors.text }]}>{networkName(room.network)}</Copy>
         <Copy accessibilityLiveRegion="polite" style={styles.status}>
-          {room.demo ? 'Rozmowa przykładowa' : sync.isFetching ? 'Aktualizuję rozmowę…' : phase === 'CONNECTING' ? 'Łączę…' : phase === 'CONNECTED' ? 'Połączono' : 'Rozmowa dostępna offline'}
+          {room.demo ? t('common.exampleConversation') : sync.isFetching ? t('profile.updating') : phase === 'CONNECTING' ? t('profile.connecting') : phase === 'CONNECTED' ? t('profile.connected') : t('profile.offline')}
         </Copy>
       </View>
-      {!room.demo && <Pressable accessibilityRole="button" accessibilityLabel="Zsynchronizuj rozmowę" disabled={sync.isFetching}
+      {!room.demo && <Pressable accessibilityRole="button" accessibilityLabel={t('profile.sync')} disabled={sync.isFetching}
         accessibilityState={{ disabled: sync.isFetching, busy: sync.isFetching }}
         onPress={() => { void sync.refetch(); }} style={({ pressed }) => [styles.iconButton, { opacity: pressed ? .6 : 1 }]}>
         {sync.isFetching ? <ActivityIndicator size="small" color={colors.accent} /> : <Icon name="refresh" size={20} color={colors.accent} />}
@@ -40,9 +41,9 @@ export default function ProfileContent({ id }: { id: string }) {
     </Row>
 
     {sync.isError && <View style={{ gap: 4 }}>
-      <Copy accessibilityRole="alert" style={[ui.small, { color: colors.warning }]}>Nie udało się zsynchronizować rozmowy.</Copy>
+      <Copy accessibilityRole="alert" style={[ui.small, { color: colors.warning }]}>{t('profile.syncFailed')}</Copy>
       <Pressable accessibilityRole="button" onPress={() => { void sync.refetch(); }} style={styles.retry}>
-        <Copy style={[ui.small, { color: colors.accent }]}>Spróbuj ponownie</Copy>
+        <Copy style={[ui.small, { color: colors.accent }]}>{t('common.retry')}</Copy>
       </Pressable>
     </View>}
     <ErrorText error={query.error} />

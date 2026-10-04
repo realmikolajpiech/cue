@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon, type IconName } from '@/components/ui';
 import { useTheme } from '@/theme/useTheme';
+import { useTranslation } from '@/i18n';
 
 function TabIcon({ name, focused }: { name: IconName; focused: boolean }) {
   const { colors } = useTheme();
@@ -14,6 +15,7 @@ function TabIcon({ name, focused }: { name: IconName; focused: boolean }) {
 export default function TabsLayout() {
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   return <Tabs screenOptions={{ headerStyle: { backgroundColor: colors.background }, headerTintColor: colors.text, headerShadowVisible: false, headerTitleStyle: { fontFamily: 'Manrope', fontSize: 24 },
     tabBarStyle: [styles.bar, {
       backgroundColor: colors.surface,
@@ -34,10 +36,10 @@ export default function TabsLayout() {
       style={({ pressed }) => [props.style, { opacity: pressed ? 0.65 : 1 }]} />,
     animation: 'none',
     tabBarHideOnKeyboard: true }}>
-    <Tabs.Screen name="index" options={{ title: 'Rozmowy', headerShown: false, tabBarIcon: ({ focused }) => <TabIcon name="message" focused={focused} /> }} />
-    <Tabs.Screen name="style" options={{ title: 'Twój styl', tabBarIcon: ({ focused }) => <TabIcon name="style" focused={focused} /> }} />
-    <Tabs.Screen name="check" options={{ title: 'Konta', href: null }} />
-    <Tabs.Screen name="alerts" options={{ title: 'Ustawienia', tabBarIcon: ({ focused }) => <TabIcon name="settings" focused={focused} /> }} />
+    <Tabs.Screen name="index" options={{ title: t('nav.conversations'), headerShown: false, tabBarIcon: ({ focused }) => <TabIcon name="message" focused={focused} /> }} />
+    <Tabs.Screen name="style" options={{ title: t('nav.yourStyle'), tabBarIcon: ({ focused }) => <TabIcon name="style" focused={focused} /> }} />
+    <Tabs.Screen name="check" options={{ title: t('nav.accounts'), href: null }} />
+    <Tabs.Screen name="alerts" options={{ title: t('nav.settings'), tabBarIcon: ({ focused }) => <TabIcon name="settings" focused={focused} /> }} />
   </Tabs>;
 }
 

@@ -1,4 +1,4 @@
-import { t, useLanguage, dateLocale } from '@/i18n';
+import { t, useLanguage, dateLocale } from '@/i18n/legacy';
 import { FlashList } from '@shopify/flash-list';
 import { router } from 'expo-router';
 import { Pressable, View } from 'react-native';

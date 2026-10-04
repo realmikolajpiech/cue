@@ -1,4 +1,4 @@
-import { t, useLanguage } from '@/i18n';
+import { t, useLanguage } from '@/i18n/legacy';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Action, Card, Copy, Icon, InlineError, Row } from '@/components/ui';

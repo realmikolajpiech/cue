@@ -3,7 +3,7 @@ import { AccessibilityInfo, Animated, Easing, Modal, Pressable, ScrollView, Styl
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Copy, Icon, Row } from '@/components/ui';
 import { useTheme } from '@/theme/useTheme';
-import { t, useLanguage } from '@/i18n';
+import { t, useLanguage } from '@/i18n/legacy';
 
 const phrases = ['Sprawdzam, czy ta treść może być oszustwem.', 'Sprawdzanie może potrwać kilkanaście sekund.', 'Nie musisz nic naciskać. Poczekaj na wynik.', 'Wynik pojawi się tutaj automatycznie.'];
 

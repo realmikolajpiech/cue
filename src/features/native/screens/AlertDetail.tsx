@@ -1,4 +1,4 @@
-import { t, useLanguage } from '@/i18n';
+import { t, useLanguage } from '@/i18n/legacy';
 import { useLocalSearchParams } from 'expo-router';
 import { Screen, Copy, Action } from '@/components/ui';
 import { ThreatDetail } from '@/features/protection/ThreatDetail';

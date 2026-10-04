@@ -8,9 +8,12 @@ import { subtext, subtextCache, useSubtextStatus, useSubtextAction } from '@/ser
 import { Page, Button, ErrorText } from './components';
 import { useSubtextPreferences } from './preferences';
 import { SettingsDivider, SettingsGroup, SettingsRow, SettingsToggle } from './SettingsRows';
+import { LanguagePicker } from '@/components/LanguagePicker';
+import { plural, useTranslation } from '@/i18n';
 
 export default function Settings() {
   const statusQuery = useSubtextStatus(); const status = statusQuery.data;
+  const { t } = useTranslation();
   const demo = useSubtextAction();
   const ai = useMutation({ mutationFn: subtext.cloud, onSuccess: () => subtextCache.invalidateQueries({ queryKey: ['subtext', 'status'] }) });
   const dark = useDemo(s => s.dark); const toggleTheme = useDemo(s => s.toggleTheme);
@@ -20,41 +23,43 @@ export default function Settings() {
   const selectPerson = useSubtextPreferences(s => s.selectPerson);
   const connected = [status?.messenger.phase === 'CONNECTED' && 'Messenger', status?.whatsapp.phase === 'CONNECTED' && 'WhatsApp'].filter(Boolean);
   const phases = [status?.messenger.phase, status?.whatsapp.phase];
-  const connectionLabel = statusQuery.isPending ? 'Sprawdzam połączenie…' : !status ? 'Nie udało się sprawdzić połączenia'
-    : phases.some(phase => phase === 'SESSION_EXPIRED' || phase === 'REAUTH_REQUIRED') ? 'Zaloguj się ponownie'
-    : phases.includes('CONNECTING') ? 'Łączę konta…'
-    : connected.length ? `${connected.join(' i ')} · ${connected.length === 1 ? 'połączony' : 'połączone'}`
-    : phases.includes('DISCONNECTED') ? 'Połączenie przerwane' : 'Dodaj Messenger lub WhatsApp';
+  const connectionLabel = statusQuery.isPending ? t('settings.checkingConnection') : !status ? t('settings.connectionCheckFailed')
+    : phases.some(phase => phase === 'SESSION_EXPIRED' || phase === 'REAUTH_REQUIRED') ? t('settings.signInAgain')
+    : phases.includes('CONNECTING') ? t('settings.connectingAccounts')
+    : connected.length ? plural('settings.connected', connected.length, { networks: connected.join(t('common.listSeparator')) })
+    : phases.includes('DISCONNECTED') ? t('settings.connectionInterrupted') : t('settings.addAccount');
   function changeAI(enabled: boolean) {
     if (!enabled) { ai.mutate(false); return; }
-    Alert.alert('Włączyć analizę AI?', 'Do DeepSeek przez Supabase trafi do 80 ostatnich wiadomości, nazwy nadawców, szkic i pamięć czatu. Pamięć i lista „Warto pamiętać” aktualizują się po nowych wiadomościach wysłanych i odebranych. Wiadomości wysłane jedna po drugiej analizujemy razem. Cechy stylu liczymy na telefonie.', [
-      { text: 'Anuluj', style: 'cancel' }, { text: 'Włącz', onPress: () => ai.mutate(true) },
+    Alert.alert(t('settings.enableAITitle'), t('settings.enableAIMessage'), [
+      { text: t('common.cancel'), style: 'cancel' }, { text: t('common.enable'), onPress: () => ai.mutate(true) },
     ]);
   }
   return <Page compact>
-    {statusQuery.isError && <><ErrorText error={statusQuery.error} /><Button label="Spróbuj ponownie" secondary onPress={() => { void statusQuery.refetch(); }} /></>}
-    <SettingsGroup title="Rozmowy">
-      <SettingsRow icon="accounts" title="Połączone konta" subtitle={connectionLabel} onPress={() => router.push('/connections')} />
+    {statusQuery.isError && <><ErrorText error={statusQuery.error} /><Button label={t('common.retry')} secondary onPress={() => { void statusQuery.refetch(); }} /></>}
+    <SettingsGroup title={t('settings.conversations')}>
+      <SettingsRow icon="accounts" title={t('settings.connectedAccounts')} subtitle={connectionLabel} onPress={() => router.push('/connections')} />
       <SettingsDivider />
-      <SettingsRow icon="keyboard" title="Klawiatura Cue" subtitle="Podpowiedzi podczas pisania" onPress={() => router.push('/settings-keyboard')} />
+      <SettingsRow icon="keyboard" title={t('settings.keyboard')} subtitle={t('settings.keyboardSubtitle')} onPress={() => router.push('/settings-keyboard')} />
     </SettingsGroup>
-    <SettingsGroup title="Preferencje">
-      <SettingsToggle icon="message" title="Analiza AI" subtitle={status && !status.available ? 'Dostępna w aplikacji na Androidzie' : 'Podsumowania i odpowiedzi'}
+    <SettingsGroup title={t('settings.preferences')}>
+      <SettingsToggle icon="message" title={t('settings.ai')} subtitle={status && !status.available ? t('settings.aiAndroidOnly') : t('settings.aiSubtitle')}
         value={ai.isPending ? ai.variables : status?.cloudEnabled ?? false} disabled={!status?.available} busy={ai.isPending} onValueChange={changeAI} />
       <SettingsDivider />
-      <SettingsToggle icon="moon" title="Ciemny motyw" value={dark} onValueChange={toggleTheme} />
+      <SettingsToggle icon="moon" title={t('settings.darkTheme')} value={dark} onValueChange={toggleTheme} />
+      <SettingsDivider />
+      <LanguagePicker />
     </SettingsGroup>
     <ErrorText error={ai.error} />
-    <SettingsGroup title="Pomoc i prywatność">
-      <SettingsRow icon="help" title="Jak działa Cue" onPress={() => router.push('/welcome')} />
+    <SettingsGroup title={t('settings.helpPrivacy')}>
+      <SettingsRow icon="help" title={t('settings.howItWorks')} onPress={() => router.push('/welcome')} />
       <SettingsDivider />
-      <SettingsRow icon="message" title="Rozmowa przykładowa" subtitle={demo.isPending ? 'Otwieram przykład…' : undefined} disabled={!status?.available} busy={demo.isPending}
+      <SettingsRow icon="message" title={t('common.exampleConversation')} subtitle={demo.isPending ? t('settings.openingExample') : undefined} disabled={!status?.available} busy={demo.isPending}
         onPress={() => demo.mutate(async () => { const id = await subtext.demo(); selectPerson(id); router.push({ pathname: '/person/[id]', params: { id } }); })} />
       <SettingsDivider />
-      <SettingsRow icon="lock" title="Dane i prywatność" onPress={() => router.push('/settings-privacy')} />
+      <SettingsRow icon="lock" title={t('settings.privacy')} onPress={() => router.push('/settings-privacy')} />
       <SettingsDivider />
-      <SettingsRow icon="settings" title="Zaawansowane" expanded={advanced} onPress={() => setAdvanced(value => !value)} />
-      {advanced && <><SettingsDivider /><SettingsToggle icon="code" title="Tryb deweloperski" subtitle="Pokaż narzędzia diagnostyczne" value={developerMode} onValueChange={toggleDeveloperMode} /></>}
+      <SettingsRow icon="settings" title={t('settings.advanced')} expanded={advanced} onPress={() => setAdvanced(value => !value)} />
+      {advanced && <><SettingsDivider /><SettingsToggle icon="code" title={t('settings.developerMode')} subtitle={t('settings.developerModeSubtitle')} value={developerMode} onValueChange={toggleDeveloperMode} /></>}
     </SettingsGroup>
     <ErrorText error={demo.error} />
   </Page>;

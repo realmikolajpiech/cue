@@ -4,6 +4,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Copy } from '@/components/ui';
 import { useTheme } from '@/theme/useTheme';
+import { useTranslation } from '@/i18n';
 
 export function Page({ children, compact = false }: { children: ReactNode; compact?: boolean }) {
   const { colors } = useTheme(); const insets = useSafeAreaInsets();
@@ -17,7 +18,7 @@ export function Field(props: TextInputProps) {
   const { colors } = useTheme();
   return <TextInput cursorColor={colors.accent} selectionColor={colors.accent} {...props} placeholderTextColor={colors.secondaryText} style={[ui.input, { color: colors.text, backgroundColor: colors.surface, borderColor: colors.border }, props.style]} />;
 }
-export function ErrorText({ error }: { error: unknown }) { const { colors } = useTheme(); return error ? <Copy accessibilityRole="alert" style={[ui.body, { color: colors.warning }]}>{error instanceof Error ? error.message : 'Nie udało się wykonać działania.'}</Copy> : null; }
+export function ErrorText({ error }: { error: unknown }) { const { colors } = useTheme(); const { t } = useTranslation(); return error ? <Copy accessibilityRole="alert" style={[ui.body, { color: colors.warning }]}>{error instanceof Error ? error.message : t('common.actionFailed')}</Copy> : null; }
 export const ui = StyleSheet.create({
   eyebrow: { fontSize: 12, lineHeight: 18, letterSpacing: 1.6, textTransform: 'uppercase', fontFamily: 'DMSansSemiBold' },
   heading: { fontSize: 34, lineHeight: 42, letterSpacing: -1 },

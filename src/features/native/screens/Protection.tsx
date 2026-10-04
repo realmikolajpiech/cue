@@ -1,4 +1,4 @@
-import { t, useLanguage } from '@/i18n';
+import { t, useLanguage } from '@/i18n/legacy';
 import { Switch } from 'react-native';
 import * as Linking from 'expo-linking';
 import * as DocumentPicker from 'expo-document-picker';

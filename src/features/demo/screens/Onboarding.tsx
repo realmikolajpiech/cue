@@ -1,4 +1,4 @@
-import { t, useLanguage } from '@/i18n';
+import { t, useLanguage } from '@/i18n/legacy';
 import { router } from 'expo-router';
 import { Screen, Copy, Card, Icon, Action } from '@/components/ui';
 

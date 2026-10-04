@@ -4,6 +4,8 @@ internal object WritingTone {
   val labels = linkedMapOf("natural" to "Naturalny", "flirt" to "Flirtujący", "assertive" to "Asertywny",
     "empathetic" to "Empatyczny", "calming" to "Łagodzący konflikt")
   fun label(tone: String) = labels[tone] ?: labels.getValue("natural")
+  private val shortLabels = mapOf("flirt" to "Flirt", "calming" to "Łagodzący")
+  fun shortLabel(tone: String) = shortLabels[tone] ?: label(tone)
   private val instructions = mapOf(
     "natural" to "Ton naturalny: odpowiedz tak, jak zwykle pisze autor próbek, bez narzucania dodatkowego tonu.",
     "flirt" to "Ton flirtujący: okaż subtelne zainteresowanie, ciepło i lekki humor, bez nachalności ani zakładania istniejącej relacji. W trudnej sytuacji zachowaj takt, nie seksualizuj wsparcia.",

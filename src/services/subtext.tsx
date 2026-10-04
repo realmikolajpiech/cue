@@ -5,6 +5,7 @@ import { AppState } from 'react-native';
 import { z } from 'zod';
 import { profileSchema, roomSchema, subtextStatusSchema, writingStyleSchema, reminderSchema, type Network, type WritingTone } from '@/types/subtext';
 import { withDeadline } from './deadline';
+import { t } from '@/i18n';
 
 declare class SubtextModule extends NativeModule<{ onChanged: () => void }> {
   status(): Promise<string>;
@@ -33,7 +34,7 @@ declare class SubtextModule extends NativeModule<{ onChanged: () => void }> {
   selectKeyboard(): void;
 }
 const native = process.env.EXPO_OS === 'android' ? requireOptionalNativeModule<SubtextModule>('Subtext') : null;
-function requireSubtext() { if (!native) throw new Error('Zainstaluj build Cue na Androidzie. Expo Go i podgląd web nie obsługują komunikatorów.'); return native; }
+function requireSubtext() { if (!native) throw new Error(t('errors.nativeMissing')); return native; }
 const unavailable = {
   available: false, hasApiKey: false, cloudEnabled: false, backgroundEnabled: false, model: 'deepseek-flash', analyzing: null,
   messenger: { phase: 'NOT_CONFIGURED', detail: '' }, whatsapp: { phase: 'NOT_CONFIGURED', detail: '', pairingCode: null },
@@ -54,10 +55,10 @@ export const subtext = {
   demo: () => requireSubtext().loadDemo(),
   status: async () => native ? subtextStatusSchema.parse(JSON.parse(await native.status())) : unavailable,
   rooms: async () => native ? z.array(roomSchema).parse(JSON.parse(await native.conversations())) : [],
-  room: async (id: string) => roomSchema.parse(JSON.parse(await withDeadline(requireSubtext().conversation(id), 5000, 'Nie udało się odczytać zapisanej rozmowy. Spróbuj ponownie.'))),
-  image: (id: string, messageId: string) => withDeadline(requireSubtext().conversationImage(id, messageId), 50000, 'Pobieranie zdjęcia trwa zbyt długo. Spróbuj ponownie.'),
-  syncRoom: async (id: string) => roomSchema.parse(JSON.parse(await withDeadline(requireSubtext().syncConversation(id), 25000, 'Synchronizacja trwa zbyt długo. Zapisane wiadomości są nadal dostępne. Spróbuj ponownie.'))),
-  refresh: () => withDeadline(requireSubtext().refresh(), 30000, 'Nie udało się odświeżyć rozmów. Sprawdź połączenie komunikatora i spróbuj ponownie.'),
+  room: async (id: string) => roomSchema.parse(JSON.parse(await withDeadline(requireSubtext().conversation(id), 5000, t('errors.roomTimeout')))),
+  image: (id: string, messageId: string) => withDeadline(requireSubtext().conversationImage(id, messageId), 50000, t('errors.imageTimeout')),
+  syncRoom: async (id: string) => roomSchema.parse(JSON.parse(await withDeadline(requireSubtext().syncConversation(id), 25000, t('errors.syncTimeout')))),
+  refresh: () => withDeadline(requireSubtext().refresh(), 30000, t('errors.refreshTimeout')),
   analyze: async (id: string, draft = '') => profileSchema.parse(JSON.parse(await requireSubtext().analyze(id, draft))),
   cloud: (enabled: boolean) => requireSubtext().setCloudEnabled(enabled),
   clear: () => requireSubtext().clearHistory(),
