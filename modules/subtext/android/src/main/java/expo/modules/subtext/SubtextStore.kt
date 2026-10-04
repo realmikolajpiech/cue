@@ -116,6 +116,11 @@ class SubtextStore(context: Context) {
     requireNotNull(data.optJSONObject(key)) { "Rozmowa nie istnieje." }.put("profile", profile)
     save()
   }
+  /** Drops a chat that turned out to be a duplicate of another one. */
+  @Synchronized fun forget(network: String, id: String) {
+    val key = "$network:$id"
+    if (data.has(key)) { data.remove(key); memories.remove(key); save(); saveMemories() }
+  }
   @Synchronized fun clear(network: String? = null) {
     if (network == null) { data = JSONObject(); memories = JSONObject() }
     else {

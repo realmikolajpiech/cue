@@ -1,5 +1,6 @@
 {
   "common": {
+    "save": "Zapisz",
     "cancel": "Anuluj",
     "close": "Zamknij",
     "retry": "Spróbuj ponownie",
@@ -84,6 +85,8 @@
     "closePhoto": "Zamknij zdjęcie"
   },
   "profile": {
+    "demoName": "Nazwa w trybie demo",
+    "demoNameReset": "Przywróć oryginalną nazwę",
     "opening": "Otwieram rozmowę…",
     "updating": "Aktualizuję rozmowę…",
     "connecting": "Łączę…",

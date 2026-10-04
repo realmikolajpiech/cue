@@ -114,6 +114,8 @@ open class MessengerRepository(
     val conversations = mutableConversations.asStateFlow()
     val messages = mutableMessages.asStateFlow()
 
+    /** Called with chat ids that were folded into another chat, so persisted copies can be dropped. */
+    @Volatile var onAliasesMerged: (Set<String>) -> Unit = {}
     @Volatile private var bridge: NativeMessagingBridge? = null
     @Volatile private var connectionJob: Job? = null
     @Volatile private var connectionTimeoutJob: Job? = null
@@ -377,9 +379,14 @@ open class MessengerRepository(
                     } }
                 }
                 replayPendingMessages(mapping.conversationId)
+                adoptEncryptedAlias(mapping.conversationId)
                 refreshResolvedNames(mapping.contactId)
             }
-            "FBE2EE" -> parseMessengerEncryptedConversation(payload)?.let { raw ->
+            "FBE2EE" -> run {
+                // Diagnostics only carry ids, kinds and lengths, never message text.
+                Log.d(TAG, "E2EE: ${payload.take(300)}")
+                parseMessengerEncryptedConversation(payload)
+            }?.let { raw ->
                 val id = canonicalConversationId(raw.id)
                 val existing = mutableConversations.value.firstOrNull { it.id == id }
                 upsertConversation(existing?.copy(kind = ConversationKind.PRIVATE) ?: raw.copy(id = id))
@@ -387,7 +394,9 @@ open class MessengerRepository(
             "CONVERSATION" -> parseMessengerConversation(payload)?.let(::upsertConversation)
             "MESSAGE" -> parseMessengerMessage(payload)?.let { message ->
                 val routed = message.copy(conversationId = canonicalConversationId(message.conversationId))
-                if (upsertMessage(routed) && !routed.isMe && routed.text.isNotBlank()) onIncomingMessage(routed)
+                val stored = upsertMessage(routed)
+                if (!message.isMe) Log.d(TAG, "Incoming ${message.conversationId} -> ${routed.conversationId} kind=${conversationKinds[routed.conversationId]} stored=$stored")
+                if (stored && !routed.isMe && routed.text.isNotBlank()) onIncomingMessage(routed)
             }
             "LOGGED_OUT" -> {
                 connectionTimeoutJob?.cancel()
@@ -506,6 +515,33 @@ open class MessengerRepository(
         aliases.forEach { alias ->
             pendingMessages.remove(alias)?.forEach { upsertMessage(it.copy(conversationId = id)) }
         }
+    }
+
+    // An encrypted message can arrive before its thread mapping and get filed under the
+    // sender's contact id. Once the real thread is known, fold that stray chat into it.
+    private fun adoptEncryptedAlias(threadId: String) {
+        if (conversationKinds[threadId] != ConversationKind.PRIVATE) return
+        val aliases = (mutableMessages.value.keys + mutableConversations.value.map { it.id })
+            .filter { it != threadId && canonicalConversationId(it) == threadId }.toSet()
+        if (aliases.isEmpty()) return
+        mutableMessages.update { current ->
+            val moved = aliases.flatMap { current[it].orEmpty() }.map { it.copy(conversationId = threadId) }
+            if (moved.isEmpty()) current - aliases
+            else (current - aliases) + (threadId to (current[threadId].orEmpty().filterNot { old -> moved.any { it.id == old.id } } + moved)
+                .sortedBy(MessengerMessage::timestamp).takeLast(MAX_CACHED_MESSAGES))
+        }
+        val latest = mutableMessages.value[threadId]?.lastOrNull()
+        mutableConversations.update { rooms -> rooms.filterNot { it.id in aliases } }
+        aliases.forEach { conversationKinds.remove(it); contactByConversation.remove(it); e2eeByConversation.remove(it) }
+        if (latest != null) {
+            val existing = mutableConversations.value.firstOrNull { it.id == threadId }
+            if (existing == null || existing.timestamp < latest.timestamp) upsertConversation(
+                (existing ?: MessengerConversation(threadId, "", "", 0L, ConversationKind.PRIVATE))
+                    .copy(snippet = latest.text, timestamp = latest.timestamp)
+            )
+        }
+        Log.d(TAG, "Merged ${aliases.size} encrypted alias chat(s) into $threadId")
+        runCatching { onAliasesMerged(aliases) }
     }
 
     private fun resolveConversationName(raw: MessengerConversation, previous: MessengerConversation?): String {

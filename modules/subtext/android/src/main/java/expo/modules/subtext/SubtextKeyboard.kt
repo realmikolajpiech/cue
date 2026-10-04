@@ -736,13 +736,12 @@ class SubtextKeyboard : LatinIME() {
     }
     val scroll = ScrollView(this).apply { isVerticalScrollBarEnabled = true; clipChildren = false; clipToPadding = false }
     val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; clipChildren = false }
-    // The reply sits in a full-width card leaning right, its corners softened.
+    // The reply sits in a full-width rounded card.
     val bubble = label(if (noReply) s(R.string.cue_kb_no_reply_needed) else suggestion.getString("text"), 15f, noReply).apply {
-      setLineSpacing(dp(3).toFloat(), 1f); setTextIsSelectable(false); setPadding(dp(30), dp(16), dp(30), dp(16))
-      background = KeyboardSlantBubble(
-        androidx.core.graphics.ColorUtils.blendARGB(card, accent, if (dark) 0.18f else 0.12f),
-        androidx.core.graphics.ColorUtils.setAlphaComponent(accent, if (dark) 0x38 else 0x28),
-        dp(16).toFloat(), dp(14).toFloat(), dp(1).toFloat())
+      setLineSpacing(dp(3).toFloat(), 1f); setTextIsSelectable(false); setPadding(dp(20), dp(16), dp(20), dp(16))
+      background = rounded(androidx.core.graphics.ColorUtils.blendARGB(card, accent, if (dark) 0.18f else 0.12f), 14).apply {
+        setStroke(dp(1), androidx.core.graphics.ColorUtils.setAlphaComponent(accent, if (dark) 0x38 else 0x28))
+      }
     }
     content.addView(bubble, LinearLayout.LayoutParams(-1, -2).apply { setMargins(0, dp(4), 0, 0) })
     if (bubbleEnter != 0) {

@@ -47,6 +47,7 @@ class SubtextRuntime private constructor(private val context: Context) {
     scope.launch { instagram.state.collect { changed() } }
     scope.launch { whatsapp.state.collect { changed() } }
     listOf("messenger" to messenger, "instagram" to instagram).forEach { (network, repository) ->
+      repository.onAliasesMerged = { ids -> ids.forEach { store.forget(network, it) }; changed() }
       scope.launch { repository.conversations.debounce(500).collect { rooms ->
         rooms.filter { it.kind == ConversationKind.GROUP }.forEach { store.merge(network, it.id, it.name, it.kind.name) }
         rooms.filter { it.kind == ConversationKind.PRIVATE }.take(150).forEach {

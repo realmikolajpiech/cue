@@ -10,11 +10,14 @@ import WritingStyleContent from './WritingStyleContent';
 import { useTranslation } from '@/i18n';
 import DemoConversation from './DemoConversation';
 import ConversationAI from './ConversationAI';
+import DemoName from './DemoName';
+import { usePreferences } from '@/features/preferences';
 
 export default function ProfileContent({ id }: { id: string }) {
   const query = useRoom(id);
   const room = query.data;
   const { data: status } = useSubtextStatus();
+  const demoMode = usePreferences(s => s.demoMode);
   const { colors } = useTheme(); const { t } = useTranslation();
   const phase = room ? status?.[room.network].phase : undefined;
   const sync = useSyncRoom(id, phase === 'CONNECTED' && !room?.demo, room?.updatedAt);
@@ -49,6 +52,7 @@ export default function ProfileContent({ id }: { id: string }) {
       </Pressable>
     </View>}
     <ErrorText error={query.error} />
+    {demoMode && !room.demo && <DemoName key={id} id={id} />}
 
     {room.demo && <DemoConversation room={room} ready={!!status?.cloudEnabled && !room.aiExcluded} busy={!!status?.analyzing} />}
     <ConversationAI room={room} />

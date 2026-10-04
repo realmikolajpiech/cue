@@ -1,5 +1,6 @@
 {
   "common": {
+    "save": "Save",
     "cancel": "Cancel",
     "close": "Close",
     "retry": "Try again",
@@ -84,6 +85,8 @@
     "closePhoto": "Close photo"
   },
   "profile": {
+    "demoName": "Name shown in demo",
+    "demoNameReset": "Restore original name",
     "opening": "Opening conversation…",
     "updating": "Updating conversation…",
     "connecting": "Connecting…",
