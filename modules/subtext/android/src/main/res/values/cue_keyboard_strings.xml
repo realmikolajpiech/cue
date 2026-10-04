@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Cue keyboard text. Polish lives in values-pl; the keyboard picks the language chosen in the app (CueLanguage). -->
+<resources>
+  <string name="cue_kb_suggest">Suggest</string>
+  <string name="cue_kb_cancel">Cancel</string>
+  <string name="cue_kb_done">Done</string>
+  <string name="cue_kb_insert">Insert</string>
+  <string name="cue_kb_replace_draft">Replace draft</string>
+  <string name="cue_kb_undo">Undo</string>
+  <string name="cue_kb_close">Close</string>
+  <string name="cue_kb_composing">Writing a reply…</string>
+  <string name="cue_kb_composing_again">Looking for other ideas…</string>
+  <string name="cue_kb_retry">Try again</string>
+  <string name="cue_kb_open_app">Open Cue</string>
+  <string name="cue_kb_choose_person">Choose person</string>
+  <string name="cue_kb_close_picker">Close conversation picker</string>
+  <string name="cue_kb_search">Search</string>
+  <string name="cue_kb_check_app">Check your chats in Cue</string>
+  <string name="cue_kb_search_hint">Search people…</string>
+  <string name="cue_kb_search_description">Search people by typing on the keyboard</string>
+  <string name="cue_kb_back_to_list">Back to list</string>
+  <string name="cue_kb_no_person">No such person</string>
+  <string name="cue_kb_search_announcement">Search for a person. The keyboard is now typing a name, not a message.</string>
+  <string name="cue_kb_back_without_saving">Back without saving</string>
+  <string name="cue_kb_goal">Conversation goal</string>
+  <string name="cue_kb_delete">Delete</string>
+  <string name="cue_kb_delete_goal">Delete conversation goal</string>
+  <string name="cue_kb_save">Save</string>
+  <string name="cue_kb_goal_hint">e.g. meet up on Friday at 6</string>
+  <string name="cue_kb_goal_announcement">Type the conversation goal. The keyboard is editing the goal, not the message.</string>
+  <string name="cue_kb_goal_saved">Conversation goal saved</string>
+  <string-array name="cue_kb_goal_ideas">
+    <item>Meet up</item>
+    <item>Apologise</item>
+    <item>Set a boundary</item>
+    <item>Clear up a misunderstanding</item>
+  </string-array>
+  <string name="cue_kb_draft_unreadable">I can\'t read this draft. Go back to typing and try again.</string>
+  <string name="cue_kb_enable_ai">Turn on AI suggestions in Cue settings.</string>
+  <string name="cue_kb_generate_failed">Couldn\'t prepare a reply. Try again.</string>
+  <string name="cue_kb_no_reply">No reply</string>
+  <string name="cue_kb_suggestion_description">Suggestion %1$d of %2$d: %3$s</string>
+  <string name="cue_kb_selected">, selected</string>
+  <string name="cue_kb_no_reply_needed">You don\'t need to reply now</string>
+  <string name="cue_kb_come_back_later">You can come back to this conversation later.</string>
+  <string name="cue_kb_why">Why this reply</string>
+  <string name="cue_kb_other_ideas">↻  Other ideas</string>
+  <string name="cue_kb_other_ideas_description">Generate other suggestions</string>
+  <string name="cue_kb_keyboard">⌨  Keyboard</string>
+  <string name="cue_kb_keyboard_description">Close suggestions and go back to typing</string>
+  <string name="cue_kb_draft_changed">The draft changed. Prepare new suggestions so it isn\'t overwritten.</string>
+  <string name="cue_kb_inserted">Reply inserted. You can edit or undo it.</string>
+  <string name="cue_kb_text_changed">The text changed. It was not overwritten.</string>
+  <string name="cue_kb_conversation_description">Conversation: %1$s. Change person</string>
+  <string name="cue_kb_not_selected">not selected</string>
+  <string name="cue_kb_style_description">Style: %1$s</string>
+  <string name="cue_kb_goal_set">, goal set. </string>
+  <string name="cue_kb_close_settings">Close settings</string>
+  <string name="cue_kb_change_goal_style">Change goal and style</string>
+  <string name="cue_kb_edit">Edit</string>
+  <string name="cue_kb_add">Add</string>
+  <string name="cue_kb_goal_description">Conversation goal: %1$s. %2$s</string>
+  <string name="cue_kb_not_set">not set</string>
+  <string name="cue_kb_edit_goal">Edit goal</string>
+  <string name="cue_kb_add_goal">Add goal</string>
+  <string name="cue_kb_reply_style">Reply style: %1$s</string>
+  <string name="cue_kb_swipe_position">, %1$d of %2$d. Swipe left or right to change.</string>
+  <string name="cue_kb_intensity">Intensity: %1$s, %2$d of %3$d</string>
+  <!-- Order matches tone keys: natural, flirt, assertive, empathetic, calming. -->
+  <string-array name="cue_tone_labels">
+    <item>Natural</item>
+    <item>Flirty</item>
+    <item>Assertive</item>
+    <item>Empathetic</item>
+    <item>De-escalating</item>
+  </string-array>
+  <string-array name="cue_tone_short_labels">
+    <item>Natural</item>
+    <item>Flirt</item>
+    <item>Assertive</item>
+    <item>Empathetic</item>
+    <item>Calming</item>
+  </string-array>
+  <string-array name="cue_levels_flirt"><item>Subtle</item><item>Flirty</item><item>Bold</item></string-array>
+  <string-array name="cue_levels_assertive"><item>Polite</item><item>Firm</item><item>Tough</item></string-array>
+  <string-array name="cue_levels_empathetic"><item>Warm</item><item>Supportive</item><item>Very close</item></string-array>
+  <string-array name="cue_levels_calming"><item>Calm</item><item>Conciliatory</item><item>Apologetic</item></string-array>
+  <string-array name="cue_hints_natural"><item>You write as usual, with no extra tone.</item></string-array>
+  <string-array name="cue_hints_flirt">
+    <item>Curiosity and humour, flirting between the lines.</item>
+    <item>Clear, relaxed flirting with a compliment and teasing.</item>
+    <item>Confident and charged. The more they reciprocate, the bolder.</item>
+  </string-array>
+  <string-array name="cue_hints_assertive">
+    <item>Clear, but soft and polite.</item>
+    <item>You calmly and clearly say what you want.</item>
+    <item>Short and unambiguous, without justifying yourself.</item>
+  </string-array>
+  <string-array name="cue_hints_empathetic">
+    <item>You briefly and kindly show understanding.</item>
+    <item>You notice emotions and offer support.</item>
+    <item>Very personal and fully engaged.</item>
+  </string-array>
+  <string-array name="cue_hints_calming">
+    <item>You lower the tension neutrally and matter-of-factly.</item>
+    <item>You look for agreement without accusations.</item>
+    <item>You take responsibility for your part and apologise.</item>
+  </string-array>
+</resources>

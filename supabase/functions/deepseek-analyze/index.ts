@@ -1,4 +1,4 @@
-import { PROMPT, MEMORY_PROMPT, NO_REPLY_PROMPT, REMINDERS_PROMPT, CURRENT_THREAD_PROMPT, MEDIA_PROMPT } from './prompt.ts';
+import { languageRule, PROMPT, MEMORY_PROMPT, NO_REPLY_PROMPT, REMINDERS_PROMPT, CURRENT_THREAD_PROMPT, MEDIA_PROMPT } from './prompt.ts';
 import { validateImages, visionContent } from './vision.ts';
 import { messageTime } from './message-time.ts';
 
@@ -62,6 +62,8 @@ Deno.serve(async (req: Request) => {
     if (styleInput !== undefined && (!styleInput || typeof styleInput !== 'object' || Array.isArray(styleInput) ||
         JSON.stringify(styleInput).length > 50000)) return reply(400, { error: 'invalid_style' });
     if (input.memoryOnly !== undefined && typeof input.memoryOnly !== 'boolean') return reply(400, { error: 'invalid_mode' });
+    if (input.language !== undefined && input.language !== 'pl' && input.language !== 'en') return reply(400, { error: 'invalid_language' });
+    const language = input.language === 'en' ? 'en' : 'pl';
     let images;
     try { images = validateImages(input.images, input.messages); }
     catch { return reply(400, { error: 'invalid_images' }); }
@@ -85,7 +87,7 @@ Deno.serve(async (req: Request) => {
       method: 'POST', headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
       signal: AbortSignal.timeout(55000),
       body: JSON.stringify({ model, thinking: { type: 'disabled' }, response_format: { type: 'json_object' }, max_tokens: 4500,
-        messages: [{ role: 'system', content: PROMPT + MEMORY_PROMPT + NO_REPLY_PROMPT + REMINDERS_PROMPT + CURRENT_THREAD_PROMPT + MEDIA_PROMPT }, { role: 'user', content: visionContent({ messages, draft: input.draft,
+        messages: [{ role: 'system', content: PROMPT + languageRule(language) + MEMORY_PROMPT + NO_REPLY_PROMPT + REMINDERS_PROMPT + CURRENT_THREAD_PROMPT + MEDIA_PROMPT }, { role: 'user', content: visionContent({ messages, draft: input.draft,
           personMemory, styleInput, memoryOnly: input.memoryOnly === true }, images) }] }),
     });
     if (!response.ok) return reply([402, 429].includes(response.status) ? response.status : 502, { error: 'upstream_unavailable' });

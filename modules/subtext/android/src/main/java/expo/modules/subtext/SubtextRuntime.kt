@@ -232,7 +232,7 @@ class SubtextRuntime private constructor(private val context: Context) {
       check(recent.length() > 0) { fetched.optString("historyNotice", "Wiadomości nie zostały jeszcze zsynchronizowane.") }
       val memory = store.memory(id)
       val chosenTone = tone ?: selectedTone(id)
-      val intent = ConversationGoal.intent(draft, chosenTone, conversationGoal(id), intensity ?: selectedIntensity(id, chosenTone), rejected)
+      val intent = ConversationGoal.intent(draft, chosenTone, conversationGoal(id), intensity ?: selectedIntensity(id, chosenTone), rejected, CueLanguage.promptNote(context))
       val profile = DeepSeek.analyze(gateway, recent, intent, memory, images = analysisImages(id, recent))
       check(token == generation.get() && prefs.getBoolean("cloud", false)) { "Analiza anulowana po zmianie ustawień." }
       profile.put("replyDraft", draft)
@@ -258,7 +258,7 @@ class SubtextRuntime private constructor(private val context: Context) {
     val memory = store.memory(id)
     analyzing = id; changed()
     try {
-      val profile = DeepSeek.analyze(gateway, recent, "", memory, memoryOnly = true)
+      val profile = DeepSeek.analyze(gateway, recent, CueLanguage.promptNote(context).trim(), memory, memoryOnly = true)
       check(token == generation.get() && prefs.getBoolean("cloud", false)) { "Aktualizacja anulowana po zmianie ustawień." }
       store.updateContext(id, profile.getJSONArray("memoryUpdates"), recent, memory.optLong("revision"),
         profile.getJSONArray("reminderUpdates"), memory.optJSONArray("reminders") ?: JSONArray())
@@ -281,7 +281,7 @@ class SubtextRuntime private constructor(private val context: Context) {
       if (recent.length() == 0) return@withLock
       analyzing = id; changed()
       try {
-        val profile = DeepSeek.analyze(gateway, recent, ConversationGoal.IDEAS, memory, memoryOnly = true)
+        val profile = DeepSeek.analyze(gateway, recent, ConversationGoal.IDEAS + CueLanguage.promptNote(context), memory, memoryOnly = true)
         if (token == generation.get() && prefs.getBoolean("cloud", false)) {
           saveGoalIdeas(id, profile)
           store.updateContext(id, profile.getJSONArray("memoryUpdates"), recent, memory.optLong("revision"),
@@ -309,7 +309,7 @@ class SubtextRuntime private constructor(private val context: Context) {
     val memory = store.memory(id)
     analyzing = id; changed()
     try {
-      val profile = DeepSeek.analyze(gateway, recent, ConversationGoal.IDEAS, memory, memoryOnly = true)
+      val profile = DeepSeek.analyze(gateway, recent, ConversationGoal.IDEAS + CueLanguage.promptNote(context), memory, memoryOnly = true)
       if (token != generation.get() || !prefs.getBoolean("cloud", false)) return@withLock
       saveGoalIdeas(id, profile)
       if (!room.optBoolean("demo")) store.updateContext(id, profile.getJSONArray("memoryUpdates"), recent, memory.optLong("revision"),
@@ -343,7 +343,7 @@ class SubtextRuntime private constructor(private val context: Context) {
     prefs.edit().putInt(styleIntensityKey(id, tone), WritingTone.clampIntensity(tone, intensity)).apply()
     changed()
   }
-  private fun styleCacheKey(id: String?, tone: String) = "writing-style-preview:v4:" + (id ?: "general") + ":" + tone
+  private fun styleCacheKey(id: String?, tone: String) = "writing-style-preview:v4:" + CueLanguage.get(context) + ":" + (id ?: "general") + ":" + tone
   fun setWritingTone(id: String?, tone: String): String {
     WritingTone.requireValid(tone)
     if (id != null) requireNotNull(store.room(id)) { "Nie znaleziono rozmowy." }
@@ -370,14 +370,7 @@ class SubtextRuntime private constructor(private val context: Context) {
     check(samples.length() >= 5) { "Potrzebujemy przynajmniej 5 Twoich wiadomości. Zsynchronizuj rozmowy." }
     val token = generation.get()
     val tone = selectedTone(id)
-    val scenarios = listOf(
-      "Hej, co u Ciebie?" to "Odpowiedz na luźne przywitanie bez wymyślania wydarzeń ze swojego życia.",
-      "Masz ochotę spotkać się jutro?" to "Wyraź chęć spotkania i zapytaj o godzinę, bez wymyślania swoich planów.",
-      "Udało się! Dostałem tę pracę!" to "Pogratuluj rozmówcy dobrej wiadomości.",
-      "Mam dziś ciężki dzień." to "Okaż wsparcie i zachęć rozmówcę do opowiedzenia, co się stało.",
-      "Sorry, będę 20 minut później." to "Zaakceptuj drobne spóźnienie.",
-      "Co robimy na weekend?" to "Zaproponuj wspólny spacer jako hipotetyczny pomysł, bez wymyślania preferencji ani planów."
-    )
+    val scenarios = CueLanguage.previewScenarios(context)
     val examples = JSONArray()
     analyzing = "writing-style"; changed()
     try {
@@ -390,7 +383,7 @@ class SubtextRuntime private constructor(private val context: Context) {
         messages.put(message("preview-$index", "Rozmówca", scenario.first, 1000L, false))
         val intent = "Podgląd mojego ogólnego stylu pisania. Wcześniejsze wiadomości isMe=true to tylko próbki formy wypowiedzi z rozmów, a nie kontekst ani fakty. " +
           "To ćwiczenie stylu: zwróć wyłącznie propozycje wiadomości action=reply, bez no_reply. Naśladuj ich długość, skróty, wielkość liter, interpunkcję i emoji. Jeśli próbki są pisane małymi literami, zachowaj małe litery; nie poprawiaj ich na formalny język. Nie przenoś nazw, faktów ani tematów z próbek. " +
-          WritingTone.instruction(tone) + " " + scenario.second
+          WritingTone.instruction(tone) + " " + scenario.second + CueLanguage.promptNote(context)
         val profile = DeepSeek.analyze(gateway, messages, intent, JSONObject())
         examples.put(JSONObject().put("id", "preview-$index").put("incoming", scenario.first)
           .put("reply", profile.getJSONArray("suggestions").getJSONObject(0).getString("text"))

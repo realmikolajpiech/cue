@@ -124,7 +124,7 @@ internal class KeyboardSwipeSelector(
   }
 
   private fun bindDescription() {
-    contentDescription = describe(options[index]) + ", ${index + 1} z ${options.size}. Przesuń w lewo lub w prawo, aby zmienić."
+    contentDescription = describe(options[index]) + CueLanguage.string(context, R.string.cue_kb_swipe_position, index + 1, options.size)
   }
 
   override fun onInitializeAccessibilityNodeInfo(info: AccessibilityNodeInfo) {

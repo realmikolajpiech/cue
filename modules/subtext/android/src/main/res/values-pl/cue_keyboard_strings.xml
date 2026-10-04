@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="cue_kb_suggest">Podpowiedz</string>
+  <string name="cue_kb_cancel">Anuluj</string>
+  <string name="cue_kb_done">Gotowe</string>
+  <string name="cue_kb_insert">Wstaw</string>
+  <string name="cue_kb_replace_draft">Zastąp szkic</string>
+  <string name="cue_kb_undo">Cofnij</string>
+  <string name="cue_kb_close">Zamknij</string>
+  <string name="cue_kb_composing">Układam odpowiedź…</string>
+  <string name="cue_kb_composing_again">Szukam innych propozycji…</string>
+  <string name="cue_kb_retry">Spróbuj ponownie</string>
+  <string name="cue_kb_open_app">Otwórz Cue</string>
+  <string name="cue_kb_choose_person">Wybierz osobę</string>
+  <string name="cue_kb_close_picker">Zamknij wybór rozmowy</string>
+  <string name="cue_kb_search">Szukaj</string>
+  <string name="cue_kb_check_app">Sprawdź rozmowy w Cue</string>
+  <string name="cue_kb_search_hint">Szukaj osoby…</string>
+  <string name="cue_kb_search_description">Szukaj osoby, wpisując na klawiaturze</string>
+  <string name="cue_kb_back_to_list">Wróć do listy</string>
+  <string name="cue_kb_no_person">Nie ma takiej osoby</string>
+  <string name="cue_kb_search_announcement">Wyszukaj osobę. Klawiatura wpisuje teraz imię, nie wiadomość.</string>
+  <string name="cue_kb_back_without_saving">Wróć bez zapisywania</string>
+  <string name="cue_kb_goal">Cel rozmowy</string>
+  <string name="cue_kb_delete">Usuń</string>
+  <string name="cue_kb_delete_goal">Usuń cel rozmowy</string>
+  <string name="cue_kb_save">Zapisz</string>
+  <string name="cue_kb_goal_hint">np. umówić się w piątek na 18</string>
+  <string name="cue_kb_goal_announcement">Wpisz cel rozmowy. Klawiatura edytuje cel, nie wiadomość.</string>
+  <string name="cue_kb_goal_saved">Zapisano cel rozmowy</string>
+  <string-array name="cue_kb_goal_ideas">
+    <item>Umówić się</item>
+    <item>Przeprosić</item>
+    <item>Postawić granicę</item>
+    <item>Wyjaśnić nieporozumienie</item>
+  </string-array>
+  <string name="cue_kb_draft_unreadable">Nie mogę odczytać tego szkicu. Wróć do pisania i spróbuj ponownie.</string>
+  <string name="cue_kb_enable_ai">Włącz podpowiedzi AI w ustawieniach Cue.</string>
+  <string name="cue_kb_generate_failed">Nie udało się przygotować odpowiedzi. Spróbuj jeszcze raz.</string>
+  <string name="cue_kb_no_reply">Bez odpowiedzi</string>
+  <string name="cue_kb_suggestion_description">Propozycja %1$d z %2$d: %3$s</string>
+  <string name="cue_kb_selected">, wybrana</string>
+  <string name="cue_kb_no_reply_needed">Nie musisz teraz odpisywać</string>
+  <string name="cue_kb_come_back_later">Możesz wrócić do tej rozmowy później.</string>
+  <string name="cue_kb_why">Dlaczego ta odpowiedź</string>
+  <string name="cue_kb_other_ideas">↻  Inne propozycje</string>
+  <string name="cue_kb_other_ideas_description">Wygeneruj inne propozycje</string>
+  <string name="cue_kb_keyboard">⌨  Klawiatura</string>
+  <string name="cue_kb_keyboard_description">Zamknij podpowiedzi i wróć do pisania</string>
+  <string name="cue_kb_draft_changed">Szkic się zmienił. Przygotuj nowe propozycje, żeby go nie nadpisać.</string>
+  <string name="cue_kb_inserted">Wstawiono odpowiedź. Możesz ją edytować lub cofnąć.</string>
+  <string name="cue_kb_text_changed">Tekst się zmienił. Nie został nadpisany.</string>
+  <string name="cue_kb_conversation_description">Rozmowa: %1$s. Zmień osobę</string>
+  <string name="cue_kb_not_selected">nie wybrano</string>
+  <string name="cue_kb_style_description">Styl: %1$s</string>
+  <string name="cue_kb_goal_set">, cel ustawiony. </string>
+  <string name="cue_kb_close_settings">Zamknij ustawienia</string>
+  <string name="cue_kb_change_goal_style">Zmień cel i styl</string>
+  <string name="cue_kb_edit">Edytuj</string>
+  <string name="cue_kb_add">Dodaj</string>
+  <string name="cue_kb_goal_description">Cel rozmowy: %1$s. %2$s</string>
+  <string name="cue_kb_not_set">nie ustawiono</string>
+  <string name="cue_kb_edit_goal">Edytuj cel</string>
+  <string name="cue_kb_add_goal">Dodaj cel</string>
+  <string name="cue_kb_reply_style">Styl odpowiedzi: %1$s</string>
+  <string name="cue_kb_swipe_position">, %1$d z %2$d. Przesuń w lewo lub w prawo, aby zmienić.</string>
+  <string name="cue_kb_intensity">Natężenie: %1$s, %2$d z %3$d</string>
+  <string-array name="cue_tone_labels">
+    <item>Naturalny</item>
+    <item>Flirtujący</item>
+    <item>Asertywny</item>
+    <item>Empatyczny</item>
+    <item>Łagodzący konflikt</item>
+  </string-array>
+  <string-array name="cue_tone_short_labels">
+    <item>Naturalny</item>
+    <item>Flirt</item>
+    <item>Asertywny</item>
+    <item>Empatyczny</item>
+    <item>Łagodzący</item>
+  </string-array>
+  <string-array name="cue_levels_flirt"><item>Subtelny</item><item>Zalotny</item><item>Odważny</item></string-array>
+  <string-array name="cue_levels_assertive"><item>Uprzejmy</item><item>Stanowczy</item><item>Twardy</item></string-array>
+  <string-array name="cue_levels_empathetic"><item>Ciepły</item><item>Wspierający</item><item>Bardzo bliski</item></string-array>
+  <string-array name="cue_levels_calming"><item>Spokojny</item><item>Pojednawczy</item><item>Przepraszający</item></string-array>
+  <string-array name="cue_hints_natural"><item>Piszesz jak zwykle, bez dodatkowego tonu.</item></string-array>
+  <string-array name="cue_hints_flirt">
+    <item>Ciekawość i humor, flirt między wierszami.</item>
+    <item>Wyraźny flirt na luzie, z komplementem i droczeniem.</item>
+    <item>Pewnie i z napięciem. Im bardziej odwzajemnia, tym śmielej.</item>
+  </string-array>
+  <string-array name="cue_hints_assertive">
+    <item>Jasno, ale miękko i grzecznie.</item>
+    <item>Spokojnie i jasno mówisz, czego chcesz.</item>
+    <item>Krótko i jednoznacznie, bez tłumaczenia się.</item>
+  </string-array>
+  <string-array name="cue_hints_empathetic">
+    <item>Krótko i życzliwie okazujesz zrozumienie.</item>
+    <item>Zauważasz emocje i dajesz wsparcie.</item>
+    <item>Bardzo osobiście i z pełnym zaangażowaniem.</item>
+  </string-array>
+  <string-array name="cue_hints_calming">
+    <item>Neutralnie i rzeczowo obniżasz napięcie.</item>
+    <item>Szukasz porozumienia bez oskarżeń.</item>
+    <item>Bierzesz odpowiedzialność za swoją część i przepraszasz.</item>
+  </string-array>
+</resources>

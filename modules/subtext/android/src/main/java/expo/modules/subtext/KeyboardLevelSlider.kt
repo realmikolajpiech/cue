@@ -92,7 +92,7 @@ internal class KeyboardLevelSlider(
     }
   }
 
-  private fun describe() { contentDescription = "Natężenie: ${levels[index]}, ${index + 1} z ${levels.size}" }
+  private fun describe() { contentDescription = CueLanguage.string(context, R.string.cue_kb_intensity, levels[index], index + 1, levels.size) }
 
   override fun onInitializeAccessibilityNodeInfo(info: AccessibilityNodeInfo) {
     super.onInitializeAccessibilityNodeInfo(info)

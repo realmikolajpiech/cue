@@ -210,13 +210,13 @@ class SubtextKeyboard : LatinIME() {
       addConversation(toolbar)
       val action = undo
       if (mode == Mode.STYLES) {
-        toolbar.addView(button("Podpowiedz", true) {
+        toolbar.addView(button(s(R.string.cue_kb_suggest), true) {
           undo = null
           if (room == null) { generateAfterChoice = true; open(Mode.PEOPLE) } else generate()
         }, LinearLayout.LayoutParams(dp(110), dp(44)))
       } else if (mode == Mode.LOADING) {
-        toolbar.addView(button("Anuluj", false) { typing() }, LinearLayout.LayoutParams(dp(96), dp(44)))
-      } else toolbar.addView(button(if (mode == Mode.REPLIES) { if (replies[replyIndex].optString("action") == "no_reply") "Gotowe" else if (draft.isEmpty()) "Wstaw" else "Zastąp szkic" } else if (action != null) "Cofnij" else "Podpowiedz", true) {
+        toolbar.addView(button(s(R.string.cue_kb_cancel), false) { typing() }, LinearLayout.LayoutParams(dp(96), dp(44)))
+      } else toolbar.addView(button(if (mode == Mode.REPLIES) { if (replies[replyIndex].optString("action") == "no_reply") s(R.string.cue_kb_done) else if (draft.isEmpty()) s(R.string.cue_kb_insert) else s(R.string.cue_kb_replace_draft) } else if (action != null) s(R.string.cue_kb_undo) else s(R.string.cue_kb_suggest), true) {
         if (mode == Mode.REPLIES) {
           val reply = replies[replyIndex]
           if (reply.optString("action") == "no_reply") typing() else insert(reply.getString("text"))
@@ -227,17 +227,16 @@ class SubtextKeyboard : LatinIME() {
         setPadding(dp(8), 0, dp(8), 0); gravity = Gravity.CENTER_VERTICAL
         maxLines = 1; ellipsize = TextUtils.TruncateAt.END
       }, LinearLayout.LayoutParams(0, dp(44), 1f))
-      toolbar.addView(button("Zamknij", false) { typing() }, LinearLayout.LayoutParams(dp(96), dp(44)))
+      toolbar.addView(button(s(R.string.cue_kb_close), false) { typing() }, LinearLayout.LayoutParams(dp(96), dp(44)))
     }
     finishToolbar(toolbar)
     panel.addView(toolbar, LinearLayout.LayoutParams(-1, dp(56)))
     if (mode == Mode.STYLES) { renderTones(); return }
     if (mode == Mode.TYPING) return
     if (mode == Mode.LOADING) {
-      val loading = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER; setPadding(dp(20), 0, dp(20), dp(24)) }
-      loading.addView(ProgressBar(this).apply { indeterminateTintList = ColorStateList.valueOf(accent) }, LinearLayout.LayoutParams(dp(32), dp(32)).apply { bottomMargin = dp(12) })
-      loading.addView(label(if (rejectedReplies.isEmpty()) "Układam odpowiedź…" else "Szukam innych propozycji…", 15f).apply { setTextColor(muted) })
-      panel.addView(loading, LinearLayout.LayoutParams(-1, pickerHeight))
+      val message = if (rejectedReplies.isEmpty()) s(R.string.cue_kb_composing) else s(R.string.cue_kb_composing_again)
+      val navigation = ViewCompat.getRootWindowInsets(panel)?.getInsets(WindowInsetsCompat.Type.navigationBars())?.bottom ?: dp(24)
+      panel.addView(KeyboardGhostLoader(this, message, muted, accent).apply { setPadding(0, 0, 0, navigation) }, LinearLayout.LayoutParams(-1, pickerHeight))
       return
     }
     val navigation = ViewCompat.getRootWindowInsets(panel)?.getInsets(WindowInsetsCompat.Type.navigationBars())?.bottom ?: dp(24)
@@ -250,7 +249,7 @@ class SubtextKeyboard : LatinIME() {
         val center = center(body)
         center.addView(label(errorMessage, 15f).apply { gravity = Gravity.CENTER; setPadding(dp(16), 0, dp(16), dp(16)) })
         val cloud = runtime.prefs.getBoolean("cloud", false)
-        center.addView(button(if (cloud) "Spróbuj ponownie" else "Otwórz Cue", true) { if (cloud) generate() else openApp() }, LinearLayout.LayoutParams(-1, dp(48)))
+        center.addView(button(if (cloud) s(R.string.cue_kb_retry) else s(R.string.cue_kb_open_app), true) { if (cloud) generate() else openApp() }, LinearLayout.LayoutParams(-1, dp(48)))
       }
       Mode.REPLIES -> showReplies(body)
       else -> Unit
@@ -278,11 +277,11 @@ class SubtextKeyboard : LatinIME() {
 
   private fun renderPicker() {
     val toolbar = brandToolbar()
-    addRecipient(toolbar, button("Wybierz osobę", false) { typing() }.apply {
+    addRecipient(toolbar, button(s(R.string.cue_kb_choose_person), false) { typing() }.apply {
       gravity = Gravity.START or Gravity.CENTER_VERTICAL; maxLines = 1; ellipsize = TextUtils.TruncateAt.END
-      styleRecipient(this, true); contentDescription = "Zamknij wybór rozmowy"
+      styleRecipient(this, true); contentDescription = s(R.string.cue_kb_close_picker)
     })
-    toolbar.addView(button("Szukaj", false) { open(Mode.SEARCH) }, LinearLayout.LayoutParams(dp(96), dp(44)))
+    toolbar.addView(button(s(R.string.cue_kb_search), false) { open(Mode.SEARCH) }, LinearLayout.LayoutParams(dp(96), dp(44)))
     finishToolbar(toolbar)
     panel.addView(toolbar, LinearLayout.LayoutParams(-1, dp(56)))
     val list = ListView(this).apply {
@@ -314,7 +313,7 @@ class SubtextKeyboard : LatinIME() {
     }
     list.setOnItemClickListener { _, _, position, _ -> choosePerson(searchRooms[position]) }
     if (searchRooms.isEmpty()) {
-      panel.addView(button("Sprawdź rozmowy w Cue", false) { openApp() }, LinearLayout.LayoutParams(-1, pickerHeight))
+      panel.addView(button(s(R.string.cue_kb_check_app), false) { openApp() }, LinearLayout.LayoutParams(-1, pickerHeight))
     } else panel.addView(list, LinearLayout.LayoutParams(-1, pickerHeight))
   }
 
@@ -323,7 +322,7 @@ class SubtextKeyboard : LatinIME() {
     val toolbar = brandToolbar()
     val editor = EditText(this).apply {
       setSingleLine(); textSize = 15f; setTextColor(ink); setHintTextColor(muted)
-      hint = "Szukaj osoby…"; contentDescription = "Szukaj osoby, wpisując na klawiaturze"
+      hint = s(R.string.cue_kb_search_hint); contentDescription = s(R.string.cue_kb_search_description)
       inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
       isFocusable = false; showSoftInputOnFocus = false
       background = rounded(card, 12); setPadding(dp(12), 0, dp(12), 0)
@@ -331,7 +330,7 @@ class SubtextKeyboard : LatinIME() {
     }
     searchEditor = editor
     toolbar.addView(editor, LinearLayout.LayoutParams(0, dp(44), 1f))
-    toolbar.addView(button("Wróć do listy", false) { open(Mode.PEOPLE) }, LinearLayout.LayoutParams(dp(96), dp(44)))
+    toolbar.addView(button(s(R.string.cue_kb_back_to_list), false) { open(Mode.PEOPLE) }, LinearLayout.LayoutParams(dp(96), dp(44)))
     finishToolbar(toolbar)
     panel.addView(toolbar, LinearLayout.LayoutParams(-1, dp(56)))
     searchConnection = object : BaseInputConnection(editor, true) {
@@ -376,12 +375,12 @@ class SubtextKeyboard : LatinIME() {
     noResults = empty; body.addView(empty, FrameLayout.LayoutParams(-1, -1))
     panel.addView(body, LinearLayout.LayoutParams(-1, dp(136)))
     if (searchRooms.isEmpty()) {
-      empty.text = "Sprawdź rozmowy w Cue"; empty.setOnClickListener { openApp() }
+      empty.text = s(R.string.cue_kb_check_app); empty.setOnClickListener { openApp() }
     }
     fun update() {
       searchResults = KeyboardPersonSearch.filter(searchRooms, editor.text.toString())
       empty.visibility = if (searchResults.isEmpty()) View.VISIBLE else View.GONE
-      if (searchRooms.isNotEmpty()) empty.text = "Nie ma takiej osoby"
+      if (searchRooms.isNotEmpty()) empty.text = s(R.string.cue_kb_no_person)
       adapter.notifyDataSetChanged(); list.setSelection(0)
     }
     editor.addTextChangedListener(object : TextWatcher {
@@ -390,7 +389,7 @@ class SubtextKeyboard : LatinIME() {
       override fun afterTextChanged(s: Editable?) = Unit
     })
     update()
-    panel.announceForAccessibility("Wyszukaj osobę. Klawiatura wpisuje teraz imię, nie wiadomość.")
+    panel.announceForAccessibility(s(R.string.cue_kb_search_announcement))
   }
 
   private fun renderGoal() {
@@ -400,16 +399,16 @@ class SubtextKeyboard : LatinIME() {
     toolbar.addView(ImageButton(this).apply {
       setImageDrawable(getDrawable(R.drawable.cue_chevron_down)?.mutate()?.apply { setTint(ink) }); rotation = 90f
       background = RippleDrawable(ColorStateList.valueOf(0x225F78B8), null, rounded(Color.WHITE, 12)); scaleType = ImageView.ScaleType.CENTER_INSIDE
-      setPadding(dp(14), dp(14), dp(14), dp(14)); contentDescription = "Wróć bez zapisywania"
+      setPadding(dp(14), dp(14), dp(14), dp(14)); contentDescription = s(R.string.cue_kb_back_without_saving)
       setOnClickListener { endSearch(); open(Mode.STYLES) }
     }, LinearLayout.LayoutParams(dp(44), dp(44)))
-    toolbar.addView(label("Cel rozmowy" + (person()?.optString("name")?.substringBefore(' ')?.let { " · $it" } ?: ""), 15f, true).apply {
+    toolbar.addView(label(s(R.string.cue_kb_goal) + (person()?.optString("name")?.substringBefore(' ')?.let { " · $it" } ?: ""), 15f, true).apply {
       gravity = Gravity.CENTER_VERTICAL; maxLines = 1; ellipsize = TextUtils.TruncateAt.END; setPadding(dp(4), 0, dp(4), 0)
     }, LinearLayout.LayoutParams(0, dp(44), 1f))
-    if (hasGoal) toolbar.addView(button("Usuń", false) { runtime.setConversationGoal(id, ""); replies = emptyList(); endSearch(); open(Mode.STYLES) }.apply {
-      setTextColor(muted); contentDescription = "Usuń cel rozmowy"
+    if (hasGoal) toolbar.addView(button(s(R.string.cue_kb_delete), false) { runtime.setConversationGoal(id, ""); replies = emptyList(); endSearch(); open(Mode.STYLES) }.apply {
+      setTextColor(muted); contentDescription = s(R.string.cue_kb_delete_goal)
     }, LinearLayout.LayoutParams(-2, dp(44)).apply { marginEnd = dp(4) })
-    toolbar.addView(button("Zapisz", true) { saveGoal() }, LinearLayout.LayoutParams(dp(96), dp(44)))
+    toolbar.addView(button(s(R.string.cue_kb_save), true) { saveGoal() }, LinearLayout.LayoutParams(dp(96), dp(44)))
     finishToolbar(toolbar); panel.addView(toolbar, LinearLayout.LayoutParams(-1, dp(56)))
     goalSelectionStart = -1; goalSelectionEnd = -1
     val editor = object : EditText(this) {
@@ -419,7 +418,7 @@ class SubtextKeyboard : LatinIME() {
       }
     }.apply {
       textSize = 14f; setTextColor(ink); setHintTextColor(muted)
-      hint = "np. umówić się w piątek na 18"; contentDescription = "Cel rozmowy"
+      hint = s(R.string.cue_kb_goal_hint); contentDescription = s(R.string.cue_kb_goal)
       inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
       filters = arrayOf(android.text.InputFilter.LengthFilter(1000))
       isFocusable = true; isFocusableInTouchMode = true
@@ -450,14 +449,14 @@ class SubtextKeyboard : LatinIME() {
         editor.requestFocus(); syncGoalSelection(editor)
       }
     }
-    panel.announceForAccessibility("Wpisz cel rozmowy. Klawiatura edytuje cel, nie wiadomość.")
+    panel.announceForAccessibility(s(R.string.cue_kb_goal_announcement))
   }
 
   private val ideasRequested = mutableSetOf<String>()
   private var goalIdeasRow: LinearLayout? = null
   private fun fillGoalIdeas(row: LinearLayout, id: String) {
     row.removeAllViews()
-    runtime.goalIdeas(id).ifEmpty { listOf("Umówić się", "Przeprosić", "Postawić granicę", "Wyjaśnić nieporozumienie") }.forEach { idea ->
+    runtime.goalIdeas(id).ifEmpty { CueLanguage.resources(this).getStringArray(R.array.cue_kb_goal_ideas).toList() }.forEach { idea ->
       row.addView(button(idea, false) {
         val editor = searchEditor ?: return@button
         editor.setText(idea + " "); editor.setSelection(editor.text.length); editor.requestFocus(); syncGoalSelection(editor)
@@ -491,7 +490,7 @@ class SubtextKeyboard : LatinIME() {
     val id = selected ?: return
     runtime.setConversationGoal(id, searchEditor?.text?.toString().orEmpty())
     replies = emptyList(); endSearch(); open(Mode.STYLES)
-    panel.announceForAccessibility("Zapisano cel rozmowy")
+    panel.announceForAccessibility(s(R.string.cue_kb_goal_saved))
   }
 
   private fun bindPlatform(icon: ImageView, room: JSONObject) {
@@ -540,7 +539,7 @@ class SubtextKeyboard : LatinIME() {
     // Everything shown so far was not good enough; the next round should go elsewhere.
     rejectedReplies = if (again) (rejectedReplies + replies.map { it.optString("text") }.filter(String::isNotBlank)).takeLast(6) else emptyList()
     val snapshot = readDraft()
-    if (snapshot == null) { errorMessage = "Nie mogę odczytać tego szkicu. Wróć do pisania i spróbuj ponownie."; open(Mode.ERROR); return }
+    if (snapshot == null) { errorMessage = s(R.string.cue_kb_draft_unreadable); open(Mode.ERROR); return }
     draft = snapshot; undo = null
     val token = revision
     val tone = runtime.selectedTone(id)
@@ -557,7 +556,7 @@ class SubtextKeyboard : LatinIME() {
       } catch (error: Exception) {
         if (error is CancellationException) throw error
         if (token == revision) {
-          errorMessage = if (!runtime.prefs.getBoolean("cloud", false)) "Włącz podpowiedzi AI w ustawieniach Cue." else "Nie udało się przygotować odpowiedzi. Spróbuj jeszcze raz."
+          errorMessage = if (!runtime.prefs.getBoolean("cloud", false)) s(R.string.cue_kb_enable_ai) else s(R.string.cue_kb_generate_failed)
           open(Mode.ERROR)
         }
       }
@@ -576,14 +575,19 @@ class SubtextKeyboard : LatinIME() {
       toolbarMotion?.change(toolbarBefore, panel.getChildAt(0))
     }
     if (replies.size > 1) {
-      val tabs = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL; setPadding(dp(2), dp(2), dp(2), dp(2)); background = rounded(card, 14) }
+      // Text tabs like the style picker: the chosen one is bold with a short accent bar underneath.
+      val tabs = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
       replies.forEachIndexed { index, reply ->
         val active = index == replyIndex
-        tabs.addView(button(if (reply.optString("action") == "no_reply") "Bez odpowiedzi" else reply.optString("tone").ifBlank { "${index + 1}" }, false) { pick(index) }.apply {
-          textSize = 13f; maxLines = 1; ellipsize = TextUtils.TruncateAt.END; setPadding(dp(6), 0, dp(6), 0)
-          setTextColor(if (active) onAccent else muted)
-          background = RippleDrawable(ColorStateList.valueOf(0x225F78B8), rounded(if (active) accent else Color.TRANSPARENT, 12), null)
-          contentDescription = "Propozycja ${index + 1} z ${replies.size}: $text" + if (active) ", wybrana" else ""
+        tabs.addView(button(if (reply.optString("action") == "no_reply") s(R.string.cue_kb_no_reply) else reply.optString("tone").ifBlank { "${index + 1}" }, false) { pick(index) }.apply {
+          textSize = if (active) 15f else 14f; maxLines = 1; ellipsize = TextUtils.TruncateAt.END; setPadding(dp(6), 0, dp(6), dp(4))
+          typeface = Typeface.create(Typeface.DEFAULT, if (active) Typeface.BOLD else Typeface.NORMAL)
+          setTextColor(if (active) accent else muted)
+          val bar = android.graphics.drawable.LayerDrawable(arrayOf(rounded(if (active) accent else Color.TRANSPARENT, 2))).apply {
+            setLayerSize(0, dp(22), dp(3)); setLayerGravity(0, Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL); setLayerInsetBottom(0, dp(2))
+          }
+          background = RippleDrawable(ColorStateList.valueOf(0x225F78B8), bar, rounded(Color.WHITE, 12))
+          contentDescription = s(R.string.cue_kb_suggestion_description, index + 1, replies.size, text) + if (active) s(R.string.cue_kb_selected) else ""
         }, LinearLayout.LayoutParams(0, dp(40), 1f))
       }
       body.addView(tabs, LinearLayout.LayoutParams(-1, dp(44)).apply { topMargin = dp(2) })
@@ -591,16 +595,19 @@ class SubtextKeyboard : LatinIME() {
     val scroll = ScrollView(this).apply { isVerticalScrollBarEnabled = true }
     val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
     if (noReply) {
-      content.addView(label("Nie musisz teraz odpisywać", 18f, true).apply { setPadding(dp(4), dp(8), dp(4), 0) })
+      content.addView(label(s(R.string.cue_kb_no_reply_needed), 18f, true).apply { setPadding(dp(4), dp(8), dp(4), 0) })
     } else {
-      content.addView(label(suggestion.getString("text"), 18f).apply {
-        setLineSpacing(dp(3).toFloat(), 1f); setTextIsSelectable(false)
-        background = rounded(card, 16); setPadding(dp(16), dp(14), dp(16), dp(14))
-      })
+      // The message reads as a quote: an accent line on the left instead of a filled card.
+      val quote = LinearLayout(this).apply { setPadding(dp(4), dp(10), dp(4), 0) }
+      quote.addView(View(this).apply { background = rounded(accent, 2) }, LinearLayout.LayoutParams(dp(3), -1))
+      quote.addView(label(suggestion.getString("text"), 19f).apply {
+        setLineSpacing(dp(4).toFloat(), 1f); setTextIsSelectable(false); setPadding(dp(14), dp(2), 0, dp(2))
+      }, LinearLayout.LayoutParams(0, -2, 1f))
+      content.addView(quote)
     }
-    val reason = suggestion.optString("reason").ifBlank { if (noReply) "Możesz wrócić do tej rozmowy później." else "" }
+    val reason = suggestion.optString("reason").ifBlank { if (noReply) s(R.string.cue_kb_come_back_later) else "" }
     if (reason.isNotBlank()) {
-      content.addView(label("Dlaczego ta odpowiedź", 12f, true).apply { setTextColor(accent); setPadding(dp(4), dp(16), dp(4), dp(4)) })
+      content.addView(label(s(R.string.cue_kb_why), 12f, true).apply { setTextColor(accent); setPadding(dp(4), dp(16), dp(4), dp(4)) })
       content.addView(label(reason, 14f).apply { setTextColor(muted); setLineSpacing(dp(2).toFloat(), 1f); setPadding(dp(4), 0, dp(4), 0) })
     }
     scroll.addView(content)
@@ -618,11 +625,11 @@ class SubtextKeyboard : LatinIME() {
     }
     body.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f).apply { topMargin = dp(10) })
     val footer = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
-    footer.addView(button("↻  Inne propozycje", false) { generate(again = true) }.apply {
-      textSize = 14f; setTextColor(accent); contentDescription = "Wygeneruj inne propozycje"
+    footer.addView(button(s(R.string.cue_kb_other_ideas), false) { generate(again = true) }.apply {
+      textSize = 14f; setTextColor(accent); contentDescription = s(R.string.cue_kb_other_ideas_description)
     }, LinearLayout.LayoutParams(0, dp(44), 1f))
-    footer.addView(button("⌨  Klawiatura", false) { typing() }.apply {
-      textSize = 14f; setTextColor(muted); contentDescription = "Zamknij podpowiedzi i wróć do pisania"
+    footer.addView(button(s(R.string.cue_kb_keyboard), false) { typing() }.apply {
+      textSize = 14f; setTextColor(muted); contentDescription = s(R.string.cue_kb_keyboard_description)
     }, LinearLayout.LayoutParams(0, dp(44), 1f))
     body.addView(footer, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(6) })
   }
@@ -632,16 +639,16 @@ class SubtextKeyboard : LatinIME() {
 
   private fun insert(text: String) {
     if (!replace(draft, text)) {
-      errorMessage = "Szkic się zmienił. Przygotuj nowe propozycje, żeby go nie nadpisać."; mode = Mode.ERROR; render(); return
+      errorMessage = s(R.string.cue_kb_draft_changed); mode = Mode.ERROR; render(); return
     }
     undo = text to draft
     typing()
-    panel.announceForAccessibility("Wstawiono odpowiedź. Możesz ją edytować lub cofnąć.")
+    panel.announceForAccessibility(s(R.string.cue_kb_inserted))
   }
 
   private fun undoInsert(action: Pair<String, String>) {
     if (!replace(action.first, action.second)) {
-      undo = null; render(); panel.announceForAccessibility("Tekst się zmienił. Nie został nadpisany."); return
+      undo = null; render(); panel.announceForAccessibility(s(R.string.cue_kb_text_changed)); return
     }
     undo = null; render()
   }
@@ -669,16 +676,17 @@ class SubtextKeyboard : LatinIME() {
   }
 
   private var conversationStyle: Button? = null
-  private fun styleSummary(): String = WritingTone.shortLabel(runtime.selectedTone(selected))
+  private fun styleSummary(): String = CueLanguage.toneShortLabel(this, runtime.selectedTone(selected))
+  private fun s(id: Int, vararg args: Any): String = CueLanguage.string(this, id, *args)
   // Name opens the people list; the style part opens goal, style and intensity.
   private fun addConversation(toolbar: LinearLayout) {
     val expanded = mode == Mode.STYLES
     val room = person()
     val goalSet = selected?.let(runtime::conversationGoal)?.isNotBlank() == true
-    val name = button(room?.optString("name") ?: "Wybierz osobę", false) { undo = null; generateAfterChoice = false; open(Mode.PEOPLE) }.apply {
+    val name = button(room?.optString("name") ?: s(R.string.cue_kb_choose_person), false) { undo = null; generateAfterChoice = false; open(Mode.PEOPLE) }.apply {
       gravity = Gravity.START or Gravity.CENTER_VERTICAL; maxLines = 1; ellipsize = TextUtils.TruncateAt.END
       styleRecipient(this, false); includeFontPadding = false
-      contentDescription = "Rozmowa: ${room?.optString("name") ?: "nie wybrano"}. Zmień osobę"
+      contentDescription = s(R.string.cue_kb_conversation_description, room?.optString("name") ?: s(R.string.cue_kb_not_selected))
     }
     val style = button(styleSummary(), false) { undo = null; generateAfterChoice = false; if (expanded) typing() else open(Mode.STYLES) }.apply {
       textSize = 14f; letterSpacing = -0.015f; setTextColor(muted); maxLines = 1; ellipsize = TextUtils.TruncateAt.END
@@ -688,7 +696,7 @@ class SubtextKeyboard : LatinIME() {
         drawable = it; fromDegrees = 0f; toDegrees = 180f; setBounds(0, 0, dp(12), dp(12)); level = if (expanded) 10000 else 0 } }
       setCompoundDrawablesRelative(if (goalSet) KeyboardTargetIcon(muted, dp(12)) else null, null, arrow, null)
       compoundDrawablePadding = dp(5)
-      contentDescription = "Styl: ${styleSummary()}" + (if (goalSet) ", cel ustawiony. " else ". ") + if (expanded) "Zamknij ustawienia" else "Zmień cel i styl"
+      contentDescription = s(R.string.cue_kb_style_description, styleSummary()) + (if (goalSet) s(R.string.cue_kb_goal_set) else ". ") + if (expanded) s(R.string.cue_kb_close_settings) else s(R.string.cue_kb_change_goal_style)
     }
     conversationStyle = style
     val cell = KeyboardConversationRow(this, name, style, dp(110))
@@ -706,13 +714,13 @@ class SubtextKeyboard : LatinIME() {
       gravity = Gravity.CENTER_VERTICAL; setPadding(dp(16), dp(8), dp(12), dp(8))
       background = RippleDrawable(ColorStateList.valueOf(0x225F78B8), null, rounded(Color.WHITE, 16))
       val texts = LinearLayout(this@SubtextKeyboard).apply { orientation = LinearLayout.VERTICAL }
-      texts.addView(label("Cel rozmowy", 12f).apply { setTextColor(muted) })
-      texts.addView(label(goalText ?: "np. umówić się w piątek na 18", 15f, goalText != null).apply {
+      texts.addView(label(s(R.string.cue_kb_goal), 12f).apply { setTextColor(muted) })
+      texts.addView(label(goalText ?: s(R.string.cue_kb_goal_hint), 15f, goalText != null).apply {
         setTextColor(if (goalText != null) ink else muted); maxLines = 1; ellipsize = TextUtils.TruncateAt.END; setPadding(0, dp(2), 0, 0)
       })
       addView(texts, LinearLayout.LayoutParams(0, -2, 1f))
-      addView(label(if (goalText != null) "Edytuj" else "Dodaj", 14f, true).apply { setTextColor(accent); setPadding(dp(12), 0, dp(4), 0) })
-      contentDescription = "Cel rozmowy: ${goalText ?: "nie ustawiono"}. " + if (goalText != null) "Edytuj cel" else "Dodaj cel"
+      addView(label(if (goalText != null) s(R.string.cue_kb_edit) else s(R.string.cue_kb_add), 14f, true).apply { setTextColor(accent); setPadding(dp(12), 0, dp(4), 0) })
+      contentDescription = s(R.string.cue_kb_goal_description, goalText ?: s(R.string.cue_kb_not_set), if (goalText != null) s(R.string.cue_kb_edit_goal) else s(R.string.cue_kb_add_goal))
       setOnClickListener {
         generateAfterChoice = false
         if (selected == null) { goalAfterChoice = true; open(Mode.PEOPLE) } else open(Mode.GOAL)
@@ -723,16 +731,16 @@ class SubtextKeyboard : LatinIME() {
     val hint = label("", 15f).apply { setTextColor(ink); gravity = Gravity.CENTER; maxLines = 2; ellipsize = TextUtils.TruncateAt.END }
     fun showIntensity() {
       intensity.removeAllViews()
-      val levels = WritingTone.levels(tone)
-      hint.text = WritingTone.hint(tone, runtime.selectedIntensity(selected, tone))
+      val levels = CueLanguage.toneLevels(this, tone)
+      hint.text = CueLanguage.toneHint(this, tone, runtime.selectedIntensity(selected, tone))
       if (levels.isEmpty()) return
       intensity.addView(KeyboardLevelSlider(this, levels, runtime.selectedIntensity(selected, tone), ink, muted, accent, onAccent) { level ->
         runtime.setWritingIntensity(selected, tone, level); replies = emptyList()
-        hint.text = WritingTone.hint(tone, level); conversationStyle?.text = styleSummary()
+        hint.text = CueLanguage.toneHint(this, tone, level); conversationStyle?.text = styleSummary()
       }, FrameLayout.LayoutParams(-1, -1))
     }
-    content.addView(KeyboardSwipeSelector(this, keys.map { if (it == "calming") "Łagodzący" else WritingTone.label(it) }, keys.indexOf(tone).coerceAtLeast(0), 20f, ink, muted, accent,
-      { "Styl odpowiedzi: $it" }) { position ->
+    content.addView(KeyboardSwipeSelector(this, keys.map { if (it == "calming") CueLanguage.toneShortLabel(this, it) else CueLanguage.toneLabel(this, it) }, keys.indexOf(tone).coerceAtLeast(0), 20f, ink, muted, accent,
+      { s(R.string.cue_kb_reply_style, it) }) { position ->
       tone = keys[position]
       runtime.setWritingTone(selected, tone); replies = emptyList()
       conversationStyle?.text = styleSummary()

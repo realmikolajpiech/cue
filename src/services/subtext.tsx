@@ -26,6 +26,7 @@ declare class SubtextModule extends NativeModule<{ onChanged: () => void }> {
   refresh(): Promise<void>;
   analyze(id: string, draft: string): Promise<string>;
   setCloudEnabled(enabled: boolean): Promise<void>;
+  setLanguage?(language: string): Promise<void>;
   clearHistory(): Promise<void>;
   disconnect(network: Network): Promise<void>;
   connectMessenger(): Promise<void>;
@@ -39,6 +40,9 @@ const unavailable = {
   available: false, hasApiKey: false, cloudEnabled: false, backgroundEnabled: false, model: 'deepseek-flash', analyzing: null,
   messenger: { phase: 'NOT_CONFIGURED', detail: '' }, whatsapp: { phase: 'NOT_CONFIGURED', detail: '', pairingCode: null },
 };
+/** Lets the Cue keyboard and AI prompts follow the language chosen in the app. */
+export function syncNativeLanguage(language: 'pl' | 'en') { void native?.setLanguage?.(language).catch(() => undefined); }
+
 export const subtext = {
   conversationReminders: async (id: string) => z.array(reminderSchema).parse(JSON.parse(await requireSubtext().conversationReminders(id))),
   refreshConversationReminders: async (id: string) => z.array(reminderSchema).parse(JSON.parse(await requireSubtext().refreshConversationReminders(id))),

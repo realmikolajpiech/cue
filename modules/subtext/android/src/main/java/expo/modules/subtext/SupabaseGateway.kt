@@ -6,7 +6,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 /** Public project credentials only. DeepSeek credentials never enter the APK. */
-class SupabaseGateway(context: Context) {
+class SupabaseGateway(private val context: Context) {
   private val sessionStore = SecureValue(context, "subtext_supabase_session")
   private fun request(path: String, body: JSONObject, token: String? = null): Pair<Int, JSONObject> {
     val connection = URL("$BASE$path").openConnection() as HttpURLConnection
@@ -43,6 +43,8 @@ class SupabaseGateway(context: Context) {
     return token
   }
   fun analyze(body: JSONObject): JSONObject {
+    // The server writes every user-facing field, replies included, in the app's language.
+    body.put("language", CueLanguage.get(context))
     var result = request("/functions/v1/deepseek-analyze", body, accessToken())
     if (result.first == 401) result = request("/functions/v1/deepseek-analyze", body, accessToken(true))
     check(result.first in 200..299) { when (result.first) {

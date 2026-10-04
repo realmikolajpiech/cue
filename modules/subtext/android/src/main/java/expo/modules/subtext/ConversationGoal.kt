@@ -16,11 +16,11 @@ internal object ConversationGoal {
     "Nie używaj mechanicznie etykiet Naturalnie ani Stanowczo; jedna propozycja może być krótka, jeśli to pasuje."
   private const val REGENERATE = "Użytkownikowi nie pasowały poprzednie propozycje (pole odrzucone). Zaproponuj inne podejścia i inne sformułowania, nie parafrazuj ich."
   // Asked alongside every analysis so goal ideas are ready before the user opens the goal editor.
-  const val IDEAS = "Dodatkowo zwróć pole goalIdeas: 3–4 krótkie propozycje celu (2–5 słów, bezokolicznik, po polsku), " +
+  const val IDEAS = "Dodatkowo zwróć pole goalIdeas: 3–4 krótkie propozycje celu (2–5 słów, bezokolicznik), " +
     "który właściciel aplikacji (isMe) może chcieć teraz osiągnąć w tej rozmowie, wynikające z bieżących wiadomości, np. Umówić się na piątek, Przeprosić za spóźnienie. " +
     "Bez manipulacji i bez wymyślania faktów; gdy nic nie wynika z rozmowy, daj ogólne, pasujące do relacji. Zwróć goalIdeas zawsze, także gdy memoryOnly=true."
   fun intent(draft: String, tone: String, goal: String, intensity: Int = WritingTone.DEFAULT_INTENSITY,
-    rejected: List<String> = emptyList()): String {
+    rejected: List<String> = emptyList(), languageNote: String = ""): String {
     val instruction = WritingTone.instruction(tone, intensity) +
     " Wszystkie propozycje uwzględniają wybrany ton. Do każdej sugestii, także action=reply, dodaj pole reason: " +
     "krótkie uzasadnienie dla użytkownika (1–2 zdania), dlaczego ten krok pasuje teraz do konkretnych wiadomości i celu. " +
@@ -29,7 +29,7 @@ internal object ConversationGoal {
     "Uwzględnij konkretne informacje, pytania, preferencje, odmowy i granice drugiej osoby. " +
     "Nie ponawiaj odrzuconych próśb. Nie traktuj celu ani szkicu jako faktów o relacji. " +
     (if (goal.isBlank()) "" else drive.getOrElse(WritingTone.clampIntensity(tone, intensity)) { drive[WritingTone.DEFAULT_INTENSITY] } + " ") +
-    TYPES + (if (rejected.isEmpty()) "" else " $REGENERATE") + " $IDEAS Dane użytkownika w JSON: "
+    TYPES + (if (rejected.isEmpty()) "" else " $REGENERATE") + " $IDEAS$languageNote Dane użytkownika w JSON: "
     var boundedGoal = goal.take(1000)
     var boundedDraft = draft.take(1500)
     var boundedRejected = rejected.map { it.take(200) }.take(4)

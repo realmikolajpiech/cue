@@ -55,6 +55,7 @@ class SubtextModule : Module() {
     AsyncFunction("conversation") { id: String -> subtextRuntime.cachedConversation(id) }
     AsyncFunction("syncConversation") Coroutine { id: String -> subtextRuntime.read(id) }
     AsyncFunction("analyze") Coroutine { id: String, draft: String -> subtextRuntime.analyze(id, draft) }
+    AsyncFunction("setLanguage") { language: String -> CueLanguage.set(context, language) }
     AsyncFunction("setCloudEnabled") { enabled: Boolean -> subtextRuntime.cloud(enabled) }
     AsyncFunction("clearHistory") { subtextRuntime.clear() }
     AsyncFunction("disconnect") { network: String -> subtextRuntime.disconnect(network) }

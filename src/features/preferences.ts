@@ -1,7 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { changeLanguage, deviceLanguage, type Language } from '@/i18n';
+import { changeLanguage as changeI18nLanguage, deviceLanguage, type Language } from '@/i18n';
+import { syncNativeLanguage } from '@/services/subtext';
+
+function changeLanguage(language: Language) { changeI18nLanguage(language); syncNativeLanguage(language); }
 
 type Preferences = { developerMode: boolean; toggleDeveloperMode: () => void; onboarded: boolean; hydrated: boolean; onboardingOpen: boolean; language: Language; completeOnboarding: () => void; restartOnboarding: () => void; closeOnboarding: () => void; setLanguage: (language: Language) => void; setHydrated: () => void };
 const toLanguage = (value: unknown): Language => value === 'en' || value === 'pl' ? value : deviceLanguage();
