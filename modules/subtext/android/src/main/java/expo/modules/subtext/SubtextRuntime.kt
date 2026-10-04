@@ -371,23 +371,25 @@ class SubtextRuntime private constructor(private val context: Context) {
     if (goal.isBlank()) editor.remove("conversation-goal:$id") else editor.putString("conversation-goal:$id", goal.trim())
     editor.apply(); changed()
   }
-  private fun styleToneKey(id: String?) = "writing-style-tone:" + (id ?: "general")
-  fun selectedTone(id: String?) = prefs.getString(styleToneKey(id),
-    prefs.getString(styleToneKey(null), "natural")) ?: "natural"
-  private fun styleIntensityKey(id: String?, tone: String) = "writing-style-intensity:" + (id ?: "general") + ":" + tone
-  fun selectedIntensity(id: String?, tone: String) = WritingTone.clampIntensity(tone, prefs.getInt(styleIntensityKey(id, tone),
-    prefs.getInt(styleIntensityKey(null, tone), WritingTone.DEFAULT_INTENSITY)))
+  // Style and intensity are shared by every conversation: the last choice carries over to the next person.
+  private val styleToneKey = "writing-style-tone:general"
+  @Suppress("UNUSED_PARAMETER")
+  fun selectedTone(id: String?) = prefs.getString(styleToneKey, "natural")?.takeIf { it in WritingTone.labels } ?: "natural"
+  private fun styleIntensityKey(tone: String) = "writing-style-intensity:general:$tone"
+  @Suppress("UNUSED_PARAMETER")
+  fun selectedIntensity(id: String?, tone: String) =
+    WritingTone.clampIntensity(tone, prefs.getInt(styleIntensityKey(tone), WritingTone.DEFAULT_INTENSITY))
   fun setWritingIntensity(id: String?, tone: String, intensity: Int) {
     WritingTone.requireValid(tone)
     if (id != null) requireNotNull(store.room(id)) { "Nie znaleziono rozmowy." }
-    prefs.edit().putInt(styleIntensityKey(id, tone), WritingTone.clampIntensity(tone, intensity)).apply()
+    prefs.edit().putInt(styleIntensityKey(tone), WritingTone.clampIntensity(tone, intensity)).apply()
     changed()
   }
   private fun styleCacheKey(id: String?, tone: String) = "writing-style-preview:v4:" + CueLanguage.get(context) + ":" + (id ?: "general") + ":" + tone
   fun setWritingTone(id: String?, tone: String): String {
     WritingTone.requireValid(tone)
     if (id != null) requireNotNull(store.room(id)) { "Nie znaleziono rozmowy." }
-    prefs.edit().putString(styleToneKey(id), tone).apply()
+    prefs.edit().putString(styleToneKey, tone).apply()
     changed()
     return writingStyle(id)
   }
